@@ -9,6 +9,10 @@ git:
     externalDiffCommand: "difft --color=always"
 os:
   editPreset: nvim
+
+# Skip the "Press enter to return to lazygit" prompt after editing
+promptToReturnFromSubprocess: false
+
 gui:
   # Catppuccin theme
   theme:
