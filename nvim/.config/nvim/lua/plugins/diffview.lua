@@ -24,6 +24,7 @@ return {
 
             -- Better default/starting point copied from https://github.com/MariaSolOs/dotfiles/blob/main/.config/nvim/lua/plugins/diffview.lua
             return {
+                enhanced_diff_hl = true,
                 default_args = { DiffviewFileHistory = { "%" } },
                 icons = {
                     folder_closed = icons.symbol_kinds.Folder,
