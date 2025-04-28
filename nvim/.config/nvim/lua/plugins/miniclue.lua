@@ -82,6 +82,7 @@ return {
 
                 -- Git
                 { mode = "n", keys = "<leader>g", desc = "+Git" },
+                { mode = "x", keys = "<leader>g", desc = "+Git" },
                 { mode = "n", keys = "<leader>gn", postkeys = "<leader>g" },
                 { mode = "n", keys = "<leader>gp", postkeys = "<leader>g" },
 

@@ -68,7 +68,7 @@ vim.keymap.set({ "n" }, "\\f", function()
 end, { desc = "Toggle formatting" })
 
 -- Toggle ignore white space for diffs
-vim.keymap.set({ "n" }, "\\I", function()
+vim.keymap.set({ "n" }, "<leader>gi", function()
     local is_ignoring_ws = vim.tbl_contains(vim.opt.diffopt:get(), "iwhite")
 
     if is_ignoring_ws then
