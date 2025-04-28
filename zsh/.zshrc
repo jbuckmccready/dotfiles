@@ -4,6 +4,7 @@ compinit
 # zoxide setup
 eval "$(zoxide init zsh)"
 alias cd="z"
+
 # Set up fzf key bindings and fuzzy completion
 export FZF_DEFAULT_OPTS=" \
 --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
@@ -20,6 +21,9 @@ export CLICOLOR=1
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   eval "$(oh-my-posh init zsh --config ~/.config/ohmyposh/zen.toml)"
 fi
+
+# fzf open to edit in neovim
+alias fzfe="fzf --multi --bind 'enter:become(nvim {+})'"
 
 # Launch lazygit with default config
 alias lg="lazygit"
