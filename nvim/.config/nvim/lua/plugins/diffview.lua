@@ -24,6 +24,8 @@ return {
 
             -- Better default/starting point copied from https://github.com/MariaSolOs/dotfiles/blob/main/.config/nvim/lua/plugins/diffview.lua
             return {
+                -- use enhanced diff highlighting for better readability
+                -- e.g., only removed lines are red, only added lines are green, rather than default symmetric highlighting
                 enhanced_diff_hl = true,
                 default_args = { DiffviewFileHistory = { "%" } },
                 icons = {
