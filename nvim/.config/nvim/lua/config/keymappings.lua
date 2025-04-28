@@ -52,6 +52,7 @@ vim.keymap.set(
 )
 vim.keymap.set({ "n" }, "\\w", "<Cmd>setlocal wrap! wrap?<CR>", { desc = "Toggle 'wrap'" })
 
+-- Toggle diagnostics
 vim.keymap.set({ "n" }, "\\d", function()
     vim.diagnostic.enable(vim.diagnostic.is_enabled())
     vim.notify(
@@ -60,10 +61,29 @@ vim.keymap.set({ "n" }, "\\d", function()
     )
 end, { desc = "Toggle diagnostic" })
 
+-- Toggle autoformatting
 vim.keymap.set({ "n" }, "\\f", function()
     vim.g.autoformat = not vim.g.autoformat
     vim.notify(string.format("%s formatting...", vim.g.autoformat and "Enabling" or "Disabling"), vim.log.levels.INFO)
 end, { desc = "Toggle formatting" })
+
+-- Toggle ignore white space for diffs
+vim.keymap.set({ "n" }, "\\I", function()
+    local is_ignoring_ws = vim.tbl_contains(vim.opt.diffopt:get(), "iwhite")
+
+    if is_ignoring_ws then
+        vim.opt.diffopt:remove("iwhite")
+        is_ignoring_ws = false
+    else
+        vim.opt.diffopt:append("iwhite")
+        is_ignoring_ws = true
+    end
+
+    vim.notify(
+        string.format("%s diff ignore white space...", is_ignoring_ws and "Enabling" or "Disabling"),
+        vim.log.levels.INFO
+    )
+end, { desc = "Toggle diff ignore white space" })
 
 -- Larger increments for window resizing
 vim.keymap.set({ "n" }, "<C-w><", "5<C-w><", { noremap = true, desc = "Decrease width" })
