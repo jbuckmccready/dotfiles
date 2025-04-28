@@ -10,7 +10,7 @@ local terminal = nil
 function M.float_term(cmd, opts)
     opts = vim.tbl_deep_extend("force", {
         ft = "lazyterm",
-        size = { width = 0.7, height = 0.7 },
+        size = { width = 0.9, height = 0.9 },
         persistent = true,
     }, opts or {})
 
