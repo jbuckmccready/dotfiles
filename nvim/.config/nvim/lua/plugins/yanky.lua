@@ -13,20 +13,20 @@ return {
     keys = {
         -- Copy/paste with system clipboard, NOTE: keymaps are here so yanky gets loaded for highlighting etc.
         {
-            "gy",
+            "<leader>y",
             '"+y',
             mode = { "n", "x" },
             desc = "Copy to system clipboard",
         },
         {
-            "gp",
+            "<leader>p",
             '"+p',
             mode = { "n" },
             desc = "Paste from system clipboard",
         },
         -- Paste in Visual with `P` to not copy selected text (`:h v_P`)
         {
-            "gp",
+            "<leader>p",
             '"+P',
             mode = { "x" },
             desc = "Paste from system clipboard",
