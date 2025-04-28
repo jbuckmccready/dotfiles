@@ -114,6 +114,9 @@ require("lspconfig").lua_ls.setup({
     },
 })
 
+-- terraform lsp
+require("lspconfig").terraformls.setup({})
+
 -- zig lsp
 require("lspconfig").zls.setup({})
 

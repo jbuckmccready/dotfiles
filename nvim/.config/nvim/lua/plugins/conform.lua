@@ -17,6 +17,8 @@ return {
             rust = { lsp_format = "prefer" },
             scss = { "prettier" },
             sh = { "shfmt" },
+            terraform = { lsp_format = "prefer" },
+            ["terraform-vars"] = { lsp_format = "prefer" },
             typescript = { "prettier", name = "dprint", lsp_format = "fallback" },
             typescriptreact = { "prettier", name = "dprint", lsp_format = "fallback" },
             -- For filetypes without a formatter:
