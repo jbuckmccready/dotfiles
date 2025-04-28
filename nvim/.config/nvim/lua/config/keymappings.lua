@@ -85,6 +85,20 @@ vim.keymap.set({ "n" }, "<leader>gi", function()
     )
 end, { desc = "Toggle diff ignore white space" })
 
+-- Copy shared main ancestor commit sha to clipboard, useful for diffing branches with main without having to merge main after main upstream changes
+vim.keymap.set({ "n" }, "<leader>gA", function()
+    local res = vim.system({ "git", "merge-base", "HEAD", "main" }):wait()
+    if res.code ~= 0 then
+        vim.notify(string.format("Error getting commit sha: %s", res.stderr or res.stdout or ""), vim.log.levels.ERROR)
+        return
+    end
+
+    -- Remove trailing newline
+    local commit_sha = res.stdout:gsub("\n", "")
+    vim.fn.setreg("+", commit_sha)
+    vim.notify("Copied commit sha: " .. commit_sha, vim.log.levels.INFO)
+end, { desc = "Copy shared main branch ancestor commit sha" })
+
 -- Larger increments for window resizing
 vim.keymap.set({ "n" }, "<C-w><", "5<C-w><", { noremap = true, desc = "Decrease width" })
 vim.keymap.set({ "n" }, "<C-w>>", "5<C-w>>", { noremap = true, desc = "Increase width" })
