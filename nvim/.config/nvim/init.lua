@@ -53,6 +53,7 @@ o.smartindent = true -- Make indenting smart (NOTE: `guess-indent` plugin will a
 o.completeopt = "menuone,noselect" -- Customize completions
 o.virtualedit = "block" -- Allow going past the end of line in visual block mode
 o.formatoptions = "qjl1" -- Don't autoformat comments
+o.diffopt:append("algorithm:histogram,vertical,context:15") -- Better default algorithm, vertical split diffs, and set context 15 to avoid excessive folding
 
 -- colorscheme
 vim.cmd.colorscheme(settings.colorscheme)
