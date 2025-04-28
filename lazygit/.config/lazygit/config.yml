@@ -39,6 +39,7 @@ gui:
   authorColors:
     '*': '#b4befe'
 
+  scrollHeight: 5
   showBottomLine: false
   border: rounded
   nerdFontsVersion: '3'
