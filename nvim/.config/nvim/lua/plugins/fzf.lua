@@ -225,6 +225,13 @@ return {
             desc = "Git Stash",
         },
         {
+            "<leader>fh",
+            function()
+                require("fzf-lua").highlights()
+            end,
+            desc = "Highlights",
+        },
+        {
             "<leader>va",
             function()
                 require("fzf-lua").lsp_code_actions()
