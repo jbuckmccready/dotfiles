@@ -38,6 +38,7 @@ o.ruler = false -- Don't show cursor position in command line
 o.showmode = false -- Don't show mode in command line
 o.wrap = false -- Display long lines as just one line
 vim.lsp.inlay_hint.enable(false) -- Turn off lsp inlay hints by default
+vim.diagnostic.config({ virtual_text = { current_line = true } }) -- Show diagnostic messages in the current line
 
 o.signcolumn = "yes" -- Always show sign column (otherwise it will shift text)
 o.fillchars = "eob: " -- Don't show `~` outside of buffer
