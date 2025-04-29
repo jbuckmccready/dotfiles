@@ -2,6 +2,7 @@
 return {
     "saghen/blink.cmp",
     build = "cargo +nightly build --release",
+    dependencies = "LuaSnip",
     event = "InsertEnter",
     opts = {
         keymap = {
@@ -9,6 +10,7 @@ return {
             ["<C-Space>"] = {},
             ["<C-n>"] = { "select_next", "show" },
             ["<C-p>"] = { "select_prev" },
+            ["<Tab>"] = { "snippet_forward", "fallback" },
             ["<C-u>"] = { "scroll_documentation_up", "fallback" },
             ["<C-d>"] = { "scroll_documentation_down", "fallback" },
         },
@@ -32,6 +34,7 @@ return {
                 },
             },
         },
+        snippets = { preset = "luasnip" },
         -- Disable command line completion:
         cmdline = { enabled = false },
         sources = {
@@ -43,6 +46,9 @@ return {
                 if ok and node then
                     if not vim.tbl_contains({ "comment", "line_comment", "block_comment" }, node:type()) then
                         table.insert(sources, "path")
+                    end
+                    if node:type() ~= "string" then
+                        table.insert(sources, "snippets")
                     end
                 end
 

@@ -10,9 +10,12 @@ vim.keymap.set("v", ">", ">gv")
 
 -- <esc> also clear highlight search
 vim.keymap.set({ "i", "s", "n" }, "<esc>", function()
+    if require("luasnip").expand_or_jumpable() then
+        require("luasnip").unlink_current()
+    end
     vim.cmd("noh")
     return "<esc>"
-end, { desc = "Escape and clear hlsearch", expr = true })
+end, { desc = "Escape, clear hlsearch, and stop snippet session", expr = true })
 
 -- Reselect latest changed, put, or yanked text
 vim.keymap.set(
