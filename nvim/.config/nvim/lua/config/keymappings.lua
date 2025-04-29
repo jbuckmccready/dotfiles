@@ -61,6 +61,29 @@ vim.keymap.set({ "n" }, "\\d", function()
     )
 end, { desc = "Toggle diagnostic" })
 
+-- Toggle virtual lines for diagnostics
+vim.keymap.set({ "n" }, "\\D", function()
+    if not vim.diagnostic.config().virtual_lines then
+        vim.diagnostic.config({
+            virtual_text = false,
+            virtual_lines = { current_line = true },
+        })
+    else
+        vim.diagnostic.config({
+            virtual_text = { current_line = true },
+            virtual_lines = false,
+        })
+    end
+
+    vim.notify(
+        string.format(
+            "%s virtual lines for diagnostics...",
+            vim.diagnostic.config().virtual_lines and "Enabling" or "Disabling"
+        ),
+        vim.log.levels.INFO
+    )
+end, { desc = "Toggle virtual lines diagnostics" })
+
 -- Toggle autoformatting
 vim.keymap.set({ "n" }, "\\f", function()
     vim.g.autoformat = not vim.g.autoformat
