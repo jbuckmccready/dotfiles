@@ -54,7 +54,7 @@ vim.keymap.set({ "n" }, "\\w", "<Cmd>setlocal wrap! wrap?<CR>", { desc = "Toggle
 
 -- Toggle diagnostics
 vim.keymap.set({ "n" }, "\\d", function()
-    vim.diagnostic.enable(vim.diagnostic.is_enabled())
+    vim.diagnostic.enable(not vim.diagnostic.is_enabled())
     vim.notify(
         string.format("%s diagnostics...", vim.diagnostic.is_enabled() and "Enabling" or "Disabling"),
         vim.log.levels.INFO
