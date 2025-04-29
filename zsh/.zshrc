@@ -31,6 +31,9 @@ alias lg="lazygit"
 # Launch lazygit with config setup to use difftastic
 alias lgt="lazygit --use-config-file ~/.config/lazygit/difftastic-config.yml"
 
+# neovim for kubectl/k9s
+export KUBE_EDITOR=nvim
+
 export PATH="/opt/homebrew/bin:$PATH"
 
 export PATH="$HOME/.cargo/bin:$PATH"
