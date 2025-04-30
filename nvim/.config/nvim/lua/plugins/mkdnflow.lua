@@ -24,8 +24,8 @@ return {
             update = false,
         },
         mappings = {
-            -- turn on insert mode MkdnEnter for auto list bullet creation on <CR>
-            MkdnEnter = { { "n", "v", "i" }, "<CR>" },
+            -- Only enable MkdnEnter for norma nd visual modes, insert mode causes issues with blink-cmp, using bullets.vim instead
+            MkdnEnter = { { "n", "v" }, "<CR>" },
             MkdnFoldSection = false,
             MkdnUnfoldSection = false,
             MkdnTableNextCell = false,
