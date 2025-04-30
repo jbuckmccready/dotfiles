@@ -23,7 +23,7 @@ return {
             list = {
                 selection = { preselect = false, auto_insert = true },
                 -- Show more items than default 10 so it's easier to browse apis.
-                max_items = 100,
+                max_items = 20,
             },
             documentation = {
                 auto_show = true,
@@ -40,7 +40,7 @@ return {
         sources = {
             -- Disable some sources in comments and strings.
             default = function()
-                local sources = { "lsp", "buffer" }
+                local sources = { "lsp", "buffer", "path" }
                 local ok, node = pcall(vim.treesitter.get_node)
 
                 if ok and node then
