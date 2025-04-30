@@ -93,6 +93,19 @@ vim.keymap.set({ "n" }, "\\f", function()
     vim.notify(string.format("%s formatting...", vim.g.autoformat and "Enabling" or "Disabling"), vim.log.levels.INFO)
 end, { desc = "Toggle formatting" })
 
+-- Toggle scrolloff
+vim.keymap.set({ "n" }, "\\j", function()
+    vim.o.scrolloff = vim.o.scrolloff == 0 and 999 or 0
+    vim.notify(
+        string.format(
+            "%s auto scrolling (scrolloff = %s)...",
+            vim.o.scrolloff == 0 and "Disabling" or "Enabling",
+            vim.o.scrolloff
+        ),
+        vim.log.levels.INFO
+    )
+end, { desc = "Toggle auto scrolling (scrolloff)" })
+
 -- Toggle ignore white space for diffs
 vim.keymap.set({ "n" }, "<leader>gi", function()
     local is_ignoring_ws = vim.tbl_contains(vim.opt.diffopt:get(), "iwhite")

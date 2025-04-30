@@ -60,6 +60,38 @@ o.diffopt:append("algorithm:histogram,vertical,context:15,indent-heuristic") -- 
 vim.cmd.colorscheme(settings.colorscheme)
 o.background = settings.background
 
+-- autocommand to have scroffoff work at end of file
+-- Copied, simplified, and adjusted from here: https://github.com/Aasim-A/scrollEOF.nvim
+vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {
+    group = vim.api.nvim_create_augroup("ScrollEOF", { clear = true }),
+    callback = function(ev)
+        if ev.event == "WinScrolled" then
+            local win_id = vim.api.nvim_get_current_win()
+            local win_event = vim.v.event[tostring(win_id)]
+            if win_event ~= nil and win_event.topline <= 0 then
+                return
+            end
+        end
+
+        local win_height = vim.fn.winheight(0)
+        local win_cur_line = vim.fn.winline()
+        local scrolloff = math.min(vim.o.scrolloff, math.floor(win_height / 2))
+        local visual_distance_to_eof = win_height - win_cur_line
+
+        if visual_distance_to_eof < scrolloff then
+            if vim.o.scrolloff >= win_height / 2 then
+                vim.cmd("normal! zz")
+                return
+            end
+            local win_view = vim.fn.winsaveview()
+            vim.fn.winrestview({
+                skipcol = 0, -- Without this, `gg` `G` can cause the cursor position to be shown incorrectly
+                topline = win_view.topline + scrolloff - visual_distance_to_eof,
+            })
+        end
+    end,
+})
+
 -- Default to rounded borders for floating windows (only if unset)
 local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
 ---@diagnostic disable-next-line: duplicate-set-field
