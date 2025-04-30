@@ -1,8 +1,10 @@
 return {
     "MeanderingProgrammer/render-markdown.nvim",
     opts = {
+        sign = {
+            enabled = false,
+        },
         heading = {
-            sign = false,
             icons = { "󰎤 ", "󰎧 ", "󰎪 ", "󰎭 ", "󰎱 ", "󰎳 " },
         },
         checkbox = {
