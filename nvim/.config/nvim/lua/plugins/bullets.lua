@@ -6,6 +6,7 @@ return {
         vim.g.bullets_set_mappings = 0
         vim.g.bullets_custom_mappings = {
             { "imap", "<cr>", "<Plug>(bullets-newline)" },
+            { "nmap", "o", "<Plug>(bullets-newline)" },
             { "vmap", "<leader>mR", "<Plug>(bullets-renumber)" },
             { "nmap", "<leader>mR", "<Plug>(bullets-renumber)" },
         }

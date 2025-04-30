@@ -89,6 +89,10 @@ return {
                 -- Code Companion
                 { mode = "n", keys = "<leader>c", desc = "+Code Companion" },
 
+                -- Markdown
+                { mode = "n", keys = "<leader>m", desc = "+Markdown/Text" },
+                { mode = "x", keys = "<leader>m", desc = "+Markdown/Text" },
+
                 -- Iron Repl
                 { mode = "n", keys = "<leader>r", desc = "+Iron Repl" },
             },
