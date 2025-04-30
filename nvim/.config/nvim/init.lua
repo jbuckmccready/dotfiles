@@ -69,6 +69,25 @@ function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
     return orig_util_open_floating_preview(contents, syntax, opts, ...)
 end
 
+local scrolloff = 8 -- Start with 8 lines above/below cursor
+vim.o.scrolloff = scrolloff
+
+-- autocommands to toggle scrolloff to 0 when entering search mode and back when leaving
+local search_cmd_pattern = { "/", "?" }
+vim.api.nvim_create_autocmd("CmdlineEnter", {
+    pattern = search_cmd_pattern,
+    callback = function()
+        scrolloff = vim.o.scrolloff
+        vim.o.scrolloff = 0
+    end,
+})
+vim.api.nvim_create_autocmd("CmdlineLeave", {
+    pattern = search_cmd_pattern,
+    callback = function()
+        vim.o.scrolloff = scrolloff
+    end,
+})
+
 -- using mason for lsp setup
 require("mason").setup()
 -- mason-lspconfig just to simplify setup of lsp
