@@ -27,8 +27,6 @@ return {
             },
             documentation = {
                 auto_show = true,
-                -- Decrease the default delay to show the documentation.
-                auto_show_delay_ms = 50,
                 window = {
                     border = "rounded",
                 },
