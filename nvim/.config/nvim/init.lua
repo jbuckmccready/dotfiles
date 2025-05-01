@@ -69,22 +69,55 @@ function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
     return orig_util_open_floating_preview(contents, syntax, opts, ...)
 end
 
-local scrolloff = 8 -- Start with 8 lines above/below cursor
-vim.o.scrolloff = scrolloff
+-- used to track user set scrolloff value for restoring
+local user_scrolloff = 8 -- Start with 8 lines above/below cursor
+vim.o.scrolloff = user_scrolloff
 
 -- autocommands to toggle scrolloff to 0 when entering search mode and back when leaving
 local search_cmd_pattern = { "/", "?" }
 vim.api.nvim_create_autocmd("CmdlineEnter", {
     pattern = search_cmd_pattern,
     callback = function()
-        scrolloff = vim.o.scrolloff
+        user_scrolloff = vim.o.scrolloff
         vim.o.scrolloff = 0
     end,
 })
 vim.api.nvim_create_autocmd("CmdlineLeave", {
     pattern = search_cmd_pattern,
     callback = function()
-        vim.o.scrolloff = scrolloff
+        vim.o.scrolloff = user_scrolloff
+    end,
+})
+
+-- autocommand to have scroffoff work at end of file
+-- Copied, simplified, and adjusted from here: https://github.com/Aasim-A/scrollEOF.nvim
+vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {
+    group = vim.api.nvim_create_augroup("ScrollEOF", { clear = true }),
+    callback = function(ev)
+        if ev.event == "WinScrolled" then
+            local win_id = vim.api.nvim_get_current_win()
+            local win_event = vim.v.event[tostring(win_id)]
+            if win_event ~= nil and win_event.topline <= 0 then
+                return
+            end
+        end
+
+        local win_height = vim.fn.winheight(0)
+        local win_cur_line = vim.fn.winline()
+        local scrolloff = math.min(vim.o.scrolloff, math.floor(win_height / 2))
+        local visual_distance_to_eof = win_height - win_cur_line
+
+        if visual_distance_to_eof < scrolloff then
+            if vim.o.scrolloff >= win_height / 2 then
+                vim.cmd("normal! zz")
+                return
+            end
+            local win_view = vim.fn.winsaveview()
+            vim.fn.winrestview({
+                skipcol = 0, -- Without this, `gg` `G` can cause the cursor position to be shown incorrectly
+                topline = win_view.topline + scrolloff - visual_distance_to_eof,
+            })
+        end
     end,
 })
 

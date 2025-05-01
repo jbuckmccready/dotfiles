@@ -4,22 +4,6 @@ vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Scroll upwards" })
 vim.keymap.set("n", "n", "nzzzv", { desc = "Next result" })
 vim.keymap.set("n", "N", "Nzzzv", { desc = "Previous result" })
 
--- jk autoscrolling
-vim.keymap.set("n", "j", function()
-    if vim.g.jk_auto_scroll then
-        vim.cmd("normal! jzz")
-    else
-        vim.cmd("normal! j")
-    end
-end, { noremap = true, desc = "Cursor down" })
-vim.keymap.set("n", "k", function()
-    if vim.g.jk_auto_scroll then
-        vim.cmd("normal! kzz")
-    else
-        vim.cmd("normal! k")
-    end
-end, { noremap = true, desc = "Cursor up" })
-
 -- Indent while remaining in visual mode
 vim.keymap.set("v", "<", "<gv")
 vim.keymap.set("v", ">", ">gv")
@@ -109,14 +93,28 @@ vim.keymap.set({ "n" }, "\\f", function()
     vim.notify(string.format("%s formatting...", vim.g.autoformat and "Enabling" or "Disabling"), vim.log.levels.INFO)
 end, { desc = "Toggle formatting" })
 
--- Toggle jk auto scrolling
+-- track user set scrolloff value to restore after toggling
+-- if nil then autoscrolling is disabled
+local user_scrolloff = nil
 vim.keymap.set({ "n" }, "\\j", function()
-    vim.g.jk_auto_scroll = not vim.g.jk_auto_scroll
+    if user_scrolloff == nil then
+        user_scrolloff = vim.o.scrolloff
+        vim.o.scrolloff = 999
+    else
+        -- restore user scrolloff value
+        vim.o.scrolloff = user_scrolloff
+        user_scrolloff = nil
+    end
+
     vim.notify(
-        string.format("%s auto scrolling with jk...", vim.g.jk_auto_scroll and "Enabling" or "Disabling"),
+        string.format(
+            "%s auto scrolling (scrolloff = %s)...",
+            user_scrolloff == nil and "Disabling" or "Enabling",
+            vim.o.scrolloff
+        ),
         vim.log.levels.INFO
     )
-end, { desc = "Toggle auto scrolling with jk" })
+end, { desc = "Toggle auto scrolling (scrolloff = 999)" })
 
 -- Toggle ignore white space for diffs
 vim.keymap.set({ "n" }, "<leader>gi", function()
