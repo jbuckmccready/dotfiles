@@ -216,6 +216,14 @@ vim.keymap.set({ "t" }, "<C-w><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mod
 -- Close window while in terminal mode
 vim.keymap.set({ "t" }, "<C-w>q", "<C-\\><C-n><C-w>q", { desc = "Quit current" })
 
+-- Enter insert mode immediately when entering terminal window
+vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
+    pattern = { "term://*" },
+    callback = function()
+        vim.cmd("startinsert")
+    end,
+})
+
 -- Tab setup
 vim.keymap.set({ "n" }, "<leader>h", "<cmd>tabprevious<CR>", { desc = "Next Tab" })
 vim.keymap.set({ "n" }, "<leader>l", "<cmd>tabnext<CR>", { desc = "Previous Tab" })
