@@ -4,7 +4,6 @@ return {
     main = "ibl",
     event = "VeryLazy",
     opts = {
-        debounce = 50,
         indent = {
             char = require("icons").misc.vertical_bar,
         },
