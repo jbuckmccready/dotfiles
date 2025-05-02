@@ -1,6 +1,7 @@
 -- Auto-completion:
 return {
     "saghen/blink.cmp",
+    commit = "f233029f79312d1028cbf168a8eef3182bac5a4f",
     build = "cargo +nightly build --release",
     dependencies = "LuaSnip",
     event = "InsertEnter",
