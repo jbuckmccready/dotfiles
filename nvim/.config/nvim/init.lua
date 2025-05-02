@@ -7,6 +7,7 @@ vim.keymap.del("n", "grr")
 require("config.lazy")
 require("config.patches")
 require("config.keymappings")
+require("autocmds")
 
 local settings = require("config.settings")
 
@@ -33,6 +34,15 @@ o.linebreak = true -- Wrap long lines at 'breakat' (if 'wrap' is set)
 o.number = true -- Show line numbers
 o.splitbelow = true -- Horizontal splits will be below
 o.splitright = true -- Vertical splits will be to the right
+vim.opt.listchars = { space = "⋅", trail = "⋅", tab = "  ↦" } -- Whitespace characters
+vim.opt.fillchars = {
+    eob = " ",
+    fold = " ",
+    foldclose = "▶",
+    foldopen = " ",
+    foldsep = " ",
+    msgsep = "─",
+}
 
 o.ruler = false -- Don't show cursor position in command line
 o.showmode = false -- Don't show mode in command line
@@ -41,7 +51,6 @@ vim.lsp.inlay_hint.enable(false) -- Turn off lsp inlay hints by default
 vim.diagnostic.config({ virtual_text = { current_line = true } }) -- Start with diagnostic messages in the current line
 
 o.signcolumn = "yes" -- Always show sign column (otherwise it will shift text)
-o.fillchars = "eob: " -- Don't show `~` outside of buffer
 o.pumheight = 10 -- Keep popup menus from being too tall (limit to 10 items)
 
 -- Editing
@@ -56,9 +65,34 @@ o.virtualedit = "block" -- Allow going past the end of line in visual block mode
 o.formatoptions = "qjl1" -- Don't autoformat comments
 o.diffopt:append("algorithm:histogram,vertical,context:15,indent-heuristic") -- Better default algorithm, vertical split diffs, set context 15 to avoid excessive folding, and use indent heuristic
 
--- colorscheme
+-- Colorscheme
 vim.cmd.colorscheme(settings.colorscheme)
 o.background = settings.background
+
+-- Folds
+vim.o.foldenable = true
+vim.o.foldlevel = 99
+vim.o.foldtext = ""
+
+vim.opt.foldcolumn = "0"
+vim.o.foldmethod = "expr"
+-- Default to treesitter folding
+vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+
+local fcs = vim.opt.fillchars:get()
+-- Status column for folds
+local function get_fold(lnum)
+    if vim.fn.foldlevel(lnum) <= vim.fn.foldlevel(lnum - 1) then
+        return " "
+    end
+    return vim.fn.foldclosed(lnum) == -1 and fcs.foldopen or fcs.foldclose
+end
+
+_G.get_statuscol = function()
+    return "%s%l " .. get_fold(vim.v.lnum) .. " "
+end
+
+vim.o.statuscolumn = "%!v:lua.get_statuscol()"
 
 -- Default to rounded borders for floating windows (only if unset)
 local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
@@ -86,38 +120,6 @@ vim.api.nvim_create_autocmd("CmdlineLeave", {
     pattern = search_cmd_pattern,
     callback = function()
         vim.o.scrolloff = user_scrolloff
-    end,
-})
-
--- autocommand to have scroffoff work at end of file
--- Copied, simplified, and adjusted from here: https://github.com/Aasim-A/scrollEOF.nvim
-vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {
-    group = vim.api.nvim_create_augroup("ScrollEOF", { clear = true }),
-    callback = function(ev)
-        if ev.event == "WinScrolled" then
-            local win_id = vim.api.nvim_get_current_win()
-            local win_event = vim.v.event[tostring(win_id)]
-            if win_event ~= nil and win_event.topline <= 0 then
-                return
-            end
-        end
-
-        local win_height = vim.fn.winheight(0)
-        local win_cur_line = vim.fn.winline()
-        local scrolloff = math.min(vim.o.scrolloff, math.floor(win_height / 2))
-        local visual_distance_to_eof = win_height - win_cur_line
-
-        if visual_distance_to_eof < scrolloff then
-            if vim.o.scrolloff >= win_height / 2 then
-                vim.cmd("normal! zz")
-                return
-            end
-            local win_view = vim.fn.winsaveview()
-            vim.fn.winrestview({
-                skipcol = 0, -- Without this, `gg` `G` can cause the cursor position to be shown incorrectly
-                topline = win_view.topline + scrolloff - visual_distance_to_eof,
-            })
-        end
     end,
 })
 
