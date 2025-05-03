@@ -6,7 +6,7 @@ return {
         "ibhagwan/fzf-lua",
     },
     keys = {
-        { "<leader>gg", "<cmd>Neogit kind=floating<CR>", mode = "n", desc = "Neogit" },
+        { "<leader>gg", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
     },
     config = function()
         require("neogit").setup({
