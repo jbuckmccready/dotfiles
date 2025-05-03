@@ -6,7 +6,7 @@ git:
     pager: ""
     # If true, Lazygit will use whatever pager is specified in `$GIT_PAGER`, `$PAGER`, or your *git config*. If the pager ends with something like ` | less` we will strip that part out, because less doesn't play nice with our rendering approach. If the custom pager uses less under the hood, that will also break rendering (hence the `--paging=never` flag for the `delta` pager).
     useConfig: false
-    externalDiffCommand: "difft --color=always"
+    externalDiffCommand: "difft --color=always --context=6"
 os:
   editPreset: nvim
 
