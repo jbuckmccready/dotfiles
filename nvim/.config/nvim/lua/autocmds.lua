@@ -16,6 +16,10 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {
     group = vim.api.nvim_create_augroup("ScrollEOF", { clear = true }),
     desc = "Scrolloff functionality at EOF",
     callback = function(ev)
+        -- do not apply to minifiles, causes flickering/jumping issues
+        if vim.bo.filetype == "minifiles" then
+            return
+        end
         if ev.event == "WinScrolled" then
             local win_id = vim.api.nvim_get_current_win()
             local win_event = vim.v.event[tostring(win_id)]
