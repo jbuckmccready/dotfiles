@@ -25,7 +25,25 @@ return {
             lualine_b = { "branch", "diff", "diagnostics" },
             -- path = 2 for absolute file path
             lualine_c = { { "filename", path = 2 } },
-            lualine_x = { "encoding", "fileformat", "filetype" },
+            lualine_x = {
+                {
+                    "lsp_status",
+                    icon = "",
+                    symbols = {
+                        -- Standard unicode symbols to cycle through for LSP progress:
+                        spinner = { "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏" },
+                        -- Standard unicode symbol for when LSP is done:
+                        done = "✓",
+                        -- Delimiter inserted between LSP names:
+                        separator = "|",
+                    },
+                    -- List of LSP names to ignore (e.g., `null-ls`):
+                    ignore_lsp = { "GitHub Copilot" },
+                },
+                "encoding",
+                "fileformat",
+                "filetype",
+            },
             lualine_y = { "progress" },
             lualine_z = { "location" },
         },
