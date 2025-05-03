@@ -196,7 +196,7 @@ vim.keymap.set({ "n", "v" }, "<leader>t", require("lua_utils").exec_lua, { desc 
 -- Terminal
 -- Floating terminal.
 vim.keymap.set({ "n" }, "<leader>z", function()
-    require("float_term").float_term("zsh", { cwd = vim.fn.expand("%:p:h") })
+    require("float_term").float_term("fish", { cwd = vim.fn.expand("%:p:h") })
 end, { desc = "Toggle floating terminal" })
 
 -- Ensure ctrl-c sends SIGINT in terminal mode

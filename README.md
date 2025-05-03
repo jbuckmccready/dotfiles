@@ -18,6 +18,39 @@ stow tmux
 - ripgrep (also used from neovim)
 - fd (also used from neovim)
 - zoxide
-- oh my posh (using zsh)
+- fish shell
 - tmux with tmux-resurrect and vim-tmux-navigator plugins
 - neovim
+- lazygit
+- delta and difftastic for diffs
+
+## Install Notes MacOS
+
+### Fish
+
+Dotfiles:
+
+```sh
+stow fish
+```
+
+Install:
+
+```sh
+brew install fish
+```
+
+Set default shell:
+
+```sh
+which fish
+# /opt/homebrew/bin/fish
+echo /opt/homebrew/bin/fish | sudo tee -a /etc/shells
+chsh -s /opt/homebrew/bin/fish
+```
+
+Init completions:
+
+```sh
+fish_update_completions
+```
