@@ -48,8 +48,12 @@ export PATH="$HOME/bin/clickhouse-server/usr/bin:$PATH"
 
 export PATH="$HOME/bin/clickhouse-server/usr/local/bin:$PATH"
 
-export GOROOT="/opt/homebrew/opt/go@1.20/libexec"
-
-export PATH="/opt/homebrew/opt/go@1.20/libexec/bin:$PATH"
-
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+
+export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
+
+export GOROOT="/opt/homebrew/opt/go@1.22/libexec"
+
+export PATH="/opt/homebrew/opt/go@1.22/libexec/bin:$PATH"
+
+. "$HOME/.local/bin/env"
