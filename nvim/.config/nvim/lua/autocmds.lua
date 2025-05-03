@@ -10,6 +10,22 @@ vim.api.nvim_create_autocmd("BufReadPost", {
     end,
 })
 
+vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_augroup("mariasolos/close_with_q", { clear = true }),
+    desc = "Close with <q>",
+    pattern = {
+        "git",
+        "help",
+        "man",
+        "qf",
+        "query",
+        "scratch",
+    },
+    callback = function(args)
+        vim.keymap.set("n", "q", "<cmd>quit<cr>", { buffer = args.buf })
+    end,
+})
+
 -- Making scroffoff work at end of file
 -- Copied, simplified, and adjusted from here: https://github.com/Aasim-A/scrollEOF.nvim
 vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {

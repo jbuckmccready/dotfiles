@@ -8,6 +8,7 @@ require("config.lazy")
 require("config.patches")
 require("config.keymappings")
 require("autocmds")
+require("commands")
 
 local settings = require("config.settings")
 
