@@ -1,10 +1,21 @@
 # setup environment variables and PATH
 source $__fish_config_dir/environment.fish
 
+# Color scheme
+fish_config theme choose "Catppuccin Mocha"
+
 if status is-interactive
-    # Commands to run in interactive sessions can go here
+	# Commands to run in interactive sessions can go here
 end
 
+# Hydro prompt settings
+set -g hydro_symbol_start \n
+set -g hydro_color_pwd $fish_color_cwd
+set -g hydro_color_prompt $fish_color_command
+set -g hydro_color_git $fish_color_comment
+set -g hydro_color_duration $fish_color_gray
+set -g hydro_symbol_git_dirty "*"
+set -g hydro_multiline true
 
 # fzf open to edit in neovim
 alias fzfe="fzf --multi --bind 'enter:become(nvim {+})'"
@@ -31,9 +42,6 @@ set -gx FZF_DEFAULT_OPTS "\
 --color=selected-bg:#45475a \
 --color=border:#313244,label:#cdd6f4"
 fzf --fish | source
-
-# Color scheme
-fish_config theme choose "Catppuccin Mocha"
 
 # neovim for kubectl/k9s
 export KUBE_EDITOR=nvim

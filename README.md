@@ -54,3 +54,15 @@ Init completions:
 ```sh
 fish_update_completions
 ```
+
+Install Fisher:
+
+```sh
+curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
+```
+
+Install hydro prompt:
+
+```sh
+fisher install jorgebucaran/hydro
+```
