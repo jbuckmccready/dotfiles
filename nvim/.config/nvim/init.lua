@@ -60,6 +60,7 @@ o.incsearch = true -- Show search results while typing
 o.infercase = true -- Infer letter cases for a richer built-in keyword completion
 o.smartcase = true -- Don't ignore case when searching if pattern has upper case
 o.smartindent = true -- Make indenting smart (NOTE: `guess-indent` plugin will auto match existing file for indent settings so this doesn't matter much)
+o.inccommand = "split" -- Show substitutions in a split window
 
 o.completeopt = "menuone,noselect" -- Customize completions
 o.virtualedit = "block" -- Allow going past the end of line in visual block mode
