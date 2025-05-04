@@ -15,7 +15,7 @@ fish_config theme choose "Catppuccin Mocha"
 # Hydro prompt settings
 set -g hydro_symbol_start \n
 set -g hydro_color_pwd $fish_color_cwd
-set -g hydro_color_prompt $fish_color_command
+set -g hydro_color_prompt b4befe # catppuccin lavender
 set -g hydro_color_git $fish_color_comment
 set -g hydro_color_duration $fish_color_gray
 set -g hydro_symbol_git_dirty "*"
