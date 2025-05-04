@@ -23,7 +23,11 @@ set -g hydro_multiline true
 
 
 abbr -a nv "nvim"
-abbr -a ls "eza"
+abbr -a ls "lsd"
+abbr -a l 'lsd -l'
+abbr -a la 'lsd -lA'
+abbr -a lt 'lsd --tree'
+abbr -a las 'lsd -lA --total-size'
 
 # fzf open to edit in neovim
 abbr -a fzfe "fzf --multi --bind 'enter:become(nvim {+})'"
