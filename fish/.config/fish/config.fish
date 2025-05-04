@@ -23,6 +23,8 @@ set -g hydro_multiline true
 
 
 abbr -a nv "nvim"
+abbr -a ls "eza"
+
 # fzf open to edit in neovim
 abbr -a fzfe "fzf --multi --bind 'enter:become(nvim {+})'"
 
