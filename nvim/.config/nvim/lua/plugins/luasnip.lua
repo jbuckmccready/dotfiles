@@ -45,12 +45,6 @@ return {
 
             ls.setup(opts)
 
-            -- FIXME: need to add useful table snippets in here to replace friendly-snippets entirely
-            -- Load snippets under nvim config:
-            -- require("luasnip.loaders.from_vscode").lazy_load({
-            --     paths = vim.fn.stdpath("config") .. "/snippets",
-            -- })
-
             -- Add custom snippets
             -- NOTE: much of this idea for organization is copied from here: https://github.com/linkarzu/dotfiles-latest/blob/8011c0fcf1e23e08ebd46a8079c38efeb75d5dec/neovim/neobean/lua/plugins/luasnip.lua
 
@@ -110,6 +104,7 @@ return {
 
             -- Define languages for code blocks
             local languages = {
+                "sh",
                 "bash",
                 "cpp",
                 "go",
