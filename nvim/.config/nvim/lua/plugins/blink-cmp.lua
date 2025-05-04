@@ -52,6 +52,13 @@ return {
 
                 return sources
             end,
+            per_filetype = {
+                sql = { "dadbod", "buffer" },
+            },
+            -- add vim-dadbod-completion to your completion providers
+            providers = {
+                dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
+            },
         },
         appearance = {
             kind_icons = require("icons").symbol_kinds,
