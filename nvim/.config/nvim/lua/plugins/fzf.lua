@@ -248,23 +248,67 @@ return {
             desc = "Spell Suggest",
         },
     },
-    opts = {
-        keymap = {
-            builtin = {
-                -- Enable defaults
-                true,
-                ["<C-d>"] = "preview-page-down",
-                ["<C-u>"] = "preview-page-up",
+    opts = function()
+        local actions = require("fzf-lua").actions
+        return {
+            -- base profile settings
+            { "border-fused", "hide" },
+            keymap = {
+                builtin = {
+                    -- Enable defaults
+                    true,
+                    ["<C-d>"] = "preview-page-down",
+                    ["<C-u>"] = "preview-page-up",
+                },
+                fzf = {
+                    -- Enable defaults
+                    true,
+                    ["ctrl-d"] = "preview-page-down",
+                    ["ctrl-u"] = "preview-page-up",
+                },
             },
-            fzf = {
-                -- Enable defaults
-                true,
-                ["ctrl-d"] = "preview-page-down",
-                ["ctrl-u"] = "preview-page-up",
+            -- Specific picker configurations
+            grep = {
+                rg_opts = "--color=never --no-heading --hidden --with-filename --line-number --column --smart-case --trim --max-columns=4096 -g '!.git/' -g '!node_modules/' -e",
             },
-        },
-        grep = {
-            rg_opts = "--color=never --no-heading --hidden --with-filename --line-number --column --smart-case --trim --max-columns=4096 -g '!.git/' -g '!node_modules/' -e",
-        },
-    },
+            helptags = {
+                actions = {
+                    -- Open help pages in a vertical split.
+                    ["enter"] = actions.help_vert,
+                },
+            },
+        }
+    end,
+    init = function()
+        -- use fzf-lua for vim.ui.select
+        ---@diagnostic disable-next-line: duplicate-set-field
+        vim.ui.select = function(items, opts, on_choice)
+            local ui_select = require("fzf-lua.providers.ui_select")
+
+            -- Register the fzf-lua picker the first time we call select.
+            if not ui_select.is_registered() then
+                ui_select.register(function(ui_opts)
+                    if ui_opts.kind == "luasnip" then
+                        ui_opts.prompt = "Snippet choice: "
+                        ui_opts.winopts = {
+                            relative = "cursor",
+                            height = 0.35,
+                            width = 0.3,
+                        }
+                    elseif ui_opts.kind == "lsp_message" then
+                        ui_opts.winopts = { height = 0.4, width = 0.4 }
+                    else
+                        ui_opts.winopts = { height = 0.6, width = 0.5 }
+                    end
+
+                    return ui_opts
+                end)
+            end
+
+            -- Don't show the picker if there's nothing to pick.
+            if #items > 0 then
+                return vim.ui.select(items, opts, on_choice)
+            end
+        end
+    end,
 }
