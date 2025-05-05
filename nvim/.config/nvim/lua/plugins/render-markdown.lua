@@ -7,6 +7,9 @@ return {
         heading = {
             icons = { "󰎤 ", "󰎧 ", "󰎪 ", "󰎭 ", "󰎱 ", "󰎳 " },
         },
+        bullet = {
+            icons = { "◉", "○", "◆", "◇" },
+        },
         checkbox = {
             -- Turn on / off checkbox state rendering
             enabled = true,
