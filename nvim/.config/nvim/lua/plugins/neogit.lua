@@ -8,27 +8,27 @@ return {
     keys = {
         { "<leader>gg", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
     },
-    config = function()
-        require("neogit").setup({
-            -- disable ctrl-c mappings
-            mappings = {
-                commit_editor = {
-                    ["<c-c><c-c>"] = false,
-                    ["<c-c><c-k>"] = false,
-                },
-                commit_editor_I = {
-                    ["<c-c><c-c>"] = false,
-                    ["<c-c><c-k>"] = false,
-                },
-                rebase_editor = {
-                    ["<c-c><c-c>"] = false,
-                    ["<c-c><c-k>"] = false,
-                },
-                rebase_editor_I = {
-                    ["<c-c><c-c>"] = false,
-                    ["<c-c><c-k>"] = false,
-                },
+    opts = {
+        -- prettier log graph
+        graph_style = "kitty",
+        -- disable ctrl-c mappings
+        mappings = {
+            commit_editor = {
+                ["<c-c><c-c>"] = false,
+                ["<c-c><c-k>"] = false,
             },
-        })
-    end,
+            commit_editor_I = {
+                ["<c-c><c-c>"] = false,
+                ["<c-c><c-k>"] = false,
+            },
+            rebase_editor = {
+                ["<c-c><c-c>"] = false,
+                ["<c-c><c-k>"] = false,
+            },
+            rebase_editor_I = {
+                ["<c-c><c-c>"] = false,
+                ["<c-c><c-k>"] = false,
+            },
+        },
+    },
 }
