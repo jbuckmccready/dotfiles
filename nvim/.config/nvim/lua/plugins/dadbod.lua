@@ -25,6 +25,11 @@ return {
         vim.g.db_ui_use_nvim_notify = 1
         vim.g.db_ui_winwidth = 50
 
+        -- This sets the location of the `connections.json` file, which includes the
+        -- DB conection strings, the default location for this is `~/.local/share/db_ui`
+        -- vim.g.db_ui_save_location = "~/.ssh/dbui"
+    end,
+    config = function()
         -- 2 space tab indent for the ui tree (filetype=dbui)
         vim.api.nvim_create_augroup("DadbodUISettings", { clear = true })
         vim.api.nvim_create_autocmd("FileType", {
@@ -37,8 +42,18 @@ return {
             end,
         })
 
-        -- This sets the location of the `connections.json` file, which includes the
-        -- DB conection strings, the default location for this is `~/.local/share/db_ui`
-        -- vim.g.db_ui_save_location = "~/.ssh/dbui"
+        -- Use csvview.nvim for pretty viewing of CSV db output (filetype=dbout)
+        vim.api.nvim_create_autocmd("FileType", {
+            pattern = "dbout",
+            group = "DadbodUISettings",
+            callback = function(args)
+                -- Get the first line of the buffer associated with the autocmd event
+                local lines = vim.api.nvim_buf_get_lines(args.buf, 0, 1, false)
+                -- Check if the first line exists and contains a comma (very simple heuristic for CSV)
+                if #lines > 0 and lines[1] and string.find(lines[1], ",", 1, true) then
+                    vim.cmd("CsvViewEnable")
+                end
+            end,
+        })
     end,
 }
