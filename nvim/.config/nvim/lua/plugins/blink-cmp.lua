@@ -33,7 +33,7 @@ return {
             },
         },
         snippets = { preset = "luasnip" },
-        -- Disable command line completion:
+        -- Disable command line completion
         cmdline = { enabled = false },
         sources = {
             -- Disable some sources in comments and strings.
@@ -53,10 +53,11 @@ return {
                 return sources
             end,
             per_filetype = {
+                -- add `dadbod` source for sql files
                 sql = { "dadbod", "buffer" },
             },
-            -- add vim-dadbod-completion to your completion providers
             providers = {
+                -- define `dadbod` provider
                 dadbod = { name = "Dadbod", module = "vim_dadbod_completion.blink" },
             },
         },
