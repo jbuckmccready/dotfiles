@@ -1,3 +1,4 @@
+# font
 font-family = ""
 font-family = "ZedMono Nerd Font"
 font-style = Medium
@@ -5,7 +6,13 @@ font-style-bold = Bold
 font-style-italic = Medium Italic
 font-style-bold-italic = Bold Italic
 font-size = 16
+# cursor
+shell-integration-features = no-cursor
+cursor-style = block
+cursor-style-blink = false
 cursor-invert-fg-bg = true
+
+# window/theme
 window-decoration = false
 window-save-state = always
 mouse-hide-while-typing = true
