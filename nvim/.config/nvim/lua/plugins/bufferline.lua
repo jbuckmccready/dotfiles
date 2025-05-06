@@ -9,7 +9,7 @@ return {
             truncate_names = false,
             indicator = { style = "underline" },
             close_command = function(bufnr)
-                require("mini.bufremove").delete(bufnr, false)
+                require("snacks").bufdelete(bufnr)
             end,
             diagnostics = "nvim_lsp",
             diagnostics_indicator = function(_, _, diag)
@@ -22,6 +22,13 @@ return {
     keys = {
         -- Buffer navigation.
         { "<leader>bs", "<cmd>BufferLinePick<cr>", desc = "Pick a buffer to open" },
+        {
+            "<leader>bd",
+            function()
+                require("snacks").bufdelete()
+            end,
+            desc = "Delete current buffer",
+        },
         { "<leader>bc", "<cmd>BufferLinePickClose<cr>", desc = "Select a buffer to close" },
         { "<leader>bl", "<cmd>BufferLineCloseLeft<cr>", desc = "Close buffers to the left" },
         { "<leader>br", "<cmd>BufferLineCloseRight<cr>", desc = "Close buffers to the right" },

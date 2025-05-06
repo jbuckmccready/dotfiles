@@ -70,8 +70,12 @@ return {
                 -- Buffers
                 { mode = "n", keys = "<leader>b", desc = "+Buffers" },
 
-                -- FzfLua
-                { mode = "n", keys = "<leader>f", desc = "+FzfLua" },
+                -- Snacks
+                { mode = "n", keys = "<leader>f", desc = "+Find" },
+                { mode = "n", keys = "<leader>s", desc = "+Search" },
+
+                -- Tabs
+                { mode = "n", keys = "<leader>t", desc = "+Tabs" },
 
                 -- Direct Editing
                 { mode = "n", keys = "<leader>v", desc = "+Editing Actions" },

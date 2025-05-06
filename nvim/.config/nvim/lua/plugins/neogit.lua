@@ -3,10 +3,10 @@ return {
     dependencies = {
         "nvim-lua/plenary.nvim",
         "sindrets/diffview.nvim",
-        "ibhagwan/fzf-lua",
+        "folke/snacks.nvim",
     },
     keys = {
-        { "<leader>gg", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
+        { "<leader>gN", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
     },
     opts = {
         -- prettier log graph

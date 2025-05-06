@@ -190,15 +190,6 @@ vim.keymap.set({ "n", "v" }, "<leader>rb", function()
     require("iron.core").send_code_block(true)
 end, { desc = "Send Code Block" })
 
--- Lua utils
-vim.keymap.set({ "n", "v" }, "<leader>t", require("lua_utils").exec_lua, { desc = "Execute Lua" })
-
--- Terminal
--- Floating terminal.
-vim.keymap.set({ "n" }, "<leader>z", function()
-    require("float_term").float_term("fish", { cwd = vim.fn.expand("%:p:h") })
-end, { desc = "Toggle floating terminal" })
-
 -- Ensure ctrl-c sends SIGINT in terminal mode
 vim.keymap.set("t", "<C-c>", "\x03", { desc = "Send SIGINT" })
 
@@ -223,17 +214,17 @@ vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter" }, {
 })
 
 -- Tab setup
-vim.keymap.set({ "n" }, "<leader>h", "<cmd>tabprevious<CR>", { desc = "Next Tab" })
-vim.keymap.set({ "n" }, "<leader>l", "<cmd>tabnext<CR>", { desc = "Previous Tab" })
-vim.keymap.set({ "n" }, "<leader>H", "<cmd>tabfirst<CR>", { desc = "First Tab" })
-vim.keymap.set({ "n" }, "<leader>L", "<cmd>tablast<CR>", { desc = "Last Tab" })
-vim.keymap.set({ "n" }, "<leader>1", "<cmd>1tabnext<CR>", { desc = "Tab 1" })
-vim.keymap.set({ "n" }, "<leader>2", "<cmd>2tabnext<CR>", { desc = "Tab 2" })
-vim.keymap.set({ "n" }, "<leader>3", "<cmd>3tabnext<CR>", { desc = "Tab 3" })
-vim.keymap.set({ "n" }, "<leader>4", "<cmd>4tabnext<CR>", { desc = "Tab 4" })
-vim.keymap.set({ "n" }, "<leader>5", "<cmd>5tabnext<CR>", { desc = "Tab 5" })
-vim.keymap.set({ "n" }, "<leader>n", "<cmd>tab split<CR>", { desc = "New Tab" })
-vim.keymap.set({ "n" }, "<leader>q", "<cmd>tabc<CR>", { desc = "Close Tab" })
+vim.keymap.set({ "n" }, "<leader>th", "<cmd>tabprevious<CR>", { desc = "Next Tab" })
+vim.keymap.set({ "n" }, "<leader>tl", "<cmd>tabnext<CR>", { desc = "Previous Tab" })
+vim.keymap.set({ "n" }, "<leader>tH", "<cmd>tabfirst<CR>", { desc = "First Tab" })
+vim.keymap.set({ "n" }, "<leader>tL", "<cmd>tablast<CR>", { desc = "Last Tab" })
+vim.keymap.set({ "n" }, "<leader>t1", "<cmd>1tabnext<CR>", { desc = "Tab 1" })
+vim.keymap.set({ "n" }, "<leader>t2", "<cmd>2tabnext<CR>", { desc = "Tab 2" })
+vim.keymap.set({ "n" }, "<leader>t3", "<cmd>3tabnext<CR>", { desc = "Tab 3" })
+vim.keymap.set({ "n" }, "<leader>t4", "<cmd>4tabnext<CR>", { desc = "Tab 4" })
+vim.keymap.set({ "n" }, "<leader>t5", "<cmd>5tabnext<CR>", { desc = "Tab 5" })
+vim.keymap.set({ "n" }, "<leader>tn", "<cmd>tab split<CR>", { desc = "New Tab" })
+vim.keymap.set({ "n" }, "<leader>tq", "<cmd>tabc<CR>", { desc = "Close Tab" })
 
 -- LSP edit actions
 vim.keymap.set({ "n" }, "<leader>vr", vim.lsp.buf.rename, { desc = "Rename Symbol" })

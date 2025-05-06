@@ -8,7 +8,6 @@ require("config.lazy")
 require("config.patches")
 require("config.keymappings")
 require("autocmds")
-require("commands")
 
 local settings = require("config.settings")
 
@@ -82,6 +81,7 @@ vim.o.foldmethod = "expr"
 vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 
 -- Default to rounded borders for floating windows (only if unset)
+-- NOTE: this was added initially for lsp hover windows
 local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
 ---@diagnostic disable-next-line: duplicate-set-field
 function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
