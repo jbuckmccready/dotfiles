@@ -8,7 +8,7 @@ git:
     useConfig: false
     externalDiffCommand: "difft --color=always --context=6"
 os:
-  editPreset: nvim
+  editPreset: nvim-remote
 
 # Skip the "Press enter to return to lazygit" prompt after editing
 promptToReturnFromSubprocess: false
