@@ -36,7 +36,7 @@
   "outline.nvim": { "branch": "main", "commit": "321f89ef79f168a78685f70d70c52d0e7b563abb" },
   "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
   "quicker.nvim": { "branch": "master", "commit": "1798be71cdcb15fb84fa8054148a56e17fd391dc" },
-  "render-markdown.nvim": { "branch": "main", "commit": "617f9c2b3585f98bac9fc21cf1e5103f7374a97b" },
+  "render-markdown.nvim": { "branch": "main", "commit": "b4016e812c9a18784d8c1c6b4f0b2858a4cf502d" },
   "rustaceanvim": { "branch": "master", "commit": "f039dca9d2ac2061bd1ec45b7894a2659d6aa6cd" },
   "tokyonight.nvim": { "branch": "main", "commit": "057ef5d260c1931f1dffd0f052c685dcd14100a3" },
   "vim-dadbod": { "branch": "master", "commit": "fa31d0ffeebaa59cf97a81e7f92194cced54a13f" },
