@@ -4,7 +4,7 @@ return {
     lazy = false,
     opts = {
         bigfile = { enabled = true },
-        dashboard = { enabled = false },
+        dashboard = { enabled = true },
         explorer = { enabled = true },
         indent = { enabled = false },
         input = { enabled = true },
