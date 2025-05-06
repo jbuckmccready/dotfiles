@@ -2,7 +2,16 @@
 return {
     {
         "kylechui/nvim-surround",
-        event = "VeryLazy",
+        keys = {
+            -- lazy load only when keys are used
+            { "yz", mode = { "n" }, desc = "Surround" },
+            { "yzz", mode = { "n" }, desc = "Surround (cur)" },
+            { "yZ", mode = { "n" }, desc = "Surround (line)" },
+            { "yZZ", mode = { "n" }, desc = "Surround (cur line)" },
+            { "Z", mode = { "v" }, desc = "Surround (visual)" },
+            { "dz", mode = { "n" }, desc = "Delete surround" },
+            { "cz", mode = { "n" }, desc = "Change surround" },
+        },
         opts = {
             keymaps = {
                 insert = false,

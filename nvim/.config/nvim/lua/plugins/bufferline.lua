@@ -1,7 +1,8 @@
 -- Pretty bufferline.
 return {
     "akinsho/bufferline.nvim",
-    event = "VeryLazy",
+    -- Avoid lazy loading as the UI layout change/flicker is distracting.
+    lazy = false,
     opts = {
         options = {
             show_close_icon = false,

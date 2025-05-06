@@ -1,7 +1,7 @@
 -- Improved quickfix UI.
 return {
     "stevearc/quicker.nvim",
-    event = "VeryLazy",
+    event = "FileType qf",
     opts = {
         borders = {
             -- Thinner separator.
