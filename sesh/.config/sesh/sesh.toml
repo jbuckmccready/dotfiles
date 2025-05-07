@@ -5,7 +5,7 @@ preview_command = "lsd --blocks=size --blocks=date --blocks=name --icon=always -
 [[session]]
 name = "tmux_config"
 path = "~/dotfiles/tmux/.tmux.conf"
-startup_command = "nvim tmux.conf"
+startup_command = "nvim .tmux.conf"
 preview_command = "bat --color=always ~/dotfiles/tmux/.tmux.conf"
 
 [[session]]
