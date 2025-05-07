@@ -29,6 +29,9 @@ abbr -a la 'lsd -lA'
 abbr -a lt 'lsd --tree'
 abbr -a las 'lsd -lA --total-size'
 
+# fzf connect to tmux session (really simple, using tmux prefix + T most of the time)
+abbr -a fzfs 'sesh connect $(sesh list | fzf)'
+
 # fzf open to edit in neovim
 abbr -a fzfe "fzf --multi --bind 'enter:become(nvim {+})'"
 
