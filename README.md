@@ -19,7 +19,7 @@ stow tmux
 - fd (also used from neovim)
 - zoxide
 - fish shell
-- tmux with tmux-resurrect and vim-tmux-navigator plugins
+- tmux with vim-tmux-navigator plugin
 - neovim
 - lazygit
 - delta and difftastic for diffs
