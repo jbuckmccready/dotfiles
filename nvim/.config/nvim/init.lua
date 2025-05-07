@@ -113,72 +113,16 @@ vim.api.nvim_create_autocmd("CmdlineLeave", {
 -- using mason for lsp setup
 require("mason").setup()
 -- mason-lspconfig just to simplify setup of lsp
-require("mason-lspconfig").setup()
--- go lsp
-require("lspconfig").gopls.setup({})
--- lua lsp
-require("lspconfig").lua_ls.setup({
-    -- setup copied from here: https://github.com/neovim/nvim-lspconfig/blob/master/lua/lspconfig/server_configurations/lua_ls.lua
-    on_init = function(client)
-        -- some setup to eliminate warnings when editing neovim lua files
-        -- only override for neovim lua config files if no .luarc.json defined
-        local path = client.workspace_folders[1].name
-        if vim.uv.fs_stat(path .. "/.luarc.json") or vim.uv.fs_stat(path .. "/.luarc.jsonc") then
-            return
-        end
-
-        client.config.settings.Lua = vim.tbl_deep_extend("force", client.config.settings.Lua, {
-            runtime = {
-                -- Tell the language server which version of Lua you're using
-                -- (most likely LuaJIT in the case of Neovim)
-                version = "LuaJIT",
-            },
-            diagnostics = {
-                -- Get the language server to recognize additional neovim globals
-                globals = { "bufnr", "au_group" },
-            },
-            -- Make the server aware of Neovim runtime files
-            workspace = {
-                checkThirdParty = false,
-                library = {
-                    vim.env.VIMRUNTIME,
-                    -- Depending on the usage, you might want to add additional paths here.
-                    "${3rd}/luv/library",
-                    -- "${3rd}/busted/library",
-                },
-                -- or pull in all of 'runtimepath'. NOTE: this is a lot slower
-                -- library = vim.api.nvim_get_runtime_file("", true)
-            },
-        })
-    end,
-    settings = {
-        Lua = {},
+require("mason-lspconfig").setup({
+    ensure_installed = {
+        "gopls",
+        "lua_ls",
+        "pyright",
+        "ruff",
+        "terraformls",
+        "zls",
     },
 })
-
--- terraform lsp
-require("lspconfig").terraformls.setup({})
-
--- zig lsp
-require("lspconfig").zls.setup({})
-
--- python lsp
-require("lspconfig").pyright.setup({
-    settings = {
-        python = {
-            analysis = {
-                -- Ignore all files for analysis to exclusively use Ruff for linting
-                ignore = { "*" },
-            },
-            -- This is the relative path to the python interpreter for the virtualenv
-            pythonPath = ".venv/bin/python",
-        },
-        pyright = {
-            diagnosticMode = "workspace",
-        },
-    },
-})
-require("lspconfig").ruff.setup({})
 
 -- rust lsp
 vim.g.rustaceanvim = {
