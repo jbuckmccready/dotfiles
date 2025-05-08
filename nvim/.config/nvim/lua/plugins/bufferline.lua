@@ -10,6 +10,7 @@ return {
             show_buffer_close_icons = false,
             hover = { enabled = false },
             truncate_names = false,
+            indicator = { style = "underline" },
             close_command = function(bufnr)
                 require("snacks").bufdelete(bufnr)
             end,
