@@ -29,6 +29,11 @@ return {
         },
         picker = {
             enabled = true,
+            sources = {
+                explorer = {
+                    hidden = true,
+                },
+            },
             win = {
                 input = {
                     keys = {
