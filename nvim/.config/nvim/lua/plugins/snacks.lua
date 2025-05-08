@@ -39,6 +39,7 @@ return {
                     keys = {
                         ["<a-s>"] = { "flash", mode = { "n", "i" } },
                         ["s"] = { "flash" },
+                        ["yy"] = { "yank", mode = "n" }, -- Yank item's text in normal mode
                     },
                 },
             },
