@@ -3,12 +3,13 @@ return {
     "akinsho/bufferline.nvim",
     -- Avoid lazy loading as the UI layout change/flicker is distracting.
     lazy = false,
+    after = "catppuccin",
     opts = {
         options = {
             show_close_icon = false,
             show_buffer_close_icons = false,
+            hover = { enabled = false },
             truncate_names = false,
-            indicator = { style = "underline" },
             close_command = function(bufnr)
                 require("snacks").bufdelete(bufnr)
             end,
@@ -35,4 +36,8 @@ return {
         { "<leader>br", "<cmd>BufferLineCloseRight<cr>", desc = "Close buffers to the right" },
         { "<leader>bo", "<cmd>BufferLineCloseOthers<cr>", desc = "Close other buffers" },
     },
+    config = function(_, opts)
+        opts.highlights = require("catppuccin.groups.integrations.bufferline").get()
+        require("bufferline").setup(opts)
+    end,
 }

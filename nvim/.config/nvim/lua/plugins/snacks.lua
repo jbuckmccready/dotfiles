@@ -6,7 +6,22 @@ return {
         bigfile = { enabled = true },
         dashboard = { enabled = true },
         explorer = { enabled = true },
-        indent = { enabled = false },
+        indent = {
+            enabled = true,
+            indent = {
+                enabled = true,
+                only_scope = false,
+                only_current = false,
+            },
+            animate = {
+                enabled = false,
+            },
+            scope = {
+                enabled = true, -- enable highlighting the current scope
+                underline = false, -- underline the start of the scope
+                only_current = true, -- only show scope in the current window
+            },
+        },
         input = { enabled = true },
         notifier = {
             enabled = true,
@@ -44,7 +59,16 @@ return {
             },
         },
         quickfile = { enabled = false },
-        scope = { enabled = false },
+        scope = {
+            enabled = true,
+            -- debounce scope detection in ms
+            debounce = 50,
+            treesitter = {
+                -- falls back to indent based detection if not available
+                enabled = true,
+                injections = true, -- include language injections when detecting scope (useful for languages like `vue`)
+            },
+        },
         scroll = { enabled = false },
         statuscolumn = { enabled = true },
         terminal = { win = { style = "float" } },
