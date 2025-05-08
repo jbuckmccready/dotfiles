@@ -3,6 +3,7 @@ return {
     version = "^6",
     lazy = false, -- This plugin is already lazy
     init = function()
+        local scratch_dir = vim.fn.stdpath("data") .. "/scratch"
         vim.g.rustaceanvim = {
             -- Plugin configuration
             tools = {
@@ -11,6 +12,15 @@ return {
             },
             -- LSP configuration
             server = {
+                auto_attach = function(bufnr)
+                    local path = vim.fn.bufname(bufnr)
+                    -- Don't attempt to attach to scratch files (leads to error since no cargo.toml)
+                    if path:find(scratch_dir, 1, true) then
+                        return false
+                    end
+
+                    return true
+                end,
                 on_attach = {},
                 capabilities = {},
                 load_vscode_settings = false,
