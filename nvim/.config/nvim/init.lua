@@ -115,7 +115,7 @@ require("mason").setup()
 -- mason-lspconfig just to simplify setup of lsp
 require("mason-lspconfig").setup({
     -- exclude rust_analyzer from automatic enable since it's handled by rustaceanvim
-    automatic_enable = { exlclude = { "rust_analyzer" } },
+    automatic_enable = { exclude = { "rust_analyzer" } },
     ensure_installed = {
         "gopls",
         "lua_ls",
