@@ -163,10 +163,6 @@ end, { desc = "Toggle lsp inlay hints" })
 vim.keymap.set({ "c" }, "<Up>", "<C-p>", { desc = "Select previous" })
 vim.keymap.set({ "c" }, "<Down>", "<C-n>", { desc = "Select next" })
 
-vim.keymap.set({ "n" }, "<leader><f1>", function()
-    vim.cmd.RustLsp("openDocs")
-end, { desc = "Open Rust Doc" })
-
 -- Iron Repl
 vim.keymap.set({ "n" }, "<leader>rr", "<cmd>IronRepl<CR>", { desc = "Toggle Repl" })
 vim.keymap.set({ "n" }, "<leader>rz", "<cmd>IronRestart<CR>", { desc = "Restart Repl" })

@@ -21,7 +21,15 @@ return {
 
                     return true
                 end,
-                on_attach = {},
+                on_attach = function(client, bufnr)
+                    vim.keymap.set({ "n" }, "<leader>lo", function()
+                        vim.cmd.RustLsp("openDocs")
+                    end, { buffer = bufnr, desc = "Open Docs" })
+
+                    vim.keymap.set({ "n" }, "<leader>le", function()
+                        vim.cmd.RustLsp("expandMacro")
+                    end, { buffer = bufnr, desc = "Expand Macro" })
+                end,
                 capabilities = {},
                 load_vscode_settings = false,
             },

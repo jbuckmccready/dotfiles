@@ -9,8 +9,6 @@ return {
             { "imap", "<cr>", "<Plug>(bullets-newline)" },
             { "nmap", "o", "<Plug>(bullets-newline)" },
             { "nmap", "<C-Space>", "<Plug>(bullets-toggle-checkbox)" },
-            { "vmap", "<leader>mR", "<Plug>(bullets-renumber)" },
-            { "nmap", "<leader>mR", "<Plug>(bullets-renumber)" },
         }
     end,
 }

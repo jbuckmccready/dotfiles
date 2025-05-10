@@ -94,8 +94,8 @@ return {
                 { mode = "n", keys = "<leader>c", desc = "+Code Companion" },
 
                 -- Markdown
-                { mode = "n", keys = "<leader>m", desc = "+Markdown/Text" },
-                { mode = "x", keys = "<leader>m", desc = "+Markdown/Text" },
+                { mode = "n", keys = "<leader>l", desc = "+LSP" },
+                { mode = "x", keys = "<leader>l", desc = "+LSP" },
 
                 -- Iron Repl
                 { mode = "n", keys = "<leader>r", desc = "+Iron Repl" },
