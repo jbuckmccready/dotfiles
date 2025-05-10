@@ -38,8 +38,8 @@ vim.opt.listchars = { space = "⋅", trail = "⋅", tab = "  ↦" } -- Whitespac
 vim.opt.fillchars = {
     eob = " ",
     fold = " ",
-    foldclose = "▶",
-    foldopen = "▼",
+    foldclose = "",
+    foldopen = "",
     foldsep = " ",
     msgsep = "─",
 }
