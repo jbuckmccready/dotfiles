@@ -78,7 +78,7 @@ return {
         scroll = { enabled = false },
         statuscolumn = { enabled = true },
         terminal = { win = { style = "float" } },
-        words = { enabled = false },
+        words = { enabled = true },
         styles = {
             notification = {
                 -- wo = { wrap = true } -- Wrap notifications
