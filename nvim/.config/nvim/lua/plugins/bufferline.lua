@@ -20,6 +20,12 @@ return {
                 local indicator = (diag.error and icons.ERROR .. " " or "") .. (diag.warning and icons.WARN or "")
                 return vim.trim(indicator)
             end,
+            offsets = {
+                {
+                    -- avoid rendering buffer line above snacks file explorer
+                    filetype = "snacks_layout_box",
+                },
+            },
         },
     },
     keys = {
