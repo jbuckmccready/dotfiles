@@ -38,7 +38,7 @@ return {
                         separator = "|",
                     },
                     -- List of LSP names to ignore (e.g., `null-ls`):
-                    ignore_lsp = { "GitHub Copilot" },
+                    ignore_lsp = { "copilot" },
                 },
                 "encoding",
                 "fileformat",
