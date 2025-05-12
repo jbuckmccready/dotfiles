@@ -77,6 +77,9 @@ return {
                 -- Tabs
                 { mode = "n", keys = "<leader>t", desc = "+Tabs" },
 
+                -- Toggles
+                { mode = "n", keys = "<leader>u", desc = "+Toggles/Misc" },
+
                 -- Direct Editing
                 { mode = "n", keys = "<leader>v", desc = "+Editing Actions" },
                 { mode = "x", keys = "<leader>v", desc = "+Editing Actions" },

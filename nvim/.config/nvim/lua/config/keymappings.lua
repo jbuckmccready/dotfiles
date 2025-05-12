@@ -35,28 +35,33 @@ vim.keymap.set("n", "<C-S>", "<Cmd>silent! update | redraw<CR>", { desc = "Save"
 vim.keymap.set({ "i", "x" }, "<C-S>", "<Esc><Cmd>silent! update | redraw<CR>", { desc = "Save and go to Normal mode" })
 
 -- Mode Toggles
-vim.keymap.set({ "n" }, "\\l", "<Cmd>setlocal list! list?<CR>", { desc = "Toggle 'list'" })
+vim.keymap.set({ "n" }, "<leader>ul", "<Cmd>setlocal list! list?<CR>", { desc = "Toggle 'list'" })
 vim.keymap.set(
     { "n" },
-    "\\r",
+    "<leader>ur",
     "<Cmd>setlocal relativenumber! relativenumber?<CR>",
     { desc = "Toggle 'relativenumber'" }
 )
-vim.keymap.set({ "n" }, "\\n", "<Cmd>setlocal number! number?<CR>", { desc = "Toggle 'number'" })
-vim.keymap.set({ "n" }, "\\s", "<Cmd>setlocal spell! spell?<CR>", { desc = "Toggle 'spell'" })
-vim.keymap.set({ "n" }, "\\i", "<Cmd>setlocal ignorecase! ignorecase?<CR>", { desc = "Toggle 'ignorecase'" })
-vim.keymap.set({ "n" }, "\\c", "<Cmd>setlocal cursorline! cursorline?<CR>", { desc = "Toggle 'cursorline'" })
-vim.keymap.set({ "n" }, "\\C", "<Cmd>setlocal cursorcolumn! cursorcolumn?<CR>", { desc = "Toggle 'cursorcolumn'" })
+vim.keymap.set({ "n" }, "<leader>uN", "<Cmd>setlocal number! number?<CR>", { desc = "Toggle 'number'" })
+vim.keymap.set({ "n" }, "<leader>us", "<Cmd>setlocal spell! spell?<CR>", { desc = "Toggle 'spell'" })
+vim.keymap.set({ "n" }, "<leader>ui", "<Cmd>setlocal ignorecase! ignorecase?<CR>", { desc = "Toggle 'ignorecase'" })
+vim.keymap.set({ "n" }, "<leader>uc", "<Cmd>setlocal cursorline! cursorline?<CR>", { desc = "Toggle 'cursorline'" })
 vim.keymap.set(
     { "n" },
-    "\\h",
+    "<leader>uC",
+    "<Cmd>setlocal cursorcolumn! cursorcolumn?<CR>",
+    { desc = "Toggle 'cursorcolumn'" }
+)
+vim.keymap.set(
+    { "n" },
+    "<leader>uh",
     "<Cmd>let v:hlsearch = 1 - v:hlsearch | echo (v:hlsearch ? '  ' : 'no') . 'hlsearch'<CR>",
     { desc = "Toggle 'hlsearch'" }
 )
-vim.keymap.set({ "n" }, "\\w", "<Cmd>setlocal wrap! wrap?<CR>", { desc = "Toggle 'wrap'" })
+vim.keymap.set({ "n" }, "<leader>uw", "<Cmd>setlocal wrap! wrap?<CR>", { desc = "Toggle 'wrap'" })
 
 -- Toggle diagnostics
-vim.keymap.set({ "n" }, "\\d", function()
+vim.keymap.set({ "n" }, "<leader>ud", function()
     vim.diagnostic.enable(not vim.diagnostic.is_enabled())
     vim.notify(
         string.format("%s diagnostics...", vim.diagnostic.is_enabled() and "Enabling" or "Disabling"),
@@ -65,7 +70,7 @@ vim.keymap.set({ "n" }, "\\d", function()
 end, { desc = "Toggle diagnostic" })
 
 -- Toggle virtual lines for diagnostics
-vim.keymap.set({ "n" }, "\\D", function()
+vim.keymap.set({ "n" }, "<leader>uD", function()
     if not vim.diagnostic.config().virtual_lines then
         vim.diagnostic.config({
             virtual_text = false,
@@ -88,7 +93,7 @@ vim.keymap.set({ "n" }, "\\D", function()
 end, { desc = "Toggle virtual lines diagnostics" })
 
 -- Toggle autoformatting
-vim.keymap.set({ "n" }, "\\f", function()
+vim.keymap.set({ "n" }, "<leader>uf", function()
     vim.g.autoformat = not vim.g.autoformat
     vim.notify(string.format("%s formatting...", vim.g.autoformat and "Enabling" or "Disabling"), vim.log.levels.INFO)
 end, { desc = "Toggle formatting" })
@@ -96,7 +101,7 @@ end, { desc = "Toggle formatting" })
 -- track user set scrolloff value to restore after toggling
 -- if nil then autoscrolling is disabled
 local user_scrolloff = nil
-vim.keymap.set({ "n" }, "\\j", function()
+vim.keymap.set({ "n" }, "<leader>uj", function()
     if user_scrolloff == nil then
         user_scrolloff = vim.o.scrolloff
         vim.o.scrolloff = 999
@@ -115,6 +120,11 @@ vim.keymap.set({ "n" }, "\\j", function()
         vim.log.levels.INFO
     )
 end, { desc = "Toggle auto scrolling (scrolloff = 999)" })
+
+-- LSP inlay hint toggle
+vim.keymap.set({ "n" }, "<leader>uz", function()
+    vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({}))
+end, { desc = "Toggle lsp inlay hints" })
 
 -- Toggle ignore white space for diffs
 vim.keymap.set({ "n" }, "<leader>gi", function()
@@ -153,11 +163,6 @@ vim.keymap.set({ "n" }, "<C-w><", "5<C-w><", { noremap = true, desc = "Decrease 
 vim.keymap.set({ "n" }, "<C-w>>", "5<C-w>>", { noremap = true, desc = "Increase width" })
 vim.keymap.set({ "n" }, "<C-w>-", "5<C-w>-", { noremap = true, desc = "Decrease height" })
 vim.keymap.set({ "n" }, "<C-w>+", "5<C-w>+", { noremap = true, desc = "Increase height" })
-
--- LSP inlay hint toggle
-vim.keymap.set({ "n" }, "\\z", function()
-    vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({}))
-end, { desc = "Toggle lsp inlay hints" })
 
 -- Map up/down arrow for autocompletion selection in command mode
 vim.keymap.set({ "c" }, "<Up>", "<C-p>", { desc = "Select previous" })
