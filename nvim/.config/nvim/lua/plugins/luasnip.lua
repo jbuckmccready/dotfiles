@@ -90,6 +90,10 @@ return {
                 return lines
             end
 
+            local function date_now()
+                return os.date("%Y-%m-%d")
+            end
+
             local function create_code_block_snippet(lang)
                 return s({
                     trig = lang,
@@ -180,6 +184,17 @@ return {
                     t("]("),
                     f(clipboard, {}),
                     t(")"),
+                })
+            )
+
+            table.insert(
+                snippets,
+                s({
+                    trig = "datenow",
+                    name = "Date Now",
+                    desc = "Date Now",
+                }, {
+                    f(date_now, {}),
                 })
             )
 
