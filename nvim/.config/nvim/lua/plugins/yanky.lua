@@ -19,6 +19,12 @@ return {
             desc = "Copy to system clipboard",
         },
         {
+            "<leader>Y",
+            '"+y$',
+            mode = { "n", "x" },
+            desc = "Copy to system clipboard (to end of line)",
+        },
+        {
             "<leader>p",
             '"+p',
             mode = { "n" },
