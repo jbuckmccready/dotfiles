@@ -41,6 +41,28 @@ return {
         -- match new cursors within visual selections by regex.
         set("x", "M", mc.matchCursors, { desc = "Match new cursors within visual selections by regex" })
 
+        -- Add cursors to all matches of the current word/search.
+        set({ "n", "v" }, "<leader>ma", mc.matchAllAddCursors, { desc = "Add cursor to all matches under cursor" })
+        set("n", "<leader>mA", mc.searchAllAddCursors, { desc = "Add cursor to all search results in buffer" })
+
+        -- Jump to first/last cursor.
+        set({ "n", "v" }, "<leader>mH", mc.firstCursor, { desc = "Select first cursor" })
+        set({ "n", "v" }, "<leader>mL", mc.lastCursor, { desc = "Select last cursor" })
+
+        set("v", "<leader>mh", function()
+            mc.swapCursors(-1)
+        end, { desc = "Swap cursors left" })
+        set("v", "<leader>ml", function()
+            mc.swapCursors(1)
+        end, { desc = "Swap cursors right" })
+
+        set("v", "<leader>mt", function()
+            mc.transposeCursors(1)
+        end, { desc = "Rotate cursors clockwise" })
+        set("v", "<leader>mT", function()
+            mc.transposeCursors(-1)
+        end, { desc = "Rotate cursors anti-clockwise" })
+
         -- Append/insert for each line of visual selections.
         -- Similar to block selection insertion.
         set("x", "I", mc.insertVisual, { desc = "Insert at the start of each line in visual selection" })

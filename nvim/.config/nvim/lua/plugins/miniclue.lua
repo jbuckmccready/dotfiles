@@ -80,6 +80,18 @@ return {
                 -- Multicursor
                 { mode = "n", keys = "<leader>m", desc = "+Multicursor" },
                 { mode = "x", keys = "<leader>m", desc = "+Multicursor" },
+                { mode = "n", keys = "<leader>mL", postkeys = "<leader>m" },
+                { mode = "n", keys = "<leader>mn", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>mn", postkeys = "<leader>m" },
+                { mode = "n", keys = "<leader>ms", postkeys = "<leader>m" },
+                { mode = "n", keys = "<leader>mN", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>mN", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>ms", postkeys = "<leader>m" },
+                { mode = "n", keys = "<leader>mS", postkeys = "<leader>m" },
+                { mode = "n", keys = "<leader>mH", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>mS", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>mH", postkeys = "<leader>m" },
+                { mode = "x", keys = "<leader>mL", postkeys = "<leader>m" },
 
                 -- Direct Editing
                 { mode = "n", keys = "<leader>v", desc = "+Editing Actions" },
