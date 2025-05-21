@@ -87,6 +87,8 @@ return {
 
                 -- Quckfix
                 { mode = "n", keys = "<leader>x", desc = "+Loclist/Quickfix" },
+                { mode = "n", keys = "<leader>x>", postkeys = "<leader>x" },
+                { mode = "n", keys = "<leader>x<", postkeys = "<leader>x" },
 
                 -- Git
                 { mode = "n", keys = "<leader>g", desc = "+Git" },

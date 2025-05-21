@@ -37,14 +37,14 @@ return {
             desc = "Toggle diagnostics",
         },
         {
-            ">",
+            "<leader>x>",
             function()
                 require("quicker").expand({ before = 2, after = 2, add_to_existing = true })
             end,
             desc = "Expand context",
         },
         {
-            "<",
+            "<leader>x<",
             function()
                 require("quicker").collapse()
             end,
