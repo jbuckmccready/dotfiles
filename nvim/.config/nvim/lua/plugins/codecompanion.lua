@@ -6,7 +6,8 @@ return {
     },
     keys = {
         { "<leader>cc", "<cmd>CodeCompanionChat Toggle<CR>", mode = { "n" }, desc = "Code Companion Chat" },
-        { "<leader>ca", "<cmd>CodeCompanionActions<CR>", mode = { "n", "v" }, desc = "Actions" },
+        { "<leader>cA", "<cmd>CodeCompanionActions<CR>", mode = { "n", "x" }, desc = "Actions" },
+        { "<leader>ca", "<cmd>CodeCompanionChat Add<CR>", desc = "Add to CodeCompanion chat", mode = "x" },
     },
     opts = {
         display = {
@@ -48,7 +49,7 @@ return {
                 return require("codecompanion.adapters").extend("copilot", {
                     schema = {
                         model = {
-                            default = "gpt-4.1",
+                            default = "gemini-2.5-pro",
                         },
                     },
                 })
