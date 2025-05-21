@@ -97,7 +97,7 @@ return {
                 -- Code Companion
                 { mode = "n", keys = "<leader>c", desc = "+Code Companion" },
 
-                -- Markdown
+                -- LSP
                 { mode = "n", keys = "<leader>l", desc = "+LSP" },
                 { mode = "x", keys = "<leader>l", desc = "+LSP" },
 
