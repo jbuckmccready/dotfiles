@@ -80,6 +80,10 @@ return {
                 -- Toggles
                 { mode = "n", keys = "<leader>u", desc = "+Toggles/Misc" },
 
+                -- Multicursor
+                { mode = "n", keys = "<leader>m", desc = "+Multicursor" },
+                { mode = "x", keys = "<leader>m", desc = "+Multicursor" },
+
                 -- Direct Editing
                 { mode = "n", keys = "<leader>v", desc = "+Editing Actions" },
                 { mode = "x", keys = "<leader>v", desc = "+Editing Actions" },

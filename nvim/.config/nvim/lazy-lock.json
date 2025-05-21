@@ -22,6 +22,7 @@
   "mason.nvim": { "branch": "main", "commit": "9eaedb864cdadc29c6eb7d761a6c0d8aee26c91b" },
   "mini.ai": { "branch": "main", "commit": "e139eb1101beb0250fea322f8c07a42f0f175688" },
   "mini.clue": { "branch": "main", "commit": "8b8598afa285f2a25cfd15a67e7eaa210ad405c3" },
+  "multicursor.nvim": { "branch": "1.0", "commit": "cecbb3028ba166578eb8620ce885e2362d112ee0" },
   "neogit": { "branch": "master", "commit": "337447c4b0467a0904795b50ce44f715de760a5d" },
   "nvim-autopairs": { "branch": "master", "commit": "4d74e75913832866aa7de35e4202463ddf6efd1b" },
   "nvim-lspconfig": { "branch": "master", "commit": "ac1dfbe3b60e5e23a2cff90e3bd6a3bc88031a57" },
