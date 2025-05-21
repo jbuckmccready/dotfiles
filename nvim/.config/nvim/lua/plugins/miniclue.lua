@@ -42,9 +42,6 @@ return {
                 { mode = "n", keys = "z" },
                 { mode = "x", keys = "z" },
 
-                -- Mode toggles
-                { mode = "n", keys = "\\" },
-
                 -- Navigation
                 { mode = "n", keys = "[" },
                 { mode = "x", keys = "[" },
