@@ -32,6 +32,7 @@ o.breakindent = true -- Indent wrapped lines to match line start
 o.cursorline = true -- Highlight current line
 o.linebreak = true -- Wrap long lines at 'breakat' (if 'wrap' is set)
 o.number = true -- Show line numbers
+o.relativenumber = true -- Show relative line numbers
 o.splitbelow = true -- Horizontal splits will be below
 o.splitright = true -- Vertical splits will be to the right
 vim.opt.listchars = { space = "⋅", trail = "⋅", tab = "  ↦" } -- Whitespace characters
