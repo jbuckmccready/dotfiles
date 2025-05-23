@@ -1,7 +1,10 @@
 return {
     "nvim-treesitter/nvim-treesitter-context",
+    keys = {
+        { "<leader>ut", "<cmd>TSContextToggle<cr>", desc = "Toggle Treesitter Context" },
+    },
     opts = {
-        enable = true, -- Enable this plugin (Can be enabled/disabled later via commands)
+        enable = false, -- Disabled initially so when we run toggle to lazy load it will be enabled
         multiwindow = false, -- Enable multiwindow support.
         max_lines = 4, -- How many lines the window should span. Values <= 0 mean no limit.
         min_window_height = 30, -- Minimum editor window height to enable context. Values <= 0 mean no limit.
