@@ -13,7 +13,8 @@ return {
             jsonc = { "prettier", stop_on_first = true, name = "dprint" },
             less = { "prettier" },
             lua = { "stylua" },
-            markdown = { "prettier" },
+            -- disabled for now, waiting on bug to be fixed: https://github.com/prettier/prettier/issues/8004
+            -- markdown = { "prettier" },
             rust = { lsp_format = "prefer" },
             scss = { "prettier" },
             sh = { "shfmt" },
