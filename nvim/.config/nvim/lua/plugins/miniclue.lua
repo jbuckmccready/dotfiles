@@ -70,6 +70,7 @@ return {
                 -- Snacks
                 { mode = "n", keys = "<leader>f", desc = "+Find" },
                 { mode = "n", keys = "<leader>s", desc = "+Search" },
+                { mode = "n", keys = "<leader>sn", postkeys = "<leader>s" },
 
                 -- Tabs
                 { mode = "n", keys = "<leader>t", desc = "+Tabs" },

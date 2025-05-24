@@ -169,7 +169,9 @@ return {
             { "gy", function() Snacks.picker.lsp_type_definitions() end, desc = "Goto T[y]pe Definition" },
             { "<leader>ss", function() Snacks.picker.lsp_symbols() end, desc = "LSP Symbols" },
             { "<leader>sS", function() Snacks.picker.lsp_workspace_symbols() end, desc = "LSP Workspace Symbols" },
-            -- -- Other
+            -- Other
+            { "<leader>sn", function() Snacks.words.jump(1, true) end, desc = "Jump to Next LSP Word" },
+            { "<leader>sy", function() Snacks.picker.treesitter() end, desc = "Treesitter" },
             { "<leader>va", function() vim.lsp.buf.code_action() end, desc = "Code Action" },
             { "<leader>vs", function() Snacks.picker.spelling() end, desc = "Spell Suggest" },
             { "<leader>.", function() Snacks.scratch() end, desc = "Toggle Scratch Buffer" },
