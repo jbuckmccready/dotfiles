@@ -1,6 +1,7 @@
 return {
     "MeanderingProgrammer/render-markdown.nvim",
     opts = {
+        render_modes = { "n", "i", "c", "t" },
         sign = {
             enabled = false,
         },
