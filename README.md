@@ -24,7 +24,7 @@ stow tmux
 - lazygit
 - delta and difftastic for diffs
 
-## Install Notes MacOS
+## Install Notes
 
 ### Fish
 
@@ -64,4 +64,11 @@ Install hydro prompt:
 
 ```sh
 fisher install jorgebucaran/hydro
+```
+
+### Bat
+
+```sh
+stow bat
+bat cache --build
 ```
