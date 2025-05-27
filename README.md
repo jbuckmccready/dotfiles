@@ -66,6 +66,25 @@ Install hydro prompt:
 fisher install jorgebucaran/hydro
 ```
 
+### Tmux
+
+```sh
+stow tmux
+```
+
+Follow instructions [here](https://github.com/tmux-plugins/tpm)
+
+```sh
+git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
+```
+
+Install plugins (from in tmux run prefix + I):
+
+```sh
+tmux
+ctrl-a I
+```
+
 ### Bat
 
 ```sh
