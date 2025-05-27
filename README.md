@@ -40,13 +40,12 @@ Install:
 brew install fish
 ```
 
-Set default shell:
+Set default shell (NOTE: using zsh for easier compatibility with some tools):
 
 ```sh
-which fish
-# /opt/homebrew/bin/fish
-echo /opt/homebrew/bin/fish | sudo tee -a /etc/shells
-chsh -s /opt/homebrew/bin/fish
+which zsh
+# /bin/zsh
+chsh -s /bin/zsh
 ```
 
 Init completions:
