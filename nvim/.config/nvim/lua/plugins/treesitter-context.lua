@@ -1,7 +1,7 @@
 return {
     "nvim-treesitter/nvim-treesitter-context",
     keys = {
-        { "<leader>ut", "<cmd>TSContextToggle<cr>", desc = "Toggle Treesitter Context" },
+        { "<leader>ut", "<cmd>TSContext toggle<cr>", desc = "Toggle Treesitter Context" },
     },
     opts = {
         enable = false, -- Disabled initially so when we run toggle to lazy load it will be enabled
