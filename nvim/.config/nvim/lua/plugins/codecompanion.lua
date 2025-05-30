@@ -17,7 +17,7 @@ return {
         },
         strategies = {
             chat = {
-                adapter = "copilot_chat",
+                adapter = "copilot",
                 keymaps = {
                     send = {
                         modes = { n = "<C-s>", i = "<C-s>" },
@@ -34,17 +34,6 @@ return {
             },
         },
         adapters = {
-            -- Define the custom adapter instance for chat so we can have different default model
-            copilot_chat = function()
-                return require("codecompanion.adapters").extend("copilot", {
-                    name = "copilot_chat",
-                    schema = {
-                        model = {
-                            default = "gemini-2.5-pro",
-                        },
-                    },
-                })
-            end,
             copilot = function()
                 return require("codecompanion.adapters").extend("copilot", {
                     schema = {
