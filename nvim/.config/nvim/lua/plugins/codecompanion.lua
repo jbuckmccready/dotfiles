@@ -59,11 +59,6 @@ return {
                     env = {
                         api_key = "cmd:cat ~/.config/.gemini-api-key",
                     },
-                    schema = {
-                        model = {
-                            default = "gemini-2.5-flash-preview-04-17",
-                        },
-                    },
                 })
             end,
         },
