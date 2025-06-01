@@ -17,7 +17,10 @@ return {
         },
         strategies = {
             chat = {
-                adapter = "copilot",
+                adapter = {
+                    name = "copilot",
+                    model = "gemini-2.5-pro",
+                },
                 keymaps = {
                     send = {
                         modes = { n = "<C-s>", i = "<C-s>" },
@@ -30,19 +33,13 @@ return {
                 },
             },
             inline = {
-                adapter = "copilot",
+                adapter = {
+                    name = "copilot",
+                    model = "gpt-4.1",
+                },
             },
         },
         adapters = {
-            copilot = function()
-                return require("codecompanion.adapters").extend("copilot", {
-                    schema = {
-                        model = {
-                            default = "gemini-2.5-pro",
-                        },
-                    },
-                })
-            end,
             gemini = function()
                 return require("codecompanion.adapters").extend("gemini", {
                     env = {
