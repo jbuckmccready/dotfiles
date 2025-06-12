@@ -127,14 +127,16 @@ return {
             { "<leader>fg", function() Snacks.picker.git_files() end, desc = "Find Git Files" },
             { "<leader>fp", function() Snacks.picker.projects() end, desc = "Projects" },
             { "<leader>fr", function() Snacks.picker.recent() end, desc = "Recent" },
-            -- git
+            -- git related
             { "<leader>gb", function() Snacks.picker.git_branches() end, desc = "Git Branches" },
             { "<leader>gl", function() Snacks.picker.git_log() end, desc = "Git Log" },
             { "<leader>gL", function() Snacks.picker.git_log_line() end, desc = "Git Log Line" },
             { "<leader>gs", function() Snacks.picker.git_status() end, desc = "Git Status" },
             { "<leader>gS", function() Snacks.picker.git_stash() end, desc = "Git Stash" },
             { "<leader>gh", function() Snacks.picker.git_diff() end, desc = "Git Diff (Hunks)" },
-            { "<leader>gf", function() Snacks.picker.git_log_file() end, desc = "Git Log File" },
+            { "<leader>gF", function() Snacks.picker.git_log_file() end, desc = "Git Log File" },
+            { "<leader>go", function() Snacks.gitbrowse() end, desc = "Git Open in Browser", mode = { "n", "v" } },
+            { "<leader>gg", function() Snacks.lazygit() end, desc = "Lazygit" },
             -- Grep
             { "<leader>sb", function() Snacks.picker.lines() end, desc = "Buffer Lines" },
             { "<leader>sB", function() Snacks.picker.grep_buffers() end, desc = "Grep Open Buffers" },
@@ -178,10 +180,8 @@ return {
             { "<leader>S", function() Snacks.scratch.select() end, desc = "Select Scratch Buffer" },
             { "<leader>n", function() Snacks.notifier.show_history() end, desc = "Notification History" },
             { "<leader>vR", function() Snacks.rename.rename_file() end, desc = "Rename File" },
-            { "<leader>gB", function() Snacks.gitbrowse() end, desc = "Git Browse", mode = { "n", "v" } },
             { "<leader>un", function() Snacks.notifier.hide() end, desc = "Dismiss All Notifications" },
             { "<leader>z", function() Snacks.terminal() end, desc = "Toggle Terminal" },
-            { "<leader>gg", function() Snacks.lazygit() end, desc = "Lazygit" },
             -- stylua: ignore end
             {
                 "<leader>gG",

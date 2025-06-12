@@ -1,7 +1,7 @@
 return {
     "lewis6991/gitsigns.nvim",
     keys = {
-        { "<leader>gs", "<cmd>Gitsigns preview_hunk<CR>", mode = "n", desc = "Preview Hunk" },
+        { "<leader>gk", "<cmd>Gitsigns preview_hunk<CR>", mode = "n", desc = "Preview Hunk" },
         { "<leader>gn", "<cmd>Gitsigns next_hunk<CR>", mode = "n", desc = "Next Diff Hunk" },
         { "<leader>gp", "<cmd>Gitsigns prev_hunk<CR>", mode = "n", desc = "Prev Diff Hunk" },
         { "<leader>gr", "<cmd>Gitsigns reset_hunk<CR>", mode = "n", desc = "Reset Diff Hunk" },
