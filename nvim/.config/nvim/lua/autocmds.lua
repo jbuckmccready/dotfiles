@@ -1,5 +1,6 @@
 -- Resume at last location when opening a buffer
 vim.api.nvim_create_autocmd("BufReadPost", {
+    group = vim.api.nvim_create_augroup("ResumeLastLocation", { clear = true }),
     desc = "Go to the last location when opening a buffer",
     callback = function(args)
         local mark = vim.api.nvim_buf_get_mark(args.buf, '"')
@@ -11,7 +12,7 @@ vim.api.nvim_create_autocmd("BufReadPost", {
 })
 
 vim.api.nvim_create_autocmd("FileType", {
-    group = vim.api.nvim_create_augroup("mariasolos/close_with_q", { clear = true }),
+    group = vim.api.nvim_create_augroup("CloseWithQ", { clear = true }),
     desc = "Close with <q>",
     pattern = {
         "git",
@@ -64,6 +65,8 @@ vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, {
 
 -- Prefer LSP folding if client supports it
 vim.api.nvim_create_autocmd("LspAttach", {
+    group = vim.api.nvim_create_augroup("LspFolding", { clear = true }),
+    desc = "Set LSP folding if client supports it",
     callback = function(args)
         local client = vim.lsp.get_client_by_id(args.data.client_id)
         if client == nil then
