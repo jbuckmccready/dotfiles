@@ -61,6 +61,7 @@ o.infercase = true -- Infer letter cases for a richer built-in keyword completio
 o.smartcase = true -- Don't ignore case when searching if pattern has upper case
 o.smartindent = true -- Make indenting smart (NOTE: `guess-indent` plugin will auto match existing file for indent settings so this doesn't matter much)
 o.inccommand = "split" -- Show substitutions in a split window
+vim.o.scrolloff = 8 -- Keep 8 lines visible above/below cursor
 
 o.completeopt = "menuone,noselect" -- Customize completions
 o.virtualedit = "block" -- Allow going past the end of line in visual block mode
@@ -90,26 +91,6 @@ function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
     opts.border = opts.border or "rounded"
     return orig_util_open_floating_preview(contents, syntax, opts, ...)
 end
-
--- used to track user set scrolloff value for restoring
-local user_scrolloff = 8 -- Start with 8 lines above/below cursor
-vim.o.scrolloff = user_scrolloff
-
--- autocommands to toggle scrolloff to 0 when entering search mode and back when leaving
-local search_cmd_pattern = { "/", "?" }
-vim.api.nvim_create_autocmd("CmdlineEnter", {
-    pattern = search_cmd_pattern,
-    callback = function()
-        user_scrolloff = vim.o.scrolloff
-        vim.o.scrolloff = 0
-    end,
-})
-vim.api.nvim_create_autocmd("CmdlineLeave", {
-    pattern = search_cmd_pattern,
-    callback = function()
-        vim.o.scrolloff = user_scrolloff
-    end,
-})
 
 -- using mason for lsp setup
 require("mason").setup()
