@@ -8,11 +8,33 @@ return {
         { "<leader>cc", "<cmd>CodeCompanionChat Toggle<CR>", mode = { "n" }, desc = "Code Companion Chat" },
         { "<leader>cA", "<cmd>CodeCompanionActions<CR>", mode = { "n", "x" }, desc = "Actions" },
         { "<leader>ca", "<cmd>CodeCompanionChat Add<CR>", desc = "Add to CodeCompanion chat", mode = "x" },
+        {
+            "<leader>ci",
+            function()
+                require("codecompanion").prompt("quick_inline")
+            end,
+            mode = { "n", "x" },
+            desc = "Quick Inline",
+        },
     },
     opts = {
         display = {
             action_palette = {
                 provider = "default",
+            },
+        },
+        prompt_library = {
+            ["Quick Inline"] = {
+                strategy = "inline",
+                description = "Quick inline interaction",
+                opts = {
+                    user_prompt = true,
+                    short_name = "quick_inline",
+                    adapter = {
+                        name = "gemini",
+                        model = "gemini-2.5-flash-preview-05-20",
+                    },
+                },
             },
         },
         strategies = {
