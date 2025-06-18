@@ -12,3 +12,8 @@ preview_command = "bat --color=always ~/dotfiles/tmux/.tmux.conf"
 name = "dotfiles"
 path = "~/dotfiles"
 startup_command = "nvim -c ':lua Snacks.picker.files({hidden = true})'"
+
+[[session]]
+name = "k9s"
+path = "~"
+startup_command = "k9s"
