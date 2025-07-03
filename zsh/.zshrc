@@ -9,7 +9,7 @@ export FZF_DEFAULT_OPTS=" \
 # neovim for kubectl/k9s
 export KUBE_EDITOR=nvim
 
-export PATH="/opt/homebrew/bin:$PATH"
+export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -23,13 +23,13 @@ export PATH="$HOME/bin/clickhouse-server/usr/bin:$PATH"
 
 export PATH="$HOME/bin/clickhouse-server/usr/local/bin:$PATH"
 
-export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
-
 export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
 
 export GOROOT="/opt/homebrew/opt/go@1.22/libexec"
 
 export PATH="/opt/homebrew/opt/go@1.22/libexec/bin:$PATH"
+
+export PATH="/opt/homebrew/bin:$PATH"
 
 . "$HOME/.local/bin/env"
 
