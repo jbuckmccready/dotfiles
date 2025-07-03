@@ -11,10 +11,22 @@ return {
         {
             "<leader>ci",
             function()
-                require("codecompanion").prompt("quick_inline")
+                if vim.fn.mode() == "n" then
+                    vim.api.nvim_command("CodeCompanion")
+                else
+                    vim.api.nvim_command("'<,'>CodeCompanion")
+                end
             end,
             mode = { "n", "x" },
-            desc = "Quick Inline",
+            desc = "Inline",
+        },
+        {
+            "<leader>cI",
+            function()
+                require("codecompanion").prompt("flash_inline")
+            end,
+            mode = { "n", "x" },
+            desc = "Flash Inline",
         },
     },
     opts = {
@@ -24,15 +36,15 @@ return {
             },
         },
         prompt_library = {
-            ["Quick Inline"] = {
+            ["Flash Inline"] = {
                 strategy = "inline",
-                description = "Quick inline interaction",
+                description = "Flash inline interaction",
                 opts = {
                     user_prompt = true,
-                    short_name = "quick_inline",
+                    short_name = "flash_inline",
                     adapter = {
                         name = "gemini",
-                        model = "gemini-2.5-flash-preview-05-20",
+                        model = "gemini-2.5-flash",
                     },
                 },
             },
