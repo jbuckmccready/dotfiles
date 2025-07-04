@@ -17,8 +17,8 @@ return {
         signature = { enabled = true },
         completion = {
             accept = {
-                -- Disable as it seems to cause some issues (notably pressing enter on /help for codecompanion).
-                dot_repeat = false,
+                -- Write completions to the `.` register
+                dot_repeat = true,
             },
             list = {
                 selection = { preselect = false, auto_insert = true },
