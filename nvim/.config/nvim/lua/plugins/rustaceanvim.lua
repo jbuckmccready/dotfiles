@@ -29,6 +29,10 @@ return {
                     vim.keymap.set({ "n" }, "<leader>le", function()
                         vim.cmd.RustLsp("expandMacro")
                     end, { buffer = bufnr, desc = "Expand Macro" })
+
+                    vim.keymap.set({ "n" }, "<leader>lr", function()
+                        vim.cmd.RustLsp("run")
+                    end, { buffer = bufnr, desc = "Run Target At Cursor" })
                 end,
                 capabilities = {},
                 load_vscode_settings = false,
