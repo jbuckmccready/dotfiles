@@ -12,8 +12,8 @@ return {
             },
         },
         modes = {
-            -- Enable flash when searching with ? or /
-            search = { enabled = true },
+            -- Don't enable flash when searching with `?` or `/` (annoying if search doesn't match and it triggers jump label)
+            search = { enabled = false },
         },
         search = {
             exclude = {
