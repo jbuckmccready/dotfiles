@@ -194,12 +194,6 @@ end, { desc = "Send Code Block" })
 -- Ensure ctrl-c sends SIGINT in terminal mode
 vim.keymap.set("t", "<C-c>", "\x03", { desc = "Send SIGINT" })
 
--- Exit terminal mode with ctrl-w hjkl buffer navigation
-vim.keymap.set({ "t" }, "<C-w>h", "<C-\\><C-n><C-w>h", { desc = "Focus left" })
-vim.keymap.set({ "t" }, "<C-w>j", "<C-\\><C-n><C-w>j", { desc = "Focus down" })
-vim.keymap.set({ "t" }, "<C-w>k", "<C-\\><C-n><C-w>k", { desc = "Focus up" })
-vim.keymap.set({ "t" }, "<C-w>l", "<C-\\><C-n><C-w>l", { desc = "Focus right" })
-
 -- Exit terminal mode with ctrl-w <Esc> (not using escape so that it still sends <Esc> to terminal)
 vim.keymap.set({ "t" }, "<C-w><Esc>", "<C-\\><C-n>", { desc = "Exit terminal mode" })
 
