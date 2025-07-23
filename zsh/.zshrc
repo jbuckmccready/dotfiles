@@ -6,6 +6,7 @@ export FZF_DEFAULT_OPTS=" \
 --color=selected-bg:#45475a \
 --multi"
 
+export EDITOR=nvim
 # neovim for kubectl/k9s
 export KUBE_EDITOR=nvim
 
