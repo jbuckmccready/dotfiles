@@ -25,6 +25,17 @@ vim.keymap.set(
     { expr = true, replace_keycodes = false, desc = "Visually select changed text" }
 )
 
+-- Yank relative file path to system clipboard
+vim.keymap.set("n", "<leader>by", function()
+    local path = vim.fn.expand("%")
+    if path == "" then
+        vim.notify("No file", vim.log.levels.WARN)
+        return
+    end
+    vim.fn.setreg("+", path)
+    vim.notify("Copied: " .. path, vim.log.levels.INFO)
+end, { desc = "Yank relative file path to system clipboard" })
+
 -- Search inside visually highlighted text. Use `silent = false` for it to
 -- make effect immediately.
 vim.keymap.set("x", "g/", "<esc>/\\%V", { silent = false, desc = "Search inside visual selection" })
