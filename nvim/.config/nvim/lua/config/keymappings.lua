@@ -27,7 +27,7 @@ vim.keymap.set(
 
 -- Yank relative file path to system clipboard
 vim.keymap.set("n", "<leader>by", function()
-    local path = vim.fn.expand("%")
+    local path = vim.fn.expand("%:.")
     if path == "" then
         vim.notify("No file", vim.log.levels.WARN)
         return
