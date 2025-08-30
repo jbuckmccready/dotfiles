@@ -1,5 +1,5 @@
 return {
-    "echasnovski/mini.clue",
+    "nvim-mini/mini.clue",
     lazy = false,
     opts = function()
         local miniclue = require("mini.clue")
