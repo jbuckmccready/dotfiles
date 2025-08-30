@@ -74,13 +74,39 @@ return {
             },
         },
         adapters = {
-            gemini = function()
-                return require("codecompanion.adapters").extend("gemini", {
-                    env = {
-                        api_key = "cmd:cat ~/.config/.gemini-api-key",
-                    },
-                })
-            end,
+            acp = {
+                gemini_cli = function()
+                    return require("codecompanion.adapters").extend("gemini_cli", {
+                        commands = {
+                            flash = {
+                                "gemini",
+                                "--experimental-acp",
+                                "-m",
+                                "gemini-2.5-flash",
+                            },
+                            pro = {
+                                "gemini",
+                                "--experimental-acp",
+                                "-m",
+                                "gemini-2.5-pro",
+                            },
+                        },
+                        defaults = {
+                            -- auth_method = "gemini-api-key", -- "oauth-personal" | "gemini-api-key" | "vertex-ai"
+                            auth_method = "oauth-personal",
+                        },
+                    })
+                end,
+            },
+            http = {
+                gemini = function()
+                    return require("codecompanion.adapters").extend("gemini", {
+                        env = {
+                            api_key = "cmd:cat ~/.config/.gemini-api-key",
+                        },
+                    })
+                end,
+            },
         },
     },
 }
