@@ -24,11 +24,11 @@ export PATH="$HOME/bin/clickhouse-server/usr/bin:$PATH"
 
 export PATH="$HOME/bin/clickhouse-server/usr/local/bin:$PATH"
 
-export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
+export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
 
-export GOROOT="/opt/homebrew/opt/go@1.22/libexec"
+export GOROOT="/opt/homebrew/opt/go@1.24/libexec"
 
-export PATH="/opt/homebrew/opt/go@1.22/libexec/bin:$PATH"
+export PATH="/opt/homebrew/opt/go@1.24/libexec/bin:$PATH"
 
 export PATH="/opt/homebrew/bin:$PATH"
 
