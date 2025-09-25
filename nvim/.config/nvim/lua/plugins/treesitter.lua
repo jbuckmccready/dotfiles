@@ -1,5 +1,6 @@
 return {
     "nvim-treesitter/nvim-treesitter",
+    branch = "main",
     event = { "BufReadPre", "BufNewFile" },
     build = ":TSUpdate",
     opts = {
@@ -28,17 +29,5 @@ return {
             "yaml",
             "zig",
         },
-        incremental_selection = {
-            enable = true,
-            keymaps = {
-                init_selection = "<cr>",
-                node_incremental = "<cr>",
-                scope_incremental = false,
-                node_decremental = "<bs>",
-            },
-        },
     },
-    config = function(_, opts)
-        require("nvim-treesitter.configs").setup(opts)
-    end,
 }

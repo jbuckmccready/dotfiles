@@ -56,5 +56,18 @@ return {
             end,
             desc = "Remote Flash",
         },
+        {
+            "<cr>",
+            mode = { "n", "x", "o" },
+            function()
+                require("flash").treesitter({
+                    actions = {
+                        ["<cr>"] = "next",
+                        ["<BS>"] = "prev",
+                    },
+                })
+            end,
+            desc = "Treesitter incremental selection",
+        },
     },
 }

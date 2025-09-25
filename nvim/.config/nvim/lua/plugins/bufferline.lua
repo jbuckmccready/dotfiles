@@ -44,7 +44,7 @@ return {
         { "<leader>bo", "<cmd>BufferLineCloseOthers<cr>", desc = "Close other buffers" },
     },
     config = function(_, opts)
-        opts.highlights = require("catppuccin.groups.integrations.bufferline").get_theme()
+        opts.highlights = require("catppuccin.special.bufferline").get_theme()
         require("bufferline").setup(opts)
     end,
 }
