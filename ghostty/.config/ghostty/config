@@ -16,4 +16,4 @@ cursor-invert-fg-bg = true
 window-decoration = false
 window-save-state = always
 mouse-hide-while-typing = true
-theme = "catppuccin-mocha"
+theme = Catppuccin Mocha
