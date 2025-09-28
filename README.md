@@ -26,6 +26,15 @@ stow tmux
 
 ## Install Notes
 
+### Neovim Plugins
+
+**nvim-treesitter**:
+Requires `tree-sitter` CLI to be installed:
+```sh
+cargo install --locked tree-sitter-cli
+```
+
+
 ### Fish
 
 Dotfiles:
