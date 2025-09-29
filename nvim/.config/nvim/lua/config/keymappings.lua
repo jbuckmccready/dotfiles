@@ -234,7 +234,6 @@ vim.keymap.set({ "n" }, "<leader>tq", "<cmd>tabc<CR>", { desc = "Close Tab" })
 
 -- LSP edit actions
 vim.keymap.set({ "n" }, "<leader>vr", vim.lsp.buf.rename, { desc = "Rename Symbol" })
-vim.keymap.set({ "n", "i" }, "<C-Space>", vim.lsp.buf.code_action, { desc = "Code Action" })
 
 -- Misc. LSP
 vim.keymap.set({ "n" }, "K", function()
