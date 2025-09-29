@@ -60,14 +60,20 @@ return {
             "<cr>",
             mode = { "n", "x", "o" },
             function()
-                require("flash").treesitter({
-                    actions = {
-                        ["<cr>"] = "next",
-                        ["<BS>"] = "prev",
-                    },
-                })
+                if vim.bo.filetype == "qf" then
+                    -- In quickfix window, execute default <CR> action
+                    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "nx", false)
+                else
+                    -- Otherwise, use flash for treesitter incremental selection
+                    require("flash").treesitter({
+                        actions = {
+                            ["<cr>"] = "next",
+                            ["<BS>"] = "prev",
+                        },
+                    })
+                end
             end,
-            desc = "Treesitter incremental selection",
+            desc = "Treesitter incremental selection / <CR> in quickfix",
         },
     },
 }
