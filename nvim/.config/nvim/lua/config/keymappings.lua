@@ -137,6 +137,19 @@ vim.keymap.set({ "n" }, "<leader>uz", function()
     vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({}))
 end, { desc = "Toggle lsp inlay hints" })
 
+-- Toggle next edit suggestion on/off
+vim.keymap.set("n", "<leader>ue", function()
+    if vim.g.sidekick_nes == nil then
+        -- defaults to on if nil, so set to true first time for toggle logic
+        vim.g.sidekick_nes = true
+    end
+    vim.g.sidekick_nes = not vim.g.sidekick_nes
+    vim.notify(
+        string.format("%s Next Edit Suggestions...", vim.g.sidekick_nes and "Enabling" or "Disabling"),
+        vim.log.levels.INFO
+    )
+end, { desc = "Toggle Next Edit Suggestions" })
+
 -- Toggle ignore white space for diffs
 vim.keymap.set({ "n" }, "<leader>gi", function()
     local is_ignoring_ws = vim.tbl_contains(vim.opt.diffopt:get(), "iwhite")
