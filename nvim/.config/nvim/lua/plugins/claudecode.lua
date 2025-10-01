@@ -12,6 +12,27 @@ return {
         { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },
         { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
         {
+            "<leader>ag",
+            function()
+                -- Get visual selection using getregion
+                local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."))
+                local text = table.concat(lines, "\n")
+
+                -- Get terminal buffer and send text
+                local term = require("claudecode.terminal")
+                local bufnr = term.get_active_terminal_bufnr()
+                if bufnr then
+                    local chan = vim.bo[bufnr].channel
+                    vim.fn.chansend(chan, text .. "\n")
+                    vim.cmd("ClaudeCodeFocus")
+                else
+                    vim.notify("Claude Code terminal not found", vim.log.levels.WARN)
+                end
+            end,
+            mode = "v",
+            desc = "Send selected text to Claude",
+        },
+        {
             "<leader>as",
             "<cmd>ClaudeCodeTreeAdd<cr>",
             desc = "Add file",
