@@ -9,7 +9,18 @@ return {
         { "<leader>ar", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude" },
         { "<leader>aC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue Claude" },
         { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
-        { "<leader>ab", "<cmd>ClaudeCodeAdd %<cr>", desc = "Add current buffer" },
+        {
+            "<leader>ab",
+            function()
+                -- Resolve symlinks first, then make relative to cwd
+                -- this ensures the path is consistently relative to cwd regardless of how the buffer was opened
+                local abs_path = vim.fn.expand("%:p")
+                local resolved_path = vim.fn.resolve(abs_path)
+                local rel_path = vim.fn.fnamemodify(resolved_path, ":.")
+                vim.cmd("ClaudeCodeAdd " .. vim.fn.fnameescape(rel_path))
+            end,
+            desc = "Add current buffer",
+        },
         { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
         {
             "<leader>ag",
