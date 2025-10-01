@@ -40,6 +40,7 @@ return {
                         ["<a-s>"] = { "flash", mode = { "n", "i" } },
                         ["s"] = { "flash" },
                         ["yy"] = { "yank", mode = "n" }, -- Yank item's text in normal mode
+                        ["<a-a>"] = { "claude_add", mode = { "n", "i" } },
                     },
                 },
             },
@@ -61,6 +62,27 @@ return {
                             picker.list:_move(idx, true, true)
                         end,
                     })
+                end,
+                claude_add = function(picker)
+                    local selected = picker:selected()
+                    if #selected == 0 then
+                        local current = picker:current()
+                        if current then
+                            selected = { current }
+                        end
+                    end
+                    for _, item in ipairs(selected) do
+                        if item.file then
+                            local rel_path = vim.fn.fnamemodify(item.file, ":.")
+                            vim.cmd("ClaudeCodeAdd " .. vim.fn.fnameescape(rel_path))
+                        end
+                    end
+                    if #selected > 0 then
+                        vim.notify("Added " .. #selected .. " file(s) to Claude", vim.log.levels.INFO)
+                        vim.schedule(function()
+                            vim.cmd("startinsert")
+                        end)
+                    end
                 end,
             },
         },
