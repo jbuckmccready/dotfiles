@@ -47,7 +47,7 @@ return {
         {
             "<leader>ws",
             function()
-                require("sidekick.cli").ask({ location = true })
+                require("sidekick.cli").send({ prompt = "reference_lines" })
             end,
             desc = "Ask AI with context",
             mode = { "n", "v" },
@@ -55,7 +55,7 @@ return {
         {
             "<leader>we",
             function()
-                require("sidekick.cli").ask({ prompt = "explain", location = true })
+                require("sidekick.cli").send({ prompt = "explain", location = true })
             end,
             desc = "Ask AI to explain this code",
             mode = { "n", "v" },
@@ -73,6 +73,21 @@ return {
             mux = {
                 backend = "tmux",
                 enabled = false,
+            },
+            prompts = {
+                reference_lines = function(ctx)
+                    local location = ""
+                    if ctx.range then
+                        local bufname = vim.api.nvim_buf_get_name(ctx.buf)
+                        local relpath = vim.fn.fnamemodify(bufname, ":~:.")
+                        location = string.format("@%s#L%d-%d", relpath, ctx.range.from[1], ctx.range.to[1])
+                    end
+                    return {
+                        msg = location,
+                        location = false,
+                        selection = false,
+                    }
+                end,
             },
         },
     },
