@@ -3,14 +3,14 @@ return {
     dependencies = { "folke/snacks.nvim" },
     config = true,
     keys = {
-        { "<leader>a", nil, desc = "AI/Claude Code" },
-        { "<leader>ac", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
-        { "<leader>af", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
-        { "<leader>ar", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude" },
-        { "<leader>aC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue Claude" },
-        { "<leader>am", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
+        { "<leader>w", nil, desc = "AI/Claude Code" },
+        { "<leader>wc", "<cmd>ClaudeCode<cr>", desc = "Toggle Claude" },
+        { "<leader>wf", "<cmd>ClaudeCodeFocus<cr>", desc = "Focus Claude" },
+        { "<leader>wr", "<cmd>ClaudeCode --resume<cr>", desc = "Resume Claude" },
+        { "<leader>wC", "<cmd>ClaudeCode --continue<cr>", desc = "Continue Claude" },
+        { "<leader>wm", "<cmd>ClaudeCodeSelectModel<cr>", desc = "Select Claude model" },
         {
-            "<leader>ab",
+            "<leader>wb",
             function()
                 -- Resolve symlinks first, then make relative to cwd
                 -- this ensures the path is consistently relative to cwd regardless of how the buffer was opened
@@ -21,9 +21,9 @@ return {
             end,
             desc = "Add current buffer",
         },
-        { "<leader>as", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
+        { "<leader>ws", "<cmd>ClaudeCodeSend<cr>", mode = "v", desc = "Send to Claude" },
         {
-            "<leader>ag",
+            "<leader>wg",
             function()
                 -- Get visual selection using getregion
                 local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."))
@@ -44,14 +44,14 @@ return {
             desc = "Send selected text to Claude",
         },
         {
-            "<leader>as",
+            "<leader>ws",
             "<cmd>ClaudeCodeTreeAdd<cr>",
             desc = "Add file",
             ft = { "NvimTree", "neo-tree", "oil", "minifiles", "netrw" },
         },
         -- Diff management
-        { "<leader>aa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
-        { "<leader>ad", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
+        { "<leader>wa", "<cmd>ClaudeCodeDiffAccept<cr>", desc = "Accept diff" },
+        { "<leader>wd", "<cmd>ClaudeCodeDiffDeny<cr>", desc = "Deny diff" },
     },
     opts = {
         terminal_cmd = "claude --ide",

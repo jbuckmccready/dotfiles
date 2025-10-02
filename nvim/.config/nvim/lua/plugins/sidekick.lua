@@ -3,7 +3,7 @@ return {
     event = "VeryLazy",
     keys = {
         {
-            "<leader>wt",
+            "<leader>at",
             function()
                 require("sidekick.nes").toggle()
             end,
@@ -21,7 +21,23 @@ return {
             desc = "Goto/Apply Next Edit Suggestion",
         },
         {
-            "<leader>wa",
+            "<leader>as",
+            function()
+                require("sidekick.cli").send({ msg = "{this}" })
+            end,
+            mode = { "x", "n" },
+            desc = "Send This",
+        },
+        {
+            "<leader>ag",
+            function()
+                require("sidekick.cli").send({ msg = "{selection}" })
+            end,
+            mode = { "x" },
+            desc = "Send Visual Selection",
+        },
+        {
+            "<leader>aa",
             function()
                 require("sidekick.cli").toggle({ focus = true })
             end,
@@ -29,7 +45,7 @@ return {
             mode = { "n", "v" },
         },
         {
-            "<leader>wc",
+            "<leader>ac",
             function()
                 require("sidekick.cli").toggle({ name = "claude", focus = true })
             end,
@@ -37,27 +53,11 @@ return {
             mode = { "n", "v" },
         },
         {
-            "<leader>wp",
+            "<leader>ap",
             function()
                 require("sidekick.cli").prompt()
             end,
             desc = "Select AI Prompt",
-            mode = { "n", "v" },
-        },
-        {
-            "<leader>ws",
-            function()
-                require("sidekick.cli").send({ prompt = "reference_lines" })
-            end,
-            desc = "Ask AI with context",
-            mode = { "n", "v" },
-        },
-        {
-            "<leader>we",
-            function()
-                require("sidekick.cli").send({ prompt = "explain", location = true })
-            end,
-            desc = "Ask AI to explain this code",
             mode = { "n", "v" },
         },
     },
@@ -73,21 +73,6 @@ return {
             mux = {
                 backend = "tmux",
                 enabled = false,
-            },
-            prompts = {
-                reference_lines = function(ctx)
-                    local location = ""
-                    if ctx.range then
-                        local bufname = vim.api.nvim_buf_get_name(ctx.buf)
-                        local relpath = vim.fn.fnamemodify(bufname, ":~:.")
-                        location = string.format("@%s#L%d-%d", relpath, ctx.range.from[1], ctx.range.to[1])
-                    end
-                    return {
-                        msg = location,
-                        location = false,
-                        selection = false,
-                    }
-                end,
             },
         },
     },
