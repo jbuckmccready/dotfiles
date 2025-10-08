@@ -37,6 +37,20 @@ return {
             desc = "Send Visual Selection",
         },
         {
+            "<leader>af",
+            function()
+                require("sidekick.cli").send({ msg = "{file}" })
+            end,
+            desc = "Send File",
+        },
+        {
+            "<leader>ab",
+            function()
+                require("sidekick.cli").send({ msg = "{buffers}" })
+            end,
+            desc = "Send Buffers",
+        },
+        {
             "<leader>aa",
             function()
                 require("sidekick.cli").toggle({ focus = true })
