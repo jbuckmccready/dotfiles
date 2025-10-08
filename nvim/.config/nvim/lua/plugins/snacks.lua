@@ -40,7 +40,7 @@ return {
                         ["<a-s>"] = { "flash", mode = { "n", "i" } },
                         ["s"] = { "flash" },
                         ["yy"] = { "yank", mode = "n" }, -- Yank item's text in normal mode
-                        ["<a-a>"] = { "claude_add", mode = { "n", "i" } },
+                        ["<a-a>"] = { "sidekick_add", mode = { "n", "i" } },
                     },
                 },
             },
@@ -63,7 +63,7 @@ return {
                         end,
                     })
                 end,
-                claude_add = function(picker)
+                sidekick_add = function(picker)
                     local selected = picker:selected()
                     if #selected == 0 then
                         local current = picker:current()
@@ -71,17 +71,20 @@ return {
                             selected = { current }
                         end
                     end
+                    local file_paths = {}
                     for _, item in ipairs(selected) do
                         if item.file then
                             local rel_path = vim.fn.fnamemodify(item.file, ":.")
-                            vim.cmd("ClaudeCodeAdd " .. vim.fn.fnameescape(rel_path))
+                            table.insert(file_paths, "@" .. rel_path)
                         end
                     end
-                    if #selected > 0 then
-                        vim.notify("Added " .. #selected .. " file(s) to Claude", vim.log.levels.INFO)
-                        vim.schedule(function()
+                    if #file_paths > 0 then
+                        require("sidekick.cli").send({ msg = table.concat(file_paths, "\n") })
+                        vim.notify("Added " .. #selected .. " file(s) to sidekick cli", vim.log.levels.INFO)
+                        -- Needed to start insert in terminal buffer after sending files
+                        vim.defer_fn(function()
                             vim.cmd("startinsert")
-                        end)
+                        end, 50)
                     end
                 end,
             },
