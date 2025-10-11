@@ -53,10 +53,17 @@ return {
         {
             "<leader>aa",
             function()
-                require("sidekick.cli").toggle({ focus = true })
+                require("sidekick.cli").select({ filter = { installed = true } })
             end,
             desc = "Toggle AI CLI",
             mode = { "n", "v" },
+        },
+        {
+            "<leader>ad",
+            function()
+                require("sidekick.cli").close()
+            end,
+            desc = "Detach a CLI Session",
         },
         {
             "<leader>ac",
