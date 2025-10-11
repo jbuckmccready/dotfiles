@@ -1,6 +1,5 @@
 {
   "includeCoAuthoredBy": false,
-  "alwaysThinkingEnabled": false,
   "permissions": {
     "allow": [
       "Bash(pwd)",
@@ -17,5 +16,6 @@
       "Bash(gh pr diff:*)"
     ],
     "deny": []
-  }
+  },
+  "alwaysThinkingEnabled": true
 }
