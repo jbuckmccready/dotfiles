@@ -9,30 +9,34 @@ export FZF_DEFAULT_OPTS=" \
 export EDITOR=nvim
 # neovim for kubectl/k9s
 export KUBE_EDITOR=nvim
+export EDITOR=nvim
 
-export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
+# export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
-export PATH="$HOME/.cargo/bin:$PATH"
+# . "$HOME/.local/bin/env"
+#
 
-export PATH="$HOME/bin:$PATH"
+export GOOGLE_CLOUD_PROJECT="gen-lang-client-0163156466"
 
-export GOPATH="$HOME/go"
+# export GOPATH="$HOME/go"
+#
+# export PATH="$HOME/go/bin:$PATH"
+#
+# export PATH="$HOME/bin/clickhouse-server/usr/bin:$PATH"
+#
+# export PATH="$HOME/bin/clickhouse-server/usr/local/bin:$PATH"
+#
+# export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+#
+# export GOROOT="/opt/homebrew/opt/go@1.24/libexec"
+#
+# export PATH="/opt/homebrew/opt/go@1.24/libexec/bin:$PATH"
+#
+# export PATH="/opt/homebrew/bin:$PATH"
+#
+# . "$HOME/.local/bin/env"
 
-export PATH="$HOME/go/bin:$PATH"
-
-export PATH="$HOME/bin/clickhouse-server/usr/bin:$PATH"
-
-export PATH="$HOME/bin/clickhouse-server/usr/local/bin:$PATH"
-
-export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
-
-export GOROOT="/opt/homebrew/opt/go@1.24/libexec"
-
-export PATH="/opt/homebrew/opt/go@1.24/libexec/bin:$PATH"
-
-export PATH="/opt/homebrew/bin:$PATH"
-
-. "$HOME/.local/bin/env"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 # Execute fish if it's not the parent process.
 if ! ps -p $PPID | grep -q fish; then
