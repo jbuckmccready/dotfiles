@@ -2,7 +2,7 @@
 return {
     "saghen/blink.cmp",
     build = "cargo +nightly build --release",
-    dependencies = "LuaSnip",
+    -- dependencies = "LuaSnip",
     event = "InsertEnter",
     opts = {
         keymap = {
@@ -32,7 +32,7 @@ return {
                 },
             },
         },
-        snippets = { preset = "luasnip" },
+        -- snippets = { preset = "luasnip" },
         -- Disable command line completion
         cmdline = { enabled = false },
         sources = {

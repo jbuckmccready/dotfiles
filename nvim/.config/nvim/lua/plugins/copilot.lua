@@ -13,6 +13,13 @@ return {
     },
     config = function()
         require("copilot").setup({
+            server_opts_overrides = {
+                settings = {
+                    telemetry = {
+                        telemetryLevel = "off",
+                    },
+                },
+            },
             suggestion = {
                 auto_trigger = true,
                 keymap = {
