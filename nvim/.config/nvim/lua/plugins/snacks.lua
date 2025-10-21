@@ -64,7 +64,7 @@ return {
                     })
                 end,
                 sidekick_send = function(...)
-                    return require("sidekick.cli.snacks").send(...)
+                    return require("sidekick.cli.picker.snacks").send(...)
                 end,
             },
         },
