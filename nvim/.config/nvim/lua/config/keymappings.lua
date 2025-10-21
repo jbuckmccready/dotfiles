@@ -33,6 +33,21 @@ vim.keymap.set("n", "<leader>by", function()
     vim.notify("Copied: " .. path, vim.log.levels.INFO)
 end, { desc = "Yank relative file path to system clipboard" })
 
+-- Buffer navigation
+vim.keymap.set("n", "<leader>bd", function()
+    require("snacks").bufdelete()
+end, { desc = "Delete current buffer" })
+
+vim.keymap.set("n", "<leader>bo", function()
+    local current_buf = vim.api.nvim_get_current_buf()
+    local buffers = vim.api.nvim_list_bufs()
+    for _, buf in ipairs(buffers) do
+        if buf ~= current_buf and vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].buflisted then
+            vim.api.nvim_buf_delete(buf, { force = false })
+        end
+    end
+end, { desc = "Close other buffers" })
+
 -- Search inside visually highlighted text. Use `silent = false` for it to
 -- make effect immediately.
 vim.keymap.set("x", "g/", "<esc>/\\%V", { silent = false, desc = "Search inside visual selection" })
