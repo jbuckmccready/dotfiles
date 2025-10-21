@@ -93,7 +93,12 @@ return {
             },
             mux = {
                 backend = "tmux",
-                enabled = false,
+                enabled = true,
+                create = "split",
+                split = {
+                    vertical = true,
+                    size = 0.4,
+                },
             },
         },
     },

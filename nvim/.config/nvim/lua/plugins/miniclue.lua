@@ -117,6 +117,9 @@ return {
 
                 -- Iron Repl
                 { mode = "n", keys = "<leader>r", desc = "+Iron Repl" },
+
+                -- Side Kick
+                { mode = "n", keys = "<leader>a", desc = "+Side Kick" },
             },
         }
     end,
