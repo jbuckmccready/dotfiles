@@ -102,4 +102,83 @@ return {
             },
         },
     },
+    config = function(_, opts)
+        require("sidekick").setup(opts)
+
+        -- Setup mappings for sidekick terminal buffers
+        vim.api.nvim_create_autocmd("FileType", {
+            pattern = "sidekick_terminal",
+            callback = function(ev)
+                -- Helper function to extract file and line number like gF does
+                -- Supports: file:123, file@123, file(123), file 123, file line 123
+                -- Returns nil if file doesn't exist (with error notification), or file and line number
+                local function parse_and_validate_file()
+                    local file = vim.fn.expand("<cfile>")
+                    local current_line = vim.fn.getline(".")
+
+                    -- Check if file exists
+                    if vim.fn.filereadable(file) == 0 then
+                        vim.notify(string.format('Can\'t find file "%s"', file), vim.log.levels.ERROR)
+                        return nil
+                    end
+
+                    -- Find the filename in the current line and get everything after it
+                    -- Using plain text search (4th arg = true), so no pattern escaping needed
+                    local file_start, file_end = current_line:find(file, 1, true)
+
+                    if not file_start then
+                        return file, 1
+                    end
+
+                    local after_file = current_line:sub(file_end + 1)
+
+                    -- Try various formats that gF supports
+                    local line = after_file:match("^%s*:%s*(%d+)")      -- :123 or : 123
+                        or after_file:match("^%s*@%s*(%d+)")            -- @123 or @ 123
+                        or after_file:match("^%s*%((%d+)%)")            -- (123) or (123)
+                        or after_file:match("^%s+line%s+(%d+)")         -- line 123
+                        or after_file:match("^%s+(%d+)")                -- 123
+
+                    return file, tonumber(line) or 1
+                end
+
+                -- Modify gf and gF to open files in the left window and avoid insert mode in new tab
+                vim.keymap.set("n", "gf", function()
+                    local file = parse_and_validate_file()
+                    if not file then return end
+
+                    vim.cmd("wincmd h") -- Move to left window
+                    vim.cmd("edit " .. file)
+                end, { buffer = ev.buf, desc = "Open file in left window" })
+
+                vim.keymap.set("n", "gF", function()
+                    local file, line = parse_and_validate_file()
+                    if not file then return end
+
+                    vim.cmd("wincmd h")
+                    vim.cmd("edit +" .. line .. " " .. file)
+                    vim.cmd("normal! ^")
+                end, { buffer = ev.buf, desc = "Open file at line in left window" })
+
+                vim.keymap.set("n", "<C-w>gf", function()
+                    local file = parse_and_validate_file()
+                    if not file then return end
+
+                    vim.cmd("tabnew " .. file)
+                    -- Ensure we stay in normal mode (seems to carry over from terminal when going to new tab)
+                    vim.cmd("stopinsert")
+                end, { buffer = ev.buf, desc = "Open file in new tab" })
+
+                vim.keymap.set("n", "<C-w>gF", function()
+                    local file, line = parse_and_validate_file()
+                    if not file then return end
+
+                    vim.cmd("tabnew +" .. line .. " " .. file)
+                    vim.cmd("normal! ^")
+                    -- Ensure we stay in normal mode (seems to carry over from terminal when going to new tab)
+                    vim.cmd("stopinsert")
+                end, { buffer = ev.buf, desc = "Open file at line in new tab" })
+            end,
+        })
+    end,
 }
