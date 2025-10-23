@@ -133,11 +133,11 @@ return {
                     local after_file = current_line:sub(file_end + 1)
 
                     -- Try various formats that gF supports
-                    local line = after_file:match("^%s*:%s*(%d+)")      -- :123 or : 123
-                        or after_file:match("^%s*@%s*(%d+)")            -- @123 or @ 123
-                        or after_file:match("^%s*%((%d+)%)")            -- (123) or (123)
-                        or after_file:match("^%s+line%s+(%d+)")         -- line 123
-                        or after_file:match("^%s+(%d+)")                -- 123
+                    local line = after_file:match("^%s*:%s*(%d+)") -- :123 or : 123
+                        or after_file:match("^%s*@%s*(%d+)") -- @123 or @ 123
+                        or after_file:match("^%s*%((%d+)%)") -- (123) or (123)
+                        or after_file:match("^%s+line%s+(%d+)") -- line 123
+                        or after_file:match("^%s+(%d+)") -- 123
 
                     return file, tonumber(line) or 1
                 end
@@ -145,7 +145,9 @@ return {
                 -- Modify gf and gF to open files in the left window and avoid insert mode in new tab
                 vim.keymap.set("n", "gf", function()
                     local file = parse_and_validate_file()
-                    if not file then return end
+                    if not file then
+                        return
+                    end
 
                     vim.cmd("wincmd h") -- Move to left window
                     vim.cmd("edit " .. file)
@@ -153,7 +155,9 @@ return {
 
                 vim.keymap.set("n", "gF", function()
                     local file, line = parse_and_validate_file()
-                    if not file then return end
+                    if not file then
+                        return
+                    end
 
                     vim.cmd("wincmd h")
                     vim.cmd("edit +" .. line .. " " .. file)
@@ -162,7 +166,9 @@ return {
 
                 vim.keymap.set("n", "<C-w>gf", function()
                     local file = parse_and_validate_file()
-                    if not file then return end
+                    if not file then
+                        return
+                    end
 
                     vim.cmd("tabnew " .. file)
                     -- Ensure we stay in normal mode (seems to carry over from terminal when going to new tab)
@@ -171,7 +177,9 @@ return {
 
                 vim.keymap.set("n", "<C-w>gF", function()
                     local file, line = parse_and_validate_file()
-                    if not file then return end
+                    if not file then
+                        return
+                    end
 
                     vim.cmd("tabnew +" .. line .. " " .. file)
                     vim.cmd("normal! ^")
