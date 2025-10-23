@@ -1,5 +1,5 @@
 ---
-description: Optimize documentation for conciseness and clarity by strengthening vague instructions and removing redundancy
+description: Optimize documentation for conciseness and clarity
 ---
 
 # Optimize Documentation Command
