@@ -78,9 +78,7 @@ def search_stories(
                       if query_lower in s.get("name", "").lower()
                       or query_lower in s.get("description", "").lower()]
 
-        # Apply limit
-        stories = stories[:limit]
-
+        # No limit applied for iteration queries - return all matching stories
         return [format_story(story) for story in stories]
 
     # Otherwise, use search API for non-iteration queries
@@ -335,7 +333,7 @@ def main():
     search_parser.add_argument("--epic-id", type=int, help="Epic ID")
     search_parser.add_argument("--workflow-state-id", type=int, help="Workflow state ID")
     search_parser.add_argument("--story-type", choices=["feature", "bug", "chore"], help="Story type")
-    search_parser.add_argument("--limit", type=int, default=25, help="Result limit")
+    search_parser.add_argument("--limit", type=int, default=50, help="Result limit (if searching without iteration-id)")
 
     # Create story
     create_parser = subparsers.add_parser("create", help="Create a new story")
