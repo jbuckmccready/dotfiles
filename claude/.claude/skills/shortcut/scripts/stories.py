@@ -344,6 +344,7 @@ def main():
     create_parser.add_argument("--owner-ids", nargs="+", help="Owner IDs")
     create_parser.add_argument("--iteration-id", type=int, help="Iteration ID")
     create_parser.add_argument("--epic-id", type=int, help="Epic ID")
+    create_parser.add_argument("--workflow-state-id", type=int, default=500004783, help="Initial workflow state ID (default: 500004783 'Backlog')")
     create_parser.add_argument("--estimate", type=int, help="Story point estimate")
 
     # Update story
@@ -396,6 +397,7 @@ def main():
                 owner_ids=args.owner_ids,
                 iteration_id=args.iteration_id,
                 epic_id=args.epic_id,
+                workflow_state_id=args.workflow_state_id,
                 estimate=args.estimate
             )
         elif args.command == "update":
