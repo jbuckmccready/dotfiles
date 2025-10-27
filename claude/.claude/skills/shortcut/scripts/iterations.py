@@ -4,7 +4,7 @@
 import sys
 import json
 import argparse
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from shortcut_client import ShortcutClient, format_iteration
 
 
@@ -53,7 +53,11 @@ def create_iteration(
     """
     client = ShortcutClient()
 
-    iteration_data = {"name": name, "start_date": start_date, "end_date": end_date}
+    iteration_data: Dict[str, Any] = {
+        "name": name,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
     if description:
         iteration_data["description"] = description
     if team_ids:

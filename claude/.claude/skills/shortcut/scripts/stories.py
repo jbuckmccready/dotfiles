@@ -8,7 +8,7 @@ This module provides functions for creating, updating, searching, and retrieving
 import sys
 import json
 import argparse
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from shortcut_client import ShortcutClient, format_story, get_current_user
 
 
@@ -92,7 +92,7 @@ def search_stories(
 
     # Otherwise, use search API for non-iteration queries
     # Build search query
-    search_params = {"page_size": min(limit, 1000)}
+    search_params: Dict[str, Any] = {"page_size": min(limit, 1000)}
 
     if query:
         search_params["query"] = query
@@ -111,11 +111,12 @@ def search_stories(
         filters["story_type"] = story_type
 
     if filters:
-        search_params["query"] = (
-            search_params.get("query", "")
-            + " "
-            + " ".join(f"{k}:{v}" for k, v in filters.items())
-        )
+        filter_str = " ".join(f"{k}:{v}" for k, v in filters.items())
+        existing_query = search_params.get("query", "")
+        if existing_query:
+            search_params["query"] = f"{existing_query} {filter_str}"
+        else:
+            search_params["query"] = filter_str
 
     # Execute search
     result = client.get("search/stories", params=search_params)

@@ -4,7 +4,7 @@
 import sys
 import json
 import argparse
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from shortcut_client import ShortcutClient, format_epic
 
 
@@ -47,7 +47,7 @@ def create_epic(
     """Create a new epic."""
     client = ShortcutClient()
 
-    epic_data = {"name": name, "state": state}
+    epic_data: Dict[str, Any] = {"name": name, "state": state}
     if description:
         epic_data["description"] = description
     if owner_ids:
