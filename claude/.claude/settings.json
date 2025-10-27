@@ -16,6 +16,7 @@
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
       "Skill(rust-development)",
+      "Skill(python-development)",
       "Skill(shortcut)"
     ],
     "deny": []
