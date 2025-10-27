@@ -15,7 +15,9 @@ def get_iteration(iteration_id: int) -> Dict:
     return format_iteration(iteration)
 
 
-def list_iterations(include_stats: bool = False, status: Optional[str] = None) -> List[Dict]:
+def list_iterations(
+    include_stats: bool = False, status: Optional[str] = None
+) -> List[Dict]:
     """List all iterations.
 
     Args:
@@ -37,7 +39,7 @@ def create_iteration(
     start_date: str,
     end_date: str,
     description: Optional[str] = None,
-    team_ids: Optional[List[str]] = None
+    team_ids: Optional[List[str]] = None,
 ) -> Dict:
     """
     Create a new iteration.
@@ -51,11 +53,7 @@ def create_iteration(
     """
     client = ShortcutClient()
 
-    iteration_data = {
-        "name": name,
-        "start_date": start_date,
-        "end_date": end_date
-    }
+    iteration_data = {"name": name, "start_date": start_date, "end_date": end_date}
     if description:
         iteration_data["description"] = description
     if team_ids:
@@ -71,7 +69,7 @@ def update_iteration(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     description: Optional[str] = None,
-    team_ids: Optional[List[str]] = None
+    team_ids: Optional[List[str]] = None,
 ) -> Dict:
     """Update an existing iteration."""
     client = ShortcutClient()
@@ -107,8 +105,14 @@ def main():
     get_parser.add_argument("iteration_id", type=int)
 
     list_parser = subparsers.add_parser("list")
-    list_parser.add_argument("--with-stats", action="store_true", help="Include statistics in the output")
-    list_parser.add_argument("--status", choices=["started", "unstarted", "done"], help="Filter by iteration status")
+    list_parser.add_argument(
+        "--with-stats", action="store_true", help="Include statistics in the output"
+    )
+    list_parser.add_argument(
+        "--status",
+        choices=["started", "unstarted", "done"],
+        help="Filter by iteration status",
+    )
 
     create_parser = subparsers.add_parser("create")
     create_parser.add_argument("name")
@@ -135,20 +139,23 @@ def main():
         elif args.command == "list":
             result = list_iterations(
                 include_stats=args.with_stats,
-                status=args.status if hasattr(args, 'status') else None
+                status=args.status if hasattr(args, "status") else None,
             )
         elif args.command == "create":
             result = create_iteration(
-                args.name, args.start_date, args.end_date,
-                args.description, args.team_ids if hasattr(args, 'team_ids') else None
+                args.name,
+                args.start_date,
+                args.end_date,
+                args.description,
+                args.team_ids if hasattr(args, "team_ids") else None,
             )
         elif args.command == "update":
             result = update_iteration(
                 args.iteration_id,
-                args.name if hasattr(args, 'name') else None,
-                args.start_date if hasattr(args, 'start_date') else None,
-                args.end_date if hasattr(args, 'end_date') else None,
-                args.description if hasattr(args, 'description') else None
+                args.name if hasattr(args, "name") else None,
+                args.start_date if hasattr(args, "start_date") else None,
+                args.end_date if hasattr(args, "end_date") else None,
+                args.description if hasattr(args, "description") else None,
             )
         elif args.command == "delete":
             result = delete_iteration(args.iteration_id)

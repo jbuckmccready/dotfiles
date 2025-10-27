@@ -35,7 +35,7 @@ def search_stories(
     epic_id: Optional[int] = None,
     workflow_state_id: Optional[int] = None,
     story_type: Optional[str] = None,
-    limit: int = 25
+    limit: int = 25,
 ) -> List[Dict]:
     """
     Search for stories with various filters.
@@ -64,19 +64,28 @@ def search_stories(
         if team_id:
             stories = [s for s in stories if s.get("group_id") == team_id]
         if owner_ids:
-            stories = [s for s in stories if any(oid in s.get("owner_ids", []) for oid in owner_ids)]
+            stories = [
+                s
+                for s in stories
+                if any(oid in s.get("owner_ids", []) for oid in owner_ids)
+            ]
         if epic_id:
             stories = [s for s in stories if s.get("epic_id") == epic_id]
         if workflow_state_id:
-            stories = [s for s in stories if s.get("workflow_state_id") == workflow_state_id]
+            stories = [
+                s for s in stories if s.get("workflow_state_id") == workflow_state_id
+            ]
         if story_type:
             stories = [s for s in stories if s.get("story_type") == story_type]
         if query:
             # Simple text search in name and description
             query_lower = query.lower()
-            stories = [s for s in stories
-                      if query_lower in s.get("name", "").lower()
-                      or query_lower in s.get("description", "").lower()]
+            stories = [
+                s
+                for s in stories
+                if query_lower in s.get("name", "").lower()
+                or query_lower in s.get("description", "").lower()
+            ]
 
         # No limit applied for iteration queries - return all matching stories
         return [format_story(story) for story in stories]
@@ -102,8 +111,10 @@ def search_stories(
         filters["story_type"] = story_type
 
     if filters:
-        search_params["query"] = search_params.get("query", "") + " " + " ".join(
-            f"{k}:{v}" for k, v in filters.items()
+        search_params["query"] = (
+            search_params.get("query", "")
+            + " "
+            + " ".join(f"{k}:{v}" for k, v in filters.items())
         )
 
     # Execute search
@@ -124,7 +135,7 @@ def create_story(
     epic_id: Optional[int] = None,
     workflow_state_id: Optional[int] = None,
     estimate: Optional[int] = None,
-    labels: Optional[List[Dict]] = None
+    labels: Optional[List[Dict]] = None,
 ) -> Dict:
     """
     Create a new story.
@@ -156,7 +167,7 @@ def create_story(
     story_data = {
         "name": name,
         "story_type": story_type,
-        "requested_by_id": requester_id
+        "requested_by_id": requester_id,
     }
 
     if description:
@@ -192,7 +203,7 @@ def update_story(
     workflow_state_id: Optional[int] = None,
     estimate: Optional[int] = None,
     labels: Optional[List[Dict]] = None,
-    archived: Optional[bool] = None
+    archived: Optional[bool] = None,
 ) -> Dict:
     """
     Update an existing story.
@@ -277,8 +288,9 @@ def get_story_branch_name(story_id: int) -> Dict:
     sanitized_name = story["name"].lower()
     # Replace spaces and special chars with hyphens
     import re
-    sanitized_name = re.sub(r'[^a-z0-9]+', '-', sanitized_name)
-    sanitized_name = sanitized_name.strip('-')
+
+    sanitized_name = re.sub(r"[^a-z0-9]+", "-", sanitized_name)
+    sanitized_name = sanitized_name.strip("-")
     # Limit length
     sanitized_name = sanitized_name[:50]
 
@@ -287,7 +299,7 @@ def get_story_branch_name(story_id: int) -> Dict:
     return {
         "story_id": story_id,
         "branch_name": branch_name,
-        "story_name": story["name"]
+        "story_name": story["name"],
     }
 
 
@@ -311,7 +323,7 @@ def create_story_comment(story_id: int, text: str) -> Dict:
         "text": comment["text"],
         "author_id": comment["author_id"],
         "created_at": comment["created_at"],
-        "updated_at": comment["updated_at"]
+        "updated_at": comment["updated_at"],
     }
 
 
@@ -331,20 +343,39 @@ def main():
     search_parser.add_argument("--team-id", help="Team ID")
     search_parser.add_argument("--iteration-id", type=int, help="Iteration ID")
     search_parser.add_argument("--epic-id", type=int, help="Epic ID")
-    search_parser.add_argument("--workflow-state-id", type=int, help="Workflow state ID")
-    search_parser.add_argument("--story-type", choices=["feature", "bug", "chore"], help="Story type")
-    search_parser.add_argument("--limit", type=int, default=50, help="Result limit (if searching without iteration-id)")
+    search_parser.add_argument(
+        "--workflow-state-id", type=int, help="Workflow state ID"
+    )
+    search_parser.add_argument(
+        "--story-type", choices=["feature", "bug", "chore"], help="Story type"
+    )
+    search_parser.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="Result limit (if searching without iteration-id)",
+    )
 
     # Create story
     create_parser = subparsers.add_parser("create", help="Create a new story")
     create_parser.add_argument("name", help="Story title")
-    create_parser.add_argument("--type", dest="story_type", default="feature", choices=["feature", "bug", "chore"])
+    create_parser.add_argument(
+        "--type",
+        dest="story_type",
+        default="feature",
+        choices=["feature", "bug", "chore"],
+    )
     create_parser.add_argument("--description", help="Story description")
     create_parser.add_argument("--team-id", help="Team ID")
     create_parser.add_argument("--owner-ids", nargs="+", help="Owner IDs")
     create_parser.add_argument("--iteration-id", type=int, help="Iteration ID")
     create_parser.add_argument("--epic-id", type=int, help="Epic ID")
-    create_parser.add_argument("--workflow-state-id", type=int, default=500004783, help="Initial workflow state ID (default: 500004783 'Backlog')")
+    create_parser.add_argument(
+        "--workflow-state-id",
+        type=int,
+        default=500004783,
+        help="Initial workflow state ID (default: 500004783 'Backlog')",
+    )
     create_parser.add_argument("--estimate", type=int, help="Story point estimate")
 
     # Update story
@@ -352,19 +383,27 @@ def main():
     update_parser.add_argument("story_id", type=int, help="Story ID")
     update_parser.add_argument("--name", help="Updated title")
     update_parser.add_argument("--description", help="Updated description")
-    update_parser.add_argument("--type", dest="story_type", choices=["feature", "bug", "chore"])
+    update_parser.add_argument(
+        "--type", dest="story_type", choices=["feature", "bug", "chore"]
+    )
     update_parser.add_argument("--team-id", help="Team ID")
     update_parser.add_argument("--owner-ids", nargs="+", help="Owner IDs")
     update_parser.add_argument("--iteration-id", type=int, help="Iteration ID")
-    update_parser.add_argument("--workflow-state-id", type=int, help="Workflow state ID")
-    update_parser.add_argument("--archived", action="store_true", help="Archive the story")
+    update_parser.add_argument(
+        "--workflow-state-id", type=int, help="Workflow state ID"
+    )
+    update_parser.add_argument(
+        "--archived", action="store_true", help="Archive the story"
+    )
 
     # Delete story
     delete_parser = subparsers.add_parser("delete", help="Delete a story")
     delete_parser.add_argument("story_id", type=int, help="Story ID")
 
     # Get branch name
-    branch_parser = subparsers.add_parser("branch-name", help="Get recommended branch name")
+    branch_parser = subparsers.add_parser(
+        "branch-name", help="Get recommended branch name"
+    )
     branch_parser.add_argument("story_id", type=int, help="Story ID")
 
     # Create comment
@@ -386,7 +425,7 @@ def main():
                 epic_id=args.epic_id,
                 workflow_state_id=args.workflow_state_id,
                 story_type=args.story_type,
-                limit=args.limit
+                limit=args.limit,
             )
         elif args.command == "create":
             result = create_story(
@@ -398,7 +437,7 @@ def main():
                 iteration_id=args.iteration_id,
                 epic_id=args.epic_id,
                 workflow_state_id=args.workflow_state_id,
-                estimate=args.estimate
+                estimate=args.estimate,
             )
         elif args.command == "update":
             result = update_story(
@@ -410,7 +449,7 @@ def main():
                 owner_ids=args.owner_ids,
                 iteration_id=args.iteration_id,
                 workflow_state_id=args.workflow_state_id,
-                archived=args.archived if hasattr(args, 'archived') else None
+                archived=args.archived if hasattr(args, "archived") else None,
             )
         elif args.command == "delete":
             result = delete_story(args.story_id)

@@ -22,10 +22,7 @@ def list_objectives() -> List[Dict]:
     return [format_objective(obj) for obj in objectives]
 
 
-def create_objective(
-    name: str,
-    description: Optional[str] = None
-) -> Dict:
+def create_objective(name: str, description: Optional[str] = None) -> Dict:
     """Create a new objective."""
     client = ShortcutClient()
 
@@ -41,7 +38,7 @@ def update_objective(
     objective_id: str,
     name: Optional[str] = None,
     description: Optional[str] = None,
-    state: Optional[str] = None
+    state: Optional[str] = None,
 ) -> Dict:
     """Update an existing objective."""
     client = ShortcutClient()
@@ -99,9 +96,9 @@ def main():
         elif args.command == "update":
             result = update_objective(
                 args.objective_id,
-                args.name if hasattr(args, 'name') else None,
-                args.description if hasattr(args, 'description') else None,
-                args.state if hasattr(args, 'state') else None
+                args.name if hasattr(args, "name") else None,
+                args.description if hasattr(args, "description") else None,
+                args.state if hasattr(args, "state") else None,
             )
         elif args.command == "delete":
             result = delete_objective(args.objective_id)

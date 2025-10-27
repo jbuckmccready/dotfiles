@@ -31,7 +31,7 @@ class ShortcutClient:
 
         self.headers = {
             "Content-Type": "application/json",
-            "Shortcut-Token": self.api_token
+            "Shortcut-Token": self.api_token,
         }
 
     def _make_request(
@@ -39,7 +39,7 @@ class ShortcutClient:
         method: str,
         endpoint: str,
         data: Optional[Dict] = None,
-        params: Optional[Dict] = None
+        params: Optional[Dict] = None,
     ) -> Any:
         """
         Make an HTTP request to the Shortcut API.
@@ -63,14 +63,11 @@ class ShortcutClient:
         # Prepare request body
         body = None
         if data is not None:
-            body = json.dumps(data).encode('utf-8')
+            body = json.dumps(data).encode("utf-8")
 
         # Create request
         req = urllib.request.Request(
-            url,
-            data=body,
-            headers=self.headers,
-            method=method
+            url, data=body, headers=self.headers, method=method
         )
 
         try:
@@ -81,17 +78,19 @@ class ShortcutClient:
                 if status_code == 204:
                     return {}
 
-                response_data = response.read().decode('utf-8')
+                response_data = response.read().decode("utf-8")
                 return json.loads(response_data)
 
         except urllib.error.HTTPError as e:
             error_msg = f"API request failed: {e.code} {e.reason}"
             try:
-                error_body = e.read().decode('utf-8')
+                error_body = e.read().decode("utf-8")
                 try:
                     # Try to parse as JSON for structured error details
                     error_detail = json.loads(error_body)
-                    error_msg = f"{error_msg}\nDetails: {json.dumps(error_detail, indent=2)}"
+                    error_msg = (
+                        f"{error_msg}\nDetails: {json.dumps(error_detail, indent=2)}"
+                    )
                 except (json.JSONDecodeError, ValueError):
                     # Not JSON, show raw response text
                     error_msg = f"{error_msg}\nResponse: {error_body}"
@@ -162,7 +161,7 @@ def format_member(member: Dict) -> Dict:
             "id": member["id"],
             "name": member.get("name", "Unknown"),
             "email": member.get("email"),
-            "mention_name": member.get("mention_name")
+            "mention_name": member.get("mention_name"),
         }
 
     # Otherwise it's from /members/{id} endpoint (has profile key)
@@ -170,7 +169,7 @@ def format_member(member: Dict) -> Dict:
         "id": member["id"],
         "name": member.get("profile", {}).get("name", "Unknown"),
         "email": member.get("profile", {}).get("email_address"),
-        "mention_name": member.get("profile", {}).get("mention_name")
+        "mention_name": member.get("profile", {}).get("mention_name"),
     }
 
 
@@ -191,8 +190,11 @@ def format_story(story: Dict) -> Dict:
         "iteration_id": story.get("iteration_id"),
         "epic_id": story.get("epic_id"),
         "estimate": story.get("estimate"),
-        "labels": [{"id": label["id"], "name": label["name"]} for label in story.get("labels", [])],
-        "team_id": story.get("group_id")
+        "labels": [
+            {"id": label["id"], "name": label["name"]}
+            for label in story.get("labels", [])
+        ],
+        "team_id": story.get("group_id"),
     }
 
 
@@ -209,7 +211,10 @@ def format_epic(epic: Dict) -> Dict:
         "completed": epic.get("completed", False),
         "owner_ids": epic.get("owner_ids", []),
         "milestone_id": epic.get("milestone_id"),
-        "labels": [{"id": label["id"], "name": label["name"]} for label in epic.get("labels", [])]
+        "labels": [
+            {"id": label["id"], "name": label["name"]}
+            for label in epic.get("labels", [])
+        ],
     }
 
 
@@ -230,7 +235,7 @@ def format_iteration(iteration: Dict, include_stats: bool = True) -> Dict:
         "app_url": iteration["app_url"],
         "created_at": iteration["created_at"],
         "updated_at": iteration["updated_at"],
-        "team_ids": iteration.get("group_ids", [])
+        "team_ids": iteration.get("group_ids", []),
     }
 
     if include_stats:
@@ -248,7 +253,7 @@ def format_team(team: Dict) -> Dict:
         "description": team.get("description", ""),
         "app_url": team["app_url"],
         "num_members": len(team.get("member_ids", [])),
-        "workflow_ids": team.get("workflow_ids", [])
+        "workflow_ids": team.get("workflow_ids", []),
     }
 
 
@@ -266,10 +271,10 @@ def format_workflow(workflow: Dict) -> Dict:
                 "id": state["id"],
                 "name": state["name"],
                 "type": state["type"],
-                "position": state.get("position", 0)
+                "position": state.get("position", 0),
             }
             for state in workflow.get("states", [])
-        ]
+        ],
     }
 
 
@@ -283,5 +288,5 @@ def format_objective(objective: Dict) -> Dict:
         "app_url": objective["app_url"],
         "created_at": objective["created_at"],
         "updated_at": objective["updated_at"],
-        "completed": objective.get("completed", False)
+        "completed": objective.get("completed", False),
     }

@@ -22,7 +22,9 @@ def list_epics() -> List[Dict]:
     return [format_epic(epic) for epic in epics]
 
 
-def search_epics(query: Optional[str] = None, state: Optional[str] = None) -> List[Dict]:
+def search_epics(
+    query: Optional[str] = None, state: Optional[str] = None
+) -> List[Dict]:
     """Search epics."""
     client = ShortcutClient()
     params = {}
@@ -40,7 +42,7 @@ def create_epic(
     description: Optional[str] = None,
     state: str = "to do",
     owner_ids: Optional[List[str]] = None,
-    milestone_id: Optional[int] = None
+    milestone_id: Optional[int] = None,
 ) -> Dict:
     """Create a new epic."""
     client = ShortcutClient()
@@ -63,7 +65,7 @@ def update_epic(
     description: Optional[str] = None,
     state: Optional[str] = None,
     owner_ids: Optional[List[str]] = None,
-    archived: Optional[bool] = None
+    archived: Optional[bool] = None,
 ) -> Dict:
     """Update an existing epic."""
     client = ShortcutClient()
@@ -130,12 +132,17 @@ def main():
         elif args.command == "search":
             result = search_epics(args.query, args.state)
         elif args.command == "create":
-            result = create_epic(args.name, args.description, args.state, args.owner_ids)
+            result = create_epic(
+                args.name, args.description, args.state, args.owner_ids
+            )
         elif args.command == "update":
             result = update_epic(
-                args.epic_id, args.name, args.description, args.state,
-                args.owner_ids if hasattr(args, 'owner_ids') else None,
-                args.archived if hasattr(args, 'archived') else None
+                args.epic_id,
+                args.name,
+                args.description,
+                args.state,
+                args.owner_ids if hasattr(args, "owner_ids") else None,
+                args.archived if hasattr(args, "archived") else None,
             )
         elif args.command == "delete":
             result = delete_epic(args.epic_id)

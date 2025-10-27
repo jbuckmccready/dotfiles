@@ -21,10 +21,7 @@ def create_document(name: str, content: str) -> Dict:
     """
     client = ShortcutClient()
 
-    document_data = {
-        "name": name,
-        "content": content
-    }
+    document_data = {"name": name, "content": content}
 
     document = client.post("docs", document_data)
 
@@ -32,7 +29,7 @@ def create_document(name: str, content: str) -> Dict:
         "id": document["id"],
         "name": document["name"],
         "app_url": document["app_url"],
-        "created_at": document["created_at"]
+        "created_at": document["created_at"],
     }
 
 

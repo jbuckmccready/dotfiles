@@ -40,8 +40,7 @@ def get_current_teams() -> List[Dict]:
 
     # Filter teams where current user is a member
     user_teams = [
-        team for team in all_teams
-        if current_user_id in team.get("member_ids", [])
+        team for team in all_teams if current_user_id in team.get("member_ids", [])
     ]
 
     return [format_team(team) for team in user_teams]
