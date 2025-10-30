@@ -1,5 +1,6 @@
 ---
 description: Create a new shortcut story and checkout new branch using shortcut story branch name
+allowed-tools: Bash(git checkout:*)
 ---
 
 Create a new shortcut story based on the following input:
@@ -25,4 +26,4 @@ Type: [set based on title if unspecified in input, allowed: feature, bug, or cho
 Iteration: [from input, default to the currently started iteration across all teams if unspecified in input]
 
 1. Create a new shortcut story with the above details.
-2. Checkout a new git branch using the shortcut story branch name.
+2. Checkout a new git branch using the shortcut story branch name: `git checkout -b <branch-name>`
