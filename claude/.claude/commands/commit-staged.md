@@ -1,12 +1,23 @@
 ---
-description: Create a commit based on staged changes in the current git repository
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(git log:*), Bash(git commit:*)
+description: Create a commit of staged changes
 ---
+
+## Context
+
+- Current git status: !`git status`
+- Current git diff staged: !`git diff --staged`
+- Current branch: !`git branch --show-current`
+- Recent commits: !`git log --oneline -10`
+
+## Your task
+
+Based on the above context, create a single git commit of the currently staged changes.
 
 ## Before Creating the Commit
 
-1. Review `git status` and `git diff --staged`
-2. Verify the changes match what should be committed
-3. Check for any accidentally staged files
+- Check for any accidentally staged files.
+- Ensure commit message and description adheres to the guidelines below.
 
 ## Commit Message Format
 
