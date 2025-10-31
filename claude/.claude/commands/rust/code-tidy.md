@@ -1,5 +1,6 @@
 ---
 description: Tidy up Rust code by running linter and formatter
+allowed-tools: Bash(cargo clippy:*), Bash(cargo +nightly fmt)
 ---
 
 1. Run linter: `cargo clippy --tests`

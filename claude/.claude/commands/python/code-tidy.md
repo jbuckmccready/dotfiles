@@ -1,5 +1,6 @@
 ---
 description: Tidy up Python code by running type check, linter and formatter
+allowed-tools: Bash(pyright), Bash(ruff check --fix .), Bash(ruff format .)
 ---
 
 1. Run type check: `pyright`
