@@ -19,20 +19,32 @@ Get your API token from: https://app.shortcut.com/settings/account/api-tokens
 
 Optionally, set `SHORTCUT_CURRENT_USER_ID` to cache the current user's ID and reduce API calls.
 
+## CLI Tools
+
+This skill provides two CLI tools:
+
+- **`claude-shortcut-read`** - Read-only operations (auto-approved via permissions)
+- **`claude-shortcut-write`** - Write operations (require explicit approval)
+
+Both tools follow the same pattern:
+```bash
+claude-shortcut-{read|write} <entity> <operation> [args...]
+```
+
 ## Available Operations
 
 ### Stories
 
-Stories are the standard unit of work in Shortcut. Use the `stories.py` script for all story operations.
+Stories are the standard unit of work in Shortcut.
 
 **Get a story:**
 ```bash
-python3 scripts/stories.py get <story-id>
+claude-shortcut-read stories get <story-id>
 ```
 
 **Search stories:**
 ```bash
-python3 scripts/stories.py search \
+claude-shortcut-read stories search \
   --query "search text" \
   --owner-ids <user-id> \
   --team-id <team-id> \
@@ -43,9 +55,15 @@ python3 scripts/stories.py search \
   --limit 25
 ```
 
+**Get branch name for a story:**
+```bash
+claude-shortcut-read stories branch-name <story-id>
+```
+Returns a formatted git branch name like `sc-123/feature-description`
+
 **Create a story:**
 ```bash
-python3 scripts/stories.py create "Story title" \
+claude-shortcut-write stories create "Story title" \
   --type feature|bug|chore \
   --description "Story description" \
   --team-id <team-id> \
@@ -57,7 +75,7 @@ python3 scripts/stories.py create "Story title" \
 
 **Update a story:**
 ```bash
-python3 scripts/stories.py update <story-id> \
+claude-shortcut-write stories update <story-id> \
   --name "New title" \
   --description "New description" \
   --type bug \
@@ -68,18 +86,12 @@ python3 scripts/stories.py update <story-id> \
 
 **Delete a story:**
 ```bash
-python3 scripts/stories.py delete <story-id>
+claude-shortcut-write stories delete <story-id>
 ```
-
-**Get branch name for a story:**
-```bash
-python3 scripts/stories.py branch-name <story-id>
-```
-Returns a formatted git branch name like `sc-123/feature-description`
 
 **Add a comment to a story:**
 ```bash
-python3 scripts/stories.py comment <story-id> "Comment text"
+claude-shortcut-write stories comment <story-id> "Comment text"
 ```
 
 ### Epics
@@ -88,22 +100,22 @@ Epics are collections of related stories representing larger features or initiat
 
 **Get an epic:**
 ```bash
-python3 scripts/epics.py get <epic-id>
+claude-shortcut-read epics get <epic-id>
 ```
 
 **List all epics:**
 ```bash
-python3 scripts/epics.py list
+claude-shortcut-read epics list
 ```
 
 **Search epics:**
 ```bash
-python3 scripts/epics.py search --query "search text" --state "in progress"
+claude-shortcut-read epics search --query "search text" --state "in progress"
 ```
 
 **Create an epic:**
 ```bash
-python3 scripts/epics.py create "Epic name" \
+claude-shortcut-write epics create "Epic name" \
   --description "Epic description" \
   --state "to do" \
   --owner-ids <user-id>
@@ -111,7 +123,7 @@ python3 scripts/epics.py create "Epic name" \
 
 **Update an epic:**
 ```bash
-python3 scripts/epics.py update <epic-id> \
+claude-shortcut-write epics update <epic-id> \
   --name "New name" \
   --state "done" \
   --archived
@@ -119,7 +131,7 @@ python3 scripts/epics.py update <epic-id> \
 
 **Delete an epic:**
 ```bash
-python3 scripts/epics.py delete <epic-id>
+claude-shortcut-write epics delete <epic-id>
 ```
 
 ### Iterations
@@ -128,34 +140,34 @@ Iterations (sprints) are time-boxed periods of development.
 
 **Get current active iteration:**
 ```bash
-python3 scripts/iterations.py list --status started
+claude-shortcut-read iterations list --status started
 ```
 
 **Filter by status (started, unstarted, done):**
 ```bash
-python3 scripts/iterations.py list --status done
+claude-shortcut-read iterations list --status done
 ```
 
 **Get a specific iteration:**
 ```bash
-python3 scripts/iterations.py get <iteration-id>
+claude-shortcut-read iterations get <iteration-id>
 ```
 
 **List all iterations (add --with-stats for story counts):**
 ```bash
-python3 scripts/iterations.py list
+claude-shortcut-read iterations list
 ```
 
 **Create an iteration:**
 ```bash
-python3 scripts/iterations.py create "Sprint 1" 2025-01-01 2025-01-14 \
+claude-shortcut-write iterations create "Sprint 1" 2025-01-01 2025-01-14 \
   --description "Sprint description" \
   --team-ids <team-id>
 ```
 
 **Update an iteration:**
 ```bash
-python3 scripts/iterations.py update <iteration-id> \
+claude-shortcut-write iterations update <iteration-id> \
   --name "Sprint 2" \
   --start-date 2025-01-15 \
   --end-date 2025-01-28
@@ -163,7 +175,7 @@ python3 scripts/iterations.py update <iteration-id> \
 
 **Delete an iteration:**
 ```bash
-python3 scripts/iterations.py delete <iteration-id>
+claude-shortcut-write iterations delete <iteration-id>
 ```
 
 ### Teams
@@ -172,12 +184,12 @@ Teams represent groups of people working together.
 
 **Get a team:**
 ```bash
-python3 scripts/teams.py get <team-id>
+claude-shortcut-read teams get <team-id>
 ```
 
 **List all teams:**
 ```bash
-python3 scripts/teams.py list
+claude-shortcut-read teams list
 ```
 
 ### Workflows
@@ -186,12 +198,12 @@ Workflows define the states that stories move through.
 
 **Get a workflow:**
 ```bash
-python3 scripts/workflows.py get <workflow-id>
+claude-shortcut-read workflows get <workflow-id>
 ```
 
 **List all workflows:**
 ```bash
-python3 scripts/workflows.py list
+claude-shortcut-read workflows list
 ```
 
 ### Users/Members
@@ -200,22 +212,22 @@ Manage workspace members and get current user information.
 
 **Get a member:**
 ```bash
-python3 scripts/users.py get <member-id>
+claude-shortcut-read users get <member-id>
 ```
 
 **List all members:**
 ```bash
-python3 scripts/users.py list
+claude-shortcut-read users list
 ```
 
 **Get current user:**
 ```bash
-python3 scripts/users.py current
+claude-shortcut-read users current
 ```
 
 **Get current user's teams:**
 ```bash
-python3 scripts/users.py current-teams
+claude-shortcut-read users current-teams
 ```
 
 ### Objectives
@@ -224,30 +236,30 @@ Objectives represent high-level goals.
 
 **Get an objective:**
 ```bash
-python3 scripts/objectives.py get <objective-id>
+claude-shortcut-read objectives get <objective-id>
 ```
 
 **List all objectives:**
 ```bash
-python3 scripts/objectives.py list
+claude-shortcut-read objectives list
 ```
 
 **Create an objective:**
 ```bash
-python3 scripts/objectives.py create "Objective name" \
+claude-shortcut-write objectives create "Objective name" \
   --description "Objective description"
 ```
 
 **Update an objective:**
 ```bash
-python3 scripts/objectives.py update <objective-id> \
+claude-shortcut-write objectives update <objective-id> \
   --name "New name" \
   --state "done"
 ```
 
 **Delete an objective:**
 ```bash
-python3 scripts/objectives.py delete <objective-id>
+claude-shortcut-write objectives delete <objective-id>
 ```
 
 ### Documents
@@ -256,7 +268,7 @@ Create documentation in Shortcut.
 
 **Create a document:**
 ```bash
-python3 scripts/documents.py create "Doc title" "<h1>HTML Content</h1>"
+claude-shortcut-write documents create "Doc title" "<h1>HTML Content</h1>"
 ```
 
 ## Common Workflows
@@ -265,18 +277,18 @@ python3 scripts/documents.py create "Doc title" "<h1>HTML Content</h1>"
 
 ```bash
 # Get current iteration
-python3 scripts/iterations.py list --status started
+claude-shortcut-read iterations list --status started
 # Then search stories with the iteration ID and your user ID
-python3 scripts/stories.py search --iteration-id <id> --owner-ids <user-id>
+claude-shortcut-read stories search --iteration-id <id> --owner-ids <user-id>
 ```
 
 ### Creating a Story with Full Context
 
 When creating a story, gather the necessary IDs first:
 
-1. Get current user: `python3 scripts/users.py current`
-2. List teams: `python3 scripts/teams.py list`
-3. Get current iteration: `python3 scripts/iterations.py list --status started`
+1. Get current user: `claude-shortcut-read users current`
+2. List teams: `claude-shortcut-read teams list`
+3. Get current iteration: `claude-shortcut-read iterations list --status started`
 4. Create the story with gathered information
 
 ### Story Creation from Title
@@ -291,14 +303,14 @@ For the common pattern in the `story-and-branch.md` example:
 # Get current started iteration
 # Create story and get branch name
 
-python3 scripts/stories.py create "add v2 rate limiting" \
+claude-shortcut-write stories create "add v2 rate limiting" \
   --type feature \
   --team-id <infra-team-id> \
   --owner-ids <user-id> \
   --iteration-id <current-iteration-id>
 
 # Then get the branch name
-python3 scripts/stories.py branch-name <new-story-id>
+claude-shortcut-read stories branch-name <new-story-id>
 ```
 
 ## Python API Usage

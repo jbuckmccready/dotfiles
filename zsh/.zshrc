@@ -10,6 +10,8 @@ export EDITOR=nvim
 # neovim for kubectl/k9s
 export KUBE_EDITOR=nvim
 
+export PATH="$HOME/.claude/skills/shortcut:$PATH"
+
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
 
 export PATH="$HOME/.cargo/bin:$PATH"

@@ -15,6 +15,7 @@
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
+      "Bash(claude-shortcut-read:*)",
       "Skill(rust-development)",
       "Skill(python-development)",
       "Skill(shortcut)"
