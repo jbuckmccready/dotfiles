@@ -141,6 +141,11 @@ return {
             { "<leader>gF", function() Snacks.picker.git_log_file() end, desc = "Git Log File" },
             { "<leader>go", function() Snacks.gitbrowse() end, desc = "Git Open in Browser", mode = { "n", "v" } },
             { "<leader>gg", function() Snacks.lazygit() end, desc = "Lazygit" },
+            -- GitHub related
+            { "<leader>gi", function() Snacks.picker.gh_issue() end, desc = "GitHub Issues (open)" },
+            { "<leader>gI", function() Snacks.picker.gh_issue({ state = "all" }) end, desc = "GitHub Issues (all)" },
+            { "<leader>gp", function() Snacks.picker.gh_pr() end, desc = "GitHub Pull Requests (open)" },
+            { "<leader>gP", function() Snacks.picker.gh_pr({ state = "all" }) end, desc = "GitHub Pull Requests (all)" },
             -- Grep
             { "<leader>sb", function() Snacks.picker.lines() end, desc = "Buffer Lines" },
             { "<leader>sB", function() Snacks.picker.grep_buffers() end, desc = "Grep Open Buffers" },

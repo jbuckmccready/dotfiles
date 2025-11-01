@@ -150,7 +150,7 @@ vim.keymap.set({ "n" }, "<leader>uz", function()
 end, { desc = "Toggle lsp inlay hints" })
 
 -- Toggle ignore white space for diffs
-vim.keymap.set({ "n" }, "<leader>gi", function()
+vim.keymap.set({ "n" }, "<leader>uI", function()
     local is_ignoring_ws = vim.tbl_contains(vim.opt.diffopt:get(), "iwhite")
 
     if is_ignoring_ws then
