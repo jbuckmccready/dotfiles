@@ -2,6 +2,8 @@
 description: Create a new shortcut story
 ---
 
+**IMPORTANT:** use the shortcut skill to perform all operations related to shortcut stories and branches.
+
 Create a new shortcut story based on the following input:
 <input>
 $ARGUMENTS
