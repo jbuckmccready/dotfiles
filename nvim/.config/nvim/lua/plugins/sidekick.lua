@@ -90,6 +90,9 @@ return {
                 split = {
                     width = 140,
                 },
+                keys = {
+                    buffers = false, -- unbind ctrl-b (used for background task in claude code)
+                },
             },
             mux = {
                 backend = "tmux",
