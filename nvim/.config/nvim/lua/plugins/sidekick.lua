@@ -91,7 +91,15 @@ return {
                     width = 140,
                 },
                 keys = {
-                    buffers = false, -- unbind ctrl-b (used for background task in claude code)
+                    -- Disable all default CLI keymaps except navigation (avoid conflicts with cli tools)
+                    buffers = false,
+                    files = false,
+                    hide_n = false,
+                    hide_ctrl_q = false,
+                    hide_ctrl_dot = false,
+                    hide_ctrl_z = false,
+                    prompt = false,
+                    stopinsert = false,
                 },
             },
             mux = {
