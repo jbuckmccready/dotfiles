@@ -3,16 +3,29 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git branch:*), Bash(gi
 description: Create a commit of staged changes
 ---
 
-## Context
-
-- Current git status: !`git status`
-- Current git diff staged: !`git diff --staged`
-- Current branch: !`git branch --show-current`
-- Recent commits: !`git log --oneline -10`
-
 ## Your task
 
-Based on the above context, create a single git commit of the currently staged changes.
+Use the context provided below to create a single git commit of the currently staged changes.
+
+After the commit command do not perform any other commands unless there are errors.
+
+## Context
+
+### Current git status (`git status`)
+
+!`git status`
+
+### Current git diff staged (`git diff --staged`)
+
+!`git diff --staged`
+
+### Current branch (`git branch --show-current`)
+
+!`git branch --show-current`
+
+### Recent commits (`git log --oneline -10`)
+
+!`git log --oneline -10`
 
 ## Before Creating the Commit
 
