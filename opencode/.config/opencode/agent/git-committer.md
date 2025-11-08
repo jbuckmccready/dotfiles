@@ -1,5 +1,6 @@
 ---
 description: Performs git commits
+mode: subagent
 tools:
   write: false
   edit: false
