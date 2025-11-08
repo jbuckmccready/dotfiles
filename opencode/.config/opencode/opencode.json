@@ -34,7 +34,8 @@
       "cargo +nightly fmt": "allow",
       "pyright": "allow",
       "ruff check --fix .": "allow",
-      "ruff format .": "allow"
+      "ruff format .": "allow",
+      "shortcut-api-read *": "allow"
     }
   },
   "keybinds": {
