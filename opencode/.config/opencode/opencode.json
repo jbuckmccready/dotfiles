@@ -100,12 +100,21 @@
             }
           }
         },
+        "sonnet-4-5-med": {
+          "id": "claude-sonnet-4-5-20250929",
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 8000
+            }
+          }
+        },
         "sonnet-4-5-low": {
           "id": "claude-sonnet-4-5-20250929",
           "options": {
             "thinking": {
               "type": "enabled",
-              "budgetTokens": 4000
+              "budgetTokens": 2000
             }
           }
         }
