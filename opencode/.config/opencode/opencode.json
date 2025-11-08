@@ -18,6 +18,8 @@
       "git log *": "allow",
       "git describe": "allow",
       "git describe *": "allow",
+      "git show": "allow",
+      "git show *": "allow",
       "rg *": "allow",
       "find *": "allow",
       "grep *": "allow",
