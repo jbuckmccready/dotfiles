@@ -19,7 +19,7 @@ title="feat(edge-gatway): add v2 rate limiting" owner="Alice"
 ```
 
 From the input, fill the following details for the sortcut story:
-Title: [from input]
+Title: [from input] (IMPORTANT: it should include the exact title as given including type and scope, e.g., "feat(edge-gatway): add v2 rate limiting")
 Team: Infra Team (IMPORTANT: must use id for the team)
 Owner: [from input, default to current user if unspecified in input, IMPORTANT: must use id for the owner]
 Requester: [current user, IMPORTANT: must use id for the requester]
