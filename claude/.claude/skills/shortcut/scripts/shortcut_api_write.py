@@ -1,19 +1,19 @@
 """
-Claude Shortcut Write - CLI wrapper for write Shortcut operations.
+Shortcut API Write - CLI wrapper for write Shortcut operations.
 
 Routes commands to the appropriate script for write operations only.
 These operations require explicit user approval via permissions.
 
 Usage:
-    claude-shortcut-write <entity> <operation> [args...]
+    shortcut-api-write <entity> <operation> [args...]
 
 Examples:
-    claude-shortcut-write stories create "Fix login bug" --type bug
-    claude-shortcut-write stories update 123 --name "New title"
-    claude-shortcut-write stories delete 123
-    claude-shortcut-write stories comment 123 "Added comment"
-    claude-shortcut-write epics create "Q1 Goals"
-    claude-shortcut-write iterations create "Sprint 1" 2025-01-01 2025-01-14
+    shortcut-api-write stories create "Fix login bug" --type bug
+    shortcut-api-write stories update 123 --name "New title"
+    shortcut-api-write stories delete 123
+    shortcut-api-write stories comment 123 "Added comment"
+    shortcut-api-write epics create "Q1 Goals"
+    shortcut-api-write iterations create "Sprint 1" 2025-01-01 2025-01-14
 """
 
 import sys
@@ -33,7 +33,7 @@ WRITE_OPERATIONS = {
 def main():
     if len(sys.argv) < 3:
         print(
-            "Usage: claude-shortcut-write <entity> <operation> [args...]",
+            "Usage: shortcut-api-write <entity> <operation> [args...]",
             file=sys.stderr,
         )
         print(

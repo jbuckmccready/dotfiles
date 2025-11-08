@@ -1,7 +1,7 @@
 ---
 name: shortcut
 description: Shortcut integration for managing stories, epics, iterations, teams, workflows, objectives, and documents. Use when interacting with Shortcut's project management platform to create, update, search, or retrieve project data.
-allowed-tools: Bash(claude-shortcut-read:*)
+allowed-tools: Bash(shortcut-api-read:*)
 ---
 
 # Shortcut Integration Skill
@@ -24,12 +24,12 @@ Optionally, set `SHORTCUT_CURRENT_USER_ID` to cache the current user's ID and re
 
 This skill provides two CLI tools:
 
-- **`claude-shortcut-read`** - Read-only operations (auto-approved via permissions)
-- **`claude-shortcut-write`** - Write operations (require explicit approval)
+- **`shortcut-api-read`** - Read-only operations (auto-approved via permissions)
+- **`shortcut-api-write`** - Write operations (require explicit approval)
 
 Both tools follow the same pattern:
 ```bash
-claude-shortcut-{read|write} <entity> <operation> [args...]
+shortcut-api-{read|write} <entity> <operation> [args...]
 ```
 
 ## Available Operations
@@ -40,12 +40,12 @@ Stories are the standard unit of work in Shortcut.
 
 **Get a story:**
 ```bash
-claude-shortcut-read stories get <story-id>
+shortcut-api-read stories get <story-id>
 ```
 
 **Search stories:**
 ```bash
-claude-shortcut-read stories search \
+shortcut-api-read stories search \
   --query "search text" \
   --owner-ids <user-id> \
   --team-id <team-id> \
@@ -58,13 +58,13 @@ claude-shortcut-read stories search \
 
 **Get branch name for a story:**
 ```bash
-claude-shortcut-read stories branch-name <story-id>
+shortcut-api-read stories branch-name <story-id>
 ```
 Returns a formatted git branch name like `sc-123/feature-description`
 
 **Create a story:**
 ```bash
-claude-shortcut-write stories create "Story title" \
+shortcut-api-write stories create "Story title" \
   --type feature|bug|chore \
   --description "Story description" \
   --team-id <team-id> \
@@ -76,7 +76,7 @@ claude-shortcut-write stories create "Story title" \
 
 **Update a story:**
 ```bash
-claude-shortcut-write stories update <story-id> \
+shortcut-api-write stories update <story-id> \
   --name "New title" \
   --description "New description" \
   --type bug \
@@ -87,12 +87,12 @@ claude-shortcut-write stories update <story-id> \
 
 **Delete a story:**
 ```bash
-claude-shortcut-write stories delete <story-id>
+shortcut-api-write stories delete <story-id>
 ```
 
 **Add a comment to a story:**
 ```bash
-claude-shortcut-write stories comment <story-id> "Comment text"
+shortcut-api-write stories comment <story-id> "Comment text"
 ```
 
 ### Epics
@@ -101,22 +101,22 @@ Epics are collections of related stories representing larger features or initiat
 
 **Get an epic:**
 ```bash
-claude-shortcut-read epics get <epic-id>
+shortcut-api-read epics get <epic-id>
 ```
 
 **List all epics:**
 ```bash
-claude-shortcut-read epics list
+shortcut-api-read epics list
 ```
 
 **Search epics:**
 ```bash
-claude-shortcut-read epics search --query "search text" --state "in progress"
+shortcut-api-read epics search --query "search text" --state "in progress"
 ```
 
 **Create an epic:**
 ```bash
-claude-shortcut-write epics create "Epic name" \
+shortcut-api-write epics create "Epic name" \
   --description "Epic description" \
   --state "to do" \
   --owner-ids <user-id>
@@ -124,7 +124,7 @@ claude-shortcut-write epics create "Epic name" \
 
 **Update an epic:**
 ```bash
-claude-shortcut-write epics update <epic-id> \
+shortcut-api-write epics update <epic-id> \
   --name "New name" \
   --state "done" \
   --archived
@@ -132,7 +132,7 @@ claude-shortcut-write epics update <epic-id> \
 
 **Delete an epic:**
 ```bash
-claude-shortcut-write epics delete <epic-id>
+shortcut-api-write epics delete <epic-id>
 ```
 
 ### Iterations
@@ -141,34 +141,34 @@ Iterations (sprints) are time-boxed periods of development.
 
 **Get current active iteration:**
 ```bash
-claude-shortcut-read iterations list --status started
+shortcut-api-read iterations list --status started
 ```
 
 **Filter by status (started, unstarted, done):**
 ```bash
-claude-shortcut-read iterations list --status done
+shortcut-api-read iterations list --status done
 ```
 
 **Get a specific iteration:**
 ```bash
-claude-shortcut-read iterations get <iteration-id>
+shortcut-api-read iterations get <iteration-id>
 ```
 
 **List all iterations (add --with-stats for story counts):**
 ```bash
-claude-shortcut-read iterations list
+shortcut-api-read iterations list
 ```
 
 **Create an iteration:**
 ```bash
-claude-shortcut-write iterations create "Sprint 1" 2025-01-01 2025-01-14 \
+shortcut-api-write iterations create "Sprint 1" 2025-01-01 2025-01-14 \
   --description "Sprint description" \
   --team-ids <team-id>
 ```
 
 **Update an iteration:**
 ```bash
-claude-shortcut-write iterations update <iteration-id> \
+shortcut-api-write iterations update <iteration-id> \
   --name "Sprint 2" \
   --start-date 2025-01-15 \
   --end-date 2025-01-28
@@ -176,7 +176,7 @@ claude-shortcut-write iterations update <iteration-id> \
 
 **Delete an iteration:**
 ```bash
-claude-shortcut-write iterations delete <iteration-id>
+shortcut-api-write iterations delete <iteration-id>
 ```
 
 ### Teams
@@ -185,12 +185,12 @@ Teams represent groups of people working together.
 
 **Get a team:**
 ```bash
-claude-shortcut-read teams get <team-id>
+shortcut-api-read teams get <team-id>
 ```
 
 **List all teams:**
 ```bash
-claude-shortcut-read teams list
+shortcut-api-read teams list
 ```
 
 ### Workflows
@@ -199,12 +199,12 @@ Workflows define the states that stories move through.
 
 **Get a workflow:**
 ```bash
-claude-shortcut-read workflows get <workflow-id>
+shortcut-api-read workflows get <workflow-id>
 ```
 
 **List all workflows:**
 ```bash
-claude-shortcut-read workflows list
+shortcut-api-read workflows list
 ```
 
 ### Users/Members
@@ -213,22 +213,22 @@ Manage workspace members and get current user information.
 
 **Get a member:**
 ```bash
-claude-shortcut-read users get <member-id>
+shortcut-api-read users get <member-id>
 ```
 
 **List all members:**
 ```bash
-claude-shortcut-read users list
+shortcut-api-read users list
 ```
 
 **Get current user:**
 ```bash
-claude-shortcut-read users current
+shortcut-api-read users current
 ```
 
 **Get current user's teams:**
 ```bash
-claude-shortcut-read users current-teams
+shortcut-api-read users current-teams
 ```
 
 ### Objectives
@@ -237,30 +237,30 @@ Objectives represent high-level goals.
 
 **Get an objective:**
 ```bash
-claude-shortcut-read objectives get <objective-id>
+shortcut-api-read objectives get <objective-id>
 ```
 
 **List all objectives:**
 ```bash
-claude-shortcut-read objectives list
+shortcut-api-read objectives list
 ```
 
 **Create an objective:**
 ```bash
-claude-shortcut-write objectives create "Objective name" \
+shortcut-api-write objectives create "Objective name" \
   --description "Objective description"
 ```
 
 **Update an objective:**
 ```bash
-claude-shortcut-write objectives update <objective-id> \
+shortcut-api-write objectives update <objective-id> \
   --name "New name" \
   --state "done"
 ```
 
 **Delete an objective:**
 ```bash
-claude-shortcut-write objectives delete <objective-id>
+shortcut-api-write objectives delete <objective-id>
 ```
 
 ### Documents
@@ -269,7 +269,7 @@ Create documentation in Shortcut.
 
 **Create a document:**
 ```bash
-claude-shortcut-write documents create "Doc title" "<h1>HTML Content</h1>"
+shortcut-api-write documents create "Doc title" "<h1>HTML Content</h1>"
 ```
 
 ## Common Workflows
@@ -278,18 +278,18 @@ claude-shortcut-write documents create "Doc title" "<h1>HTML Content</h1>"
 
 ```bash
 # Get current iteration
-claude-shortcut-read iterations list --status started
+shortcut-api-read iterations list --status started
 # Then search stories with the iteration ID and your user ID
-claude-shortcut-read stories search --iteration-id <id> --owner-ids <user-id>
+shortcut-api-read stories search --iteration-id <id> --owner-ids <user-id>
 ```
 
 ### Creating a Story with Full Context
 
 When creating a story, gather the necessary IDs first:
 
-1. Get current user: `claude-shortcut-read users current`
-2. List teams: `claude-shortcut-read teams list`
-3. Get current iteration: `claude-shortcut-read iterations list --status started`
+1. Get current user: `shortcut-api-read users current`
+2. List teams: `shortcut-api-read teams list`
+3. Get current iteration: `shortcut-api-read iterations list --status started`
 4. Create the story with gathered information
 
 ### Story Creation from Title
@@ -304,14 +304,14 @@ For the common pattern in the `story-and-branch.md` example:
 # Get current started iteration
 # Create story and get branch name
 
-claude-shortcut-write stories create "add v2 rate limiting" \
+shortcut-api-write stories create "add v2 rate limiting" \
   --type feature \
   --team-id <infra-team-id> \
   --owner-ids <user-id> \
   --iteration-id <current-iteration-id>
 
 # Then get the branch name
-claude-shortcut-read stories branch-name <new-story-id>
+shortcut-api-read stories branch-name <new-story-id>
 ```
 
 ## Python API Usage

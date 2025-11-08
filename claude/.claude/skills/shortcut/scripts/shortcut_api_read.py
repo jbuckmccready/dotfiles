@@ -1,19 +1,19 @@
 """
-Claude Shortcut Read - CLI wrapper for read-only Shortcut operations.
+Shortcut API Read - CLI wrapper for read-only Shortcut operations.
 
 Routes commands to the appropriate script for read operations only.
 This allows auto-approval of read operations via permissions while
 requiring explicit approval for write operations.
 
 Usage:
-    claude-shortcut-read <entity> <operation> [args...]
+    shortcut-api-read <entity> <operation> [args...]
 
 Examples:
-    claude-shortcut-read stories get 123
-    claude-shortcut-read stories search --query "bug"
-    claude-shortcut-read stories branch-name 123
-    claude-shortcut-read teams list
-    claude-shortcut-read iterations list --status started
+    shortcut-api-read stories get 123
+    shortcut-api-read stories search --query "bug"
+    shortcut-api-read stories branch-name 123
+    shortcut-api-read teams list
+    shortcut-api-read iterations list --status started
 """
 
 import sys
@@ -35,7 +35,7 @@ READ_OPERATIONS = {
 def main():
     if len(sys.argv) < 3:
         print(
-            "Usage: claude-shortcut-read <entity> <operation> [args...]",
+            "Usage: shortcut-api-read <entity> <operation> [args...]",
             file=sys.stderr,
         )
         print(
