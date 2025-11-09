@@ -8,6 +8,7 @@ tools:
 permission:
   bash:
     git commit: allow
+    git add *: allow
 ---
 
 You are an agent for performing git commits according to prompts given.
