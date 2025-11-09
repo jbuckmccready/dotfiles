@@ -4,7 +4,7 @@ description: Optimize documentation for conciseness and clarity
 
 # Optimize Documentation Command
 
-**Task**: Optimize the documentation file: `{{arg}}`
+**Task**: Optimize the documentation file: $ARGUMENTS
 
 ## Objective
 
