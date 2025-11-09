@@ -4,35 +4,13 @@ description: Shortcut integration for managing stories, epics, iterations, teams
 allowed-tools: Bash(shortcut-api-read:*)
 ---
 
-# Shortcut Integration Skill
+# Shortcut Tool Reference
 
-Provides complete integration with Shortcut's project management platform through Python scripts that interact with the Shortcut API v3. This skill enables creating, updating, searching, and managing all major Shortcut entities.
+Use `shortcut-api-read` for read operations and `shortcut-api-write` for write operations.
 
-## Setup
+Pattern: `shortcut-api-{read|write} <entity> <operation> [args...]`
 
-Set the `SHORTCUT_API_TOKEN` environment variable with your Shortcut API token:
-
-```bash
-export SHORTCUT_API_TOKEN="your-token-here"
-```
-
-Get your API token from: https://app.shortcut.com/settings/account/api-tokens
-
-Optionally, set `SHORTCUT_CURRENT_USER_ID` to cache the current user's ID and reduce API calls.
-
-## CLI Tools
-
-This skill provides two CLI tools:
-
-- **`shortcut-api-read`** - Read-only operations (auto-approved via permissions)
-- **`shortcut-api-write`** - Write operations (require explicit approval)
-
-Both tools follow the same pattern:
-```bash
-shortcut-api-{read|write} <entity> <operation> [args...]
-```
-
-## Available Operations
+## Operations
 
 ### Stories
 
@@ -144,19 +122,16 @@ Iterations (sprints) are time-boxed periods of development.
 shortcut-api-read iterations list --status started
 ```
 
-**Filter by status (started, unstarted, done):**
-```bash
-shortcut-api-read iterations list --status done
-```
-
 **Get a specific iteration:**
 ```bash
 shortcut-api-read iterations get <iteration-id>
 ```
 
-**List all iterations (add --with-stats for story counts):**
+**List all iterations:**
 ```bash
 shortcut-api-read iterations list
+shortcut-api-read iterations list --status started|unstarted|done
+shortcut-api-read iterations list --with-stats
 ```
 
 **Create an iteration:**
@@ -294,7 +269,7 @@ When creating a story, gather the necessary IDs first:
 
 ### Story Creation from Title
 
-For the common pattern in the `story-and-branch.md` example:
+For the common pattern of parsing a conventional commit-style title:
 
 ```bash
 # Parse title like "feat(edge-gateway): add v2 rate limiting"
@@ -313,74 +288,3 @@ shortcut-api-write stories create "add v2 rate limiting" \
 # Then get the branch name
 shortcut-api-read stories branch-name <new-story-id>
 ```
-
-## Python API Usage
-
-All scripts can also be imported and used as Python modules:
-
-```python
-from scripts.stories import create_story, get_story, search_stories
-from scripts.shortcut_client import get_current_user
-
-# Get current user
-user = get_current_user()
-
-# Create a story
-story = create_story(
-    name="Fix login bug",
-    story_type="bug",
-    team_id="abc123",
-    owner_ids=[user["id"]],
-    iteration_id=456
-)
-
-# Search for stories
-stories = search_stories(
-    query="login",
-    story_type="bug",
-    limit=10
-)
-```
-
-## Response Format
-
-All operations return JSON with only essential fields to reduce verbosity:
-
-**Story response:**
-```json
-{
-  "id": 123,
-  "name": "Story title",
-  "description": "Description",
-  "story_type": "feature",
-  "workflow_state_id": 500000001,
-  "app_url": "https://app.shortcut.com/org/story/123",
-  "created_at": "2025-01-01T12:00:00Z",
-  "updated_at": "2025-01-02T12:00:00Z",
-  "completed": false,
-  "owner_ids": ["user-uuid"],
-  "requester_id": "user-uuid",
-  "iteration_id": 456,
-  "epic_id": 789,
-  "estimate": 3,
-  "labels": [{"id": 1, "name": "backend"}],
-  "team_id": "team-uuid"
-}
-```
-
-## Error Handling
-
-All scripts return errors as JSON to stderr with a non-zero exit code:
-
-```json
-{
-  "error": "API request failed: 404 Client Error\nDetails: {...}"
-}
-```
-
-## Dependencies
-
-- Python 3.6+
-- No external dependencies (uses Python standard library only)
-
-The `shortcut_client.py` module provides shared functionality for API authentication and response formatting.
