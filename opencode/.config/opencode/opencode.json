@@ -11,6 +11,8 @@
       "echo *": "allow",
       "ls": "allow",
       "ls *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
       "git status": "allow",
       "git status *": "allow",
       "git diff": "allow",
