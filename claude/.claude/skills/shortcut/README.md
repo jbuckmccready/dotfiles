@@ -1,6 +1,6 @@
 # Shortcut Integration Skill
 
-Provides complete integration with Shortcut's project management platform through Python scripts that interact with the Shortcut API v3. This skill enables creating, updating, searching, and managing all major Shortcut entities.
+Integrates with Shortcut's project management platform via Python scripts using the Shortcut API v3. Supports creating, updating, searching, and managing stories, epics, iterations, teams, workflows, objectives, and documents.
 
 ## Setup
 
@@ -16,21 +16,19 @@ Optionally, set `SHORTCUT_CURRENT_USER_ID` to cache the current user's ID and re
 
 ## CLI Tools
 
-This skill provides two CLI tools:
+- **`shortcut-api-read`** - Read-only operations (auto-approved)
+- **`shortcut-api-write`** - Write operations (require approval)
 
-- **`shortcut-api-read`** - Read-only operations (auto-approved via permissions)
-- **`shortcut-api-write`** - Write operations (require explicit approval)
-
-Both tools follow the same pattern:
+Pattern:
 ```bash
 shortcut-api-{read|write} <entity> <operation> [args...]
 ```
 
 ## Response Format
 
-All operations return JSON with only essential fields to reduce verbosity:
+All operations return JSON:
 
-**Story response:**
+**Story:**
 ```json
 {
   "id": 123,
@@ -54,7 +52,7 @@ All operations return JSON with only essential fields to reduce verbosity:
 
 ## Error Handling
 
-All scripts return errors as JSON to stderr with a non-zero exit code:
+Errors return JSON to stderr with non-zero exit code:
 
 ```json
 {
@@ -64,35 +62,17 @@ All scripts return errors as JSON to stderr with a non-zero exit code:
 
 ## Dependencies
 
-- Python 3.6+
-- No external dependencies (uses Python standard library only)
+- Python 3.6+ (standard library only)
 
-The `shortcut_client.py` module provides shared functionality for API authentication and response formatting.
+## Python Usage
 
-## Python API Usage
-
-All scripts can also be imported and used as Python modules:
+Scripts can be imported as modules:
 
 ```python
-from scripts.stories import create_story, get_story, search_stories
-from scripts.shortcut_client import get_current_user
+from scripts.stories import get_story, search_stories, create_story
+from scripts.users import get_current_user
 
-# Get current user
 user = get_current_user()
-
-# Create a story
-story = create_story(
-    name="Fix login bug",
-    story_type="bug",
-    team_id="abc123",
-    owner_ids=[user["id"]],
-    iteration_id=456
-)
-
-# Search for stories
-stories = search_stories(
-    query="login",
-    story_type="bug",
-    limit=10
-)
+stories = search_stories(query="login", story_type="bug", limit=10)
+story = create_story(name="Fix bug", story_type="bug", owner_ids=[user["id"]])
 ```
