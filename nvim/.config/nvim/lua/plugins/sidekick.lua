@@ -51,7 +51,7 @@ return {
             desc = "Send Buffers",
         },
         {
-            "<leader>aa",
+            "<leader>aw",
             function()
                 require("sidekick.cli").select({ filter = { installed = true } })
             end,
@@ -64,6 +64,14 @@ return {
                 require("sidekick.cli").close()
             end,
             desc = "Detach a CLI Session",
+        },
+        {
+            "<leader>aa",
+            function()
+                require("sidekick.cli").toggle({ name = "opencode", focus = true })
+            end,
+            desc = "Toggle OpenCode CLI",
+            mode = { "n", "v" },
         },
         {
             "<leader>ac",
