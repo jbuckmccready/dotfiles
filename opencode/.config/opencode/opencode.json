@@ -87,6 +87,7 @@
       "models": {
         "gpt-5-high": {
           "id": "gpt-5",
+          "name": "GPT-5 High",
           "options": {
             "reasoningEffort": "high",
             "textVerbosity": "low",
@@ -99,6 +100,7 @@
       "models": {
         "sonnet-4-5-high": {
           "id": "claude-sonnet-4-5-20250929",
+          "name": "Claude Sonnet 4.5 High",
           "options": {
             "thinking": {
               "type": "enabled",
@@ -108,6 +110,7 @@
         },
         "sonnet-4-5-med": {
           "id": "claude-sonnet-4-5-20250929",
+          "name": "Claude Sonnet 4.5 Medium",
           "options": {
             "thinking": {
               "type": "enabled",
@@ -117,6 +120,7 @@
         },
         "sonnet-4-5-low": {
           "id": "claude-sonnet-4-5-20250929",
+          "name": "Claude Sonnet 4.5 Low",
           "options": {
             "thinking": {
               "type": "enabled",
