@@ -2,6 +2,11 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "catppuccin",
   "share": "disabled",
+  "lsp": {
+    "rust": {
+      "disabled": true
+    }
+  },
   "permission": {
     "edit": "allow",
     "webfetch": "ask",
