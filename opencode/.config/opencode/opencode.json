@@ -2,59 +2,6 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "catppuccin",
   "share": "disabled",
-  "lsp": {
-    "typescript": {
-      "disabled": true
-    },
-    "deno": {
-      "disabled": true
-    },
-    "eslint": {
-      "disabled": true
-    },
-    "gopls": {
-      "disabled": true
-    },
-    "ruby-lsp": {
-      "disabled": true
-    },
-    "pyright": {
-      "disabled": true
-    },
-    "elixir-ls": {
-      "disabled": true
-    },
-    "zls": {
-      "disabled": true
-    },
-    "csharp": {
-      "disabled": true
-    },
-    "vue": {
-      "disabled": true
-    },
-    "rust": {
-      "disabled": true
-    },
-    "clangd": {
-      "disabled": true
-    },
-    "svelte": {
-      "disabled": true
-    },
-    "astro": {
-      "disabled": true
-    },
-    "jdtls": {
-      "disabled": true
-    },
-    "lua-ls": {
-      "disabled": true
-    },
-    "sourcekit-lsp": {
-      "disabled": true
-    }
-  },
   "permission": {
     "edit": "allow",
     "webfetch": "ask",
@@ -196,6 +143,100 @@
           }
         }
       }
+    }
+  },
+  "lsp": {
+    "typescript": {
+      "disabled": true
+    },
+    "deno": {
+      "disabled": true
+    },
+    "eslint": {
+      "disabled": true
+    },
+    "gopls": {
+      "disabled": true
+    },
+    "ruby-lsp": {
+      "disabled": true
+    },
+    "pyright": {
+      "disabled": true
+    },
+    "elixir-ls": {
+      "disabled": true
+    },
+    "zls": {
+      "disabled": true
+    },
+    "csharp": {
+      "disabled": true
+    },
+    "vue": {
+      "disabled": true
+    },
+    "rust": {
+      "disabled": true
+    },
+    "clangd": {
+      "disabled": true
+    },
+    "svelte": {
+      "disabled": true
+    },
+    "astro": {
+      "disabled": true
+    },
+    "jdtls": {
+      "disabled": true
+    },
+    "lua-ls": {
+      "disabled": true
+    },
+    "sourcekit-lsp": {
+      "disabled": true
+    }
+  },
+  "formatter": {
+    "gofmt": {
+      "disabled": true
+    },
+    "mix": {
+      "disabled": true
+    },
+    "prettier": {
+      "disabled": true
+    },
+    "biome": {
+      "disabled": true
+    },
+    "zig": {
+      "disabled": true
+    },
+    "clang-format": {
+      "disabled": true
+    },
+    "ktlint": {
+      "disabled": true
+    },
+    "ruff": {
+      "disabled": true
+    },
+    "uv": {
+      "disabled": true
+    },
+    "rubocop": {
+      "disabled": true
+    },
+    "standardrb": {
+      "disabled": true
+    },
+    "htmlbeautifier": {
+      "disabled": true
+    },
+    "air": {
+      "disabled": true
     }
   }
 }
