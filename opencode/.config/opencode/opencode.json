@@ -27,6 +27,7 @@
       "find *": "allow",
       "grep *": "allow",
       "awk *": "allow",
+      "wc *": "allow",
       "gh pr list *": "allow",
       "gh pr view *": "allow",
       "gh pr diff *": "allow",
