@@ -90,13 +90,32 @@
   "provider": {
     "github-copilot": {
       "models": {
-        "gpt-5-high": {
-          "id": "gpt-5",
-          "name": "GPT-5 High",
+        "gpt-5.1": {
+          "options": {
+            "reasoningEffort": "medium",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1-high": {
+          "id": "gpt-5.1",
+          "name": "GPT-5.1 High",
           "options": {
             "reasoningEffort": "high",
             "textVerbosity": "low",
-            "reasoningSummary": "auto"
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.1-low": {
+          "id": "gpt-5.1",
+          "name": "GPT-5.1 Low",
+          "options": {
+            "reasoningEffort": "low",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
           }
         }
       }
