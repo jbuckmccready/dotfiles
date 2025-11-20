@@ -28,6 +28,7 @@
       "grep *": "allow",
       "awk *": "allow",
       "wc *": "allow",
+      "cut *": "allow",
       "gh pr list *": "allow",
       "gh pr view *": "allow",
       "gh pr diff *": "allow",
