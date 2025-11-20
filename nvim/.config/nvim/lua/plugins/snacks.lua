@@ -183,7 +183,6 @@ return {
             -- Other
             { "<leader>sn", function() Snacks.words.jump(1, true) end, desc = "Jump to Next LSP Word" },
             { "<leader>sy", function() Snacks.picker.treesitter() end, desc = "Treesitter" },
-            { "<leader>va", function() vim.lsp.buf.code_action() end, desc = "Code Action" },
             { "<leader>vs", function() Snacks.picker.spelling() end, desc = "Spell Suggest" },
             { "<leader>.", function() Snacks.scratch() end, desc = "Toggle Scratch Buffer" },
             { "<leader>S", function() Snacks.scratch.select() end, desc = "Select Scratch Buffer" },
