@@ -1,6 +1,6 @@
 ---
 description: Create a new shortcut story and checkout new branch using shortcut story branch name
-allowed-tools: Bash(git checkout:*)
+allowed-tools: Bash(git checkout -b:*)
 ---
 
 Use the Skill(shortcut) to perform all operations related to shortcut stories and branches.
