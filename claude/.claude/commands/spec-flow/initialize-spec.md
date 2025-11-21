@@ -70,7 +70,7 @@ spec:
 <!-- @section:resources -->
 <!-- Only add entries if URIs/paths were explicitly mentioned in HUMAN_DESCRIPTION -->
 <!-- If no resources mentioned, leave this section with just these comments -->
-- (RS-001) **TBD Title** — Source: <uri-from-description> — Analysis: `resources/<kebab-case-name>.md` — Summary: TBD
+- (RS-001) **TBD Title** — Source: <uri-from-description> — Analysis: `resources/<resource-slug>.md` — Summary: TBD
 <!-- Add one RS entry per resource URI/path found in human description -->
 <!-- @end -->
 

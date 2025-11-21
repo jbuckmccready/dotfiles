@@ -28,7 +28,8 @@
 - **ID preservation**:
   - Keep existing requirement IDs when possible (R-001, R-002, ...)
   - For merged/replaced requirements, show traceability: `(R-002) [merged into R-003]`
-  - Add new requirements with next sequential IDs
+  - Add new requirements with next sequential IDs (find highest number and add 1; do not backfill gaps)
+  - Example: If R-001, R-003 exist, next new requirement is R-004
 - **Section integrity**: Keep all section anchors intact for machine editing
 
 ---

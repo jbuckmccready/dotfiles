@@ -31,10 +31,11 @@
 - **Task independence**: Keep tasks independent when possible; mark dependencies explicitly when needed
 - **Task IDs**: Sequential numbering T-001, T-002, T-003, ...
   - Preserve existing task IDs if updating
-  - Append new tasks with next sequential numbers
+  - Append new tasks with next sequential numbers (find highest number and add 1; do not backfill gaps)
+  - Example: If T-001, T-004 exist, next new task is T-005
 - **Section scope**: Only modify Tasks section between `<!-- @section:tasks -->` and `<!-- @end -->` anchors
 - **Traceability**: Reference requirement IDs (R-XXX) in task overviews for clear mapping
-- **Status markers**: Each task header may include an optional status tag in square brackets: `[pending]`, `[in-progress]`, `[done]`, `[blocked]`. When a task is completed (after execution), update its header to `[done YYYY-MM-DDTHH:MM:SSZ]` (UTC ISO). Do not add extra metadata blocks.
+- **Status markers**: Each task header may include an optional status tag in square brackets: `[pending]`, `[in-progress]`, `[done]`, `[blocked <reason>]`. When a task is completed (after execution), update its header to `[done YYYY-MM-DDTHH:MM:SSZ]` (UTC ISO). When blocked, use `[blocked reason-description]`. Do not add extra metadata blocks.
 
 ---
 
@@ -103,7 +104,7 @@ Addresses requirements R-YYY and R-ZZZ by... [explanation]
 ---
 
 ## Definition of Done
-- [ ] **Codebase inspected** using semantic_search, file_search, read_file tools to understand current structure
+- [ ] **Codebase inspected** to understand existing patterns, file structures, and relevant implementations
 - [ ] Tasks section completely populated with all required tasks
 - [ ] Every requirement (R-XXX) covered by at least one task
 - [ ] Each task properly scoped (1-3 hours of work) and targeted to specific code changes

@@ -120,4 +120,4 @@ Notes: No side effects detected; performance unchanged.
 - [ ] Any issues or deviations documented clearly
 - [ ] Ready for next task execution or spec completion
 
-````
+```
