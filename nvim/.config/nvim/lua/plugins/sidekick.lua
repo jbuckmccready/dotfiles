@@ -91,6 +91,9 @@ return {
         },
     },
     opts = {
+        nes = {
+            enabled = false,
+        },
         cli = {
             watch = true, -- watch for file changes in CLI
             win = {
