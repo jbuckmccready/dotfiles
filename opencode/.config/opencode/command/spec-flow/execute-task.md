@@ -1,3 +1,7 @@
+---
+description: Step 5 of 5 in the spec workflow. Execute one specific task from the spec's Tasks section, implementing only the scoped changes described and verifying acceptance criteria.
+---
+
 # execute_task
 
 ## Purpose

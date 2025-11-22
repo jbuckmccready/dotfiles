@@ -1,3 +1,7 @@
+---
+description: Step 1 of 5 in the spec workflow. Start a new spec from a human description and optional initial resource sources.
+---
+
 # initialize_spec
 
 ## Purpose
@@ -8,7 +12,10 @@
 ---
 
 ## Inputs
-- **HUMAN_DESCRIPTION** (string, required) — natural language description of the intended change. May contain URIs or file paths that should be parsed as resource sources.
+
+The following is the natural language description of the intended change. May contain instructions, URIs, or file paths that should be parsed as instructions or resource sources:
+
+$ARGUMENTS
 
 ---
 

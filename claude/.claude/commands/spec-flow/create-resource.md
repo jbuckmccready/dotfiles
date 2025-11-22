@@ -1,3 +1,7 @@
+---
+description: Step 2 of 5 in the spec workflow. Analyze a referenced resource in depth and record findings in a dedicated file. Update the parent spec's Resources section with a concise summary.
+---
+
 # create_resource
 
 ## Purpose

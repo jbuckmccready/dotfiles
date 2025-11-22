@@ -1,3 +1,7 @@
+---
+description: Step 3 of 5 in the spec workflow. Update a spec's Overview and Requirements based on resource analysis insights.
+---
+
 # update_spec
 
 ## Purpose

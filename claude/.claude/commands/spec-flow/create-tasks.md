@@ -1,3 +1,7 @@
+---
+description: Step 4 of 5 in the spec workflow. Generate concrete, bite-sized tasks that, when completed, will satisfy all spec requirements.
+---
+
 # create_tasks
 
 ## Purpose
