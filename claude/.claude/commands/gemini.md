@@ -1,16 +1,16 @@
 ---
-description: Delegate a task to the Gemini CLI
+description: Delegate analysis task to the Gemini CLI
 ---
 
 Use the Bash tool with a heredoc piped to stdin:
 
 ```bash
-cat <<'GEMINI_PROMPT' | gemini --model gemini-3-pro-preview -y
+cat <<'GEMINI_PROMPT' | gemini --model gemini-3-pro-preview
 [Insert context, code snippets, and user instructions here]
 GEMINI_PROMPT
 ```
 
-**Note:** This command runs with `-y` (auto-approve all tools).
+**Note:** This command is for **read-only analysis** (only read based tools are enabled).
 
 Important:
 - **Context is key:** The Gemini CLI starts in a fresh context. If the task requires context from the current conversation (that isn't in a file), you must include it.
