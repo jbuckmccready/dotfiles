@@ -244,6 +244,12 @@
     },
     "sourcekit-lsp": {
       "disabled": true
+    },
+    "yaml-ls": {
+      "disabled": true
+    },
+    "php-intelephense": {
+      "disabled": true
     }
   },
   "formatter": {
