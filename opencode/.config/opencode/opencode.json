@@ -151,7 +151,7 @@
     "anthropic": {
       "models": {
         "sonnet-4-5-ultra": {
-          "id": "claude-sonnet-4-5-20250929",
+          "id": "claude-sonnet-4-5",
           "name": "Claude Sonnet 4.5 Ultra",
           "options": {
             "thinking": {
@@ -161,7 +161,7 @@
           }
         },
         "sonnet-4-5-high": {
-          "id": "claude-sonnet-4-5-20250929",
+          "id": "claude-sonnet-4-5",
           "name": "Claude Sonnet 4.5 High",
           "options": {
             "thinking": {
@@ -171,7 +171,7 @@
           }
         },
         "sonnet-4-5-med": {
-          "id": "claude-sonnet-4-5-20250929",
+          "id": "claude-sonnet-4-5",
           "name": "Claude Sonnet 4.5 Medium",
           "options": {
             "thinking": {
@@ -181,8 +181,48 @@
           }
         },
         "sonnet-4-5-low": {
-          "id": "claude-sonnet-4-5-20250929",
+          "id": "claude-sonnet-4-5",
           "name": "Claude Sonnet 4.5 Low",
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 1024
+            }
+          }
+        },
+        "opus-4-5-ultra": {
+          "id": "claude-opus-4-5",
+          "name": "Claude opus 4.5 Ultra",
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 32768
+            }
+          }
+        },
+        "opus-4-5-high": {
+          "id": "claude-opus-4-5",
+          "name": "Claude opus 4.5 High",
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 8192
+            }
+          }
+        },
+        "opus-4-5-med": {
+          "id": "claude-opus-4-5",
+          "name": "Claude opus 4.5 Medium",
+          "options": {
+            "thinking": {
+              "type": "enabled",
+              "budgetTokens": 4096
+            }
+          }
+        },
+        "opus-4-5-low": {
+          "id": "claude-opus-4-5",
+          "name": "Claude opus 4.5 Low",
           "options": {
             "thinking": {
               "type": "enabled",
