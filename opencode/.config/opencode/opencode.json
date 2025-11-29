@@ -290,6 +290,9 @@
     },
     "php-intelephense": {
       "disabled": true
+    },
+    "dart": {
+      "disabled": true
     }
   },
   "formatter": {
