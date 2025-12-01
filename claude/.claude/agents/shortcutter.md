@@ -1,8 +1,7 @@
 ---
 name: shortcutter
 description: For performing shortcut workflow operations
-tools: Bash, AskUserQuestion, Skill
-model: sonnet
+model: inherit
 skills: shortcut
 ---
 
