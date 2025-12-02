@@ -23,6 +23,8 @@
       "git describe *": "allow",
       "git show": "allow",
       "git show *": "allow",
+      "git rev-parse": "allow",
+      "git rev-parse *": "allow",
       "rg *": "allow",
       "find *": "allow",
       "grep *": "allow",
