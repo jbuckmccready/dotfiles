@@ -2,6 +2,8 @@
   "$schema": "https://opencode.ai/config.json",
   "theme": "catppuccin",
   "share": "disabled",
+  "lsp": false,
+  "formatter": false,
   "permission": {
     "edit": "allow",
     "webfetch": "ask",
@@ -242,7 +244,5 @@
         }
       }
     }
-  },
-  "lsp": false,
-  "formatter": false
+  }
 }
