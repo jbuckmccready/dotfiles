@@ -21,6 +21,8 @@ return {
             "rust",
             "sql",
             "terraform",
+            "tsx",
+            "typescript",
             "vim",
             "vimdoc",
             "yaml",

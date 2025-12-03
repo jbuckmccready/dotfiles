@@ -106,6 +106,7 @@ require("mason-lspconfig").setup({
         "ruff",
         "rust_analyzer",
         "terraformls",
+        "ts_ls",
         "zls",
     },
 })
