@@ -1,17 +1,2 @@
-#!/usr/bin/env python3
-"""
-Shortcut API Read - Minimal wrapper for read-only Shortcut operations.
-
-This wrapper delegates to the main implementation in scripts/shortcut-api-read.py
-"""
-
-import sys
-from pathlib import Path
-
-# Add scripts directory to path so we can import the implementation
-scripts_dir = Path(__file__).parent / "scripts"
-sys.path.insert(0, str(scripts_dir))
-
-if __name__ == "__main__":
-    from shortcut_api_read import main
-    main()
+#!/usr/bin/env bun
+import "./src/cli-read.js";
