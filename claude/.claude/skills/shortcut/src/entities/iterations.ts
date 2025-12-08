@@ -164,6 +164,7 @@ export function registerWriteCommands(program: Command): void {
     .option("--start-date <date>", "Updated start date")
     .option("--end-date <date>", "Updated end date")
     .option("--description <desc>", "Updated description")
+    .option("--team-ids <ids...>", "Team IDs")
     .action(async (iterationId: string, opts) => {
       try {
         const result = await updateIteration({
@@ -172,6 +173,7 @@ export function registerWriteCommands(program: Command): void {
           startDate: opts.startDate,
           endDate: opts.endDate,
           description: opts.description,
+          teamIds: opts.teamIds,
         });
         output(result);
       } catch (e) {

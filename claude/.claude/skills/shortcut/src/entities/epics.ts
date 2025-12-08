@@ -133,6 +133,7 @@ export function registerWriteCommands(program: Command): void {
     .option("--description <desc>", "Epic description")
     .option("--state <state>", "Epic state", "to do")
     .option("--owner-ids <ids...>", "Owner IDs")
+    .option("--milestone-id <id>", "Milestone ID")
     .action(async (name: string, opts) => {
       try {
         const result = await createEpic({
@@ -140,6 +141,9 @@ export function registerWriteCommands(program: Command): void {
           description: opts.description,
           state: opts.state,
           ownerIds: opts.ownerIds,
+          milestoneId: opts.milestoneId
+            ? parseInt(opts.milestoneId, 10)
+            : undefined,
         });
         output(result);
       } catch (e) {
@@ -153,6 +157,7 @@ export function registerWriteCommands(program: Command): void {
     .option("--name <name>", "Updated name")
     .option("--description <desc>", "Updated description")
     .option("--state <state>", "Updated state")
+    .option("--owner-ids <ids...>", "Owner IDs")
     .option("--archived", "Archive the epic")
     .action(async (epicId: string, opts) => {
       try {
@@ -161,6 +166,7 @@ export function registerWriteCommands(program: Command): void {
           name: opts.name,
           description: opts.description,
           state: opts.state,
+          ownerIds: opts.ownerIds,
           archived: opts.archived,
         });
         output(result);

@@ -343,6 +343,7 @@ export function registerWriteCommands(program: Command): void {
     .option("--description <desc>", "Story description")
     .option("--team-id <id>", "Team ID")
     .option("--owner-ids <ids...>", "Owner IDs")
+    .option("--requester-id <id>", "Requester ID (defaults to current user)")
     .option("--iteration-id <id>", "Iteration ID")
     .option("--epic-id <id>", "Epic ID")
     .option("--workflow-state-id <id>", "Workflow state ID", "500004783")
@@ -355,6 +356,7 @@ export function registerWriteCommands(program: Command): void {
           description: opts.description,
           teamId: opts.teamId,
           ownerIds: opts.ownerIds,
+          requesterId: opts.requesterId,
           iterationId: opts.iterationId
             ? parseInt(opts.iterationId, 10)
             : undefined,
