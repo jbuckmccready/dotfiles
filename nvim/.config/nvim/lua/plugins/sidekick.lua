@@ -99,7 +99,7 @@ return {
             win = {
                 layout = "right",
                 split = {
-                    width = 140,
+                    width = 0,
                 },
                 keys = {
                     -- Disable all default CLI keymaps except navigation (avoid conflicts with cli tools)
