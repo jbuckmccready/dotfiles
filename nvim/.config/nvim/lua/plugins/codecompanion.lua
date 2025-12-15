@@ -11,11 +11,7 @@ return {
         {
             "<leader>ci",
             function()
-                if vim.fn.mode() == "n" then
-                    vim.api.nvim_command("CodeCompanion")
-                else
-                    vim.api.nvim_command("'<,'>CodeCompanion")
-                end
+                require("codecompanion").prompt("codex_mini_inline")
             end,
             mode = { "n", "x" },
             desc = "Inline",
@@ -36,6 +32,18 @@ return {
             },
         },
         prompt_library = {
+            ["Codex Mini Inline"] = {
+                interaction = "inline",
+                description = "Codex mini inline interaction",
+                opts = {
+                    user_prompt = true,
+                    alias = "codex_mini_inline",
+                    adapter = {
+                        name = "copilot",
+                        model = "gpt-5.1-codex-mini",
+                    },
+                },
+            },
             ["Flash Inline"] = {
                 interaction = "inline",
                 description = "Flash inline interaction",
@@ -69,7 +77,7 @@ return {
             inline = {
                 adapter = {
                     name = "copilot",
-                    model = "gpt-5",
+                    model = "gpt-5.1",
                 },
             },
         },
