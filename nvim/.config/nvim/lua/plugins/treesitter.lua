@@ -29,7 +29,7 @@ return {
         }
 
         vim.defer_fn(function()
-            require("nvim-treesitter").install(parsers_installed)
+            require("nvim-treesitter.install").ensure_installed(parsers_installed)
         end, 1000)
 
         -- auto-start highlights & indentation
