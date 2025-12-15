@@ -1,6 +1,5 @@
 return {
     "nvim-treesitter/nvim-treesitter",
-    branch = "main",
     lazy = false,
     build = ":TSUpdate",
     init = function()
@@ -32,7 +31,6 @@ return {
         vim.defer_fn(function()
             require("nvim-treesitter").install(parsers_installed)
         end, 1000)
-        require("nvim-treesitter").update()
 
         -- auto-start highlights & indentation
         vim.api.nvim_create_autocmd("FileType", {
