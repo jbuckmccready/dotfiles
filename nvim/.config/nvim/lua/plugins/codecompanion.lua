@@ -37,11 +37,11 @@ return {
         },
         prompt_library = {
             ["Flash Inline"] = {
-                strategy = "inline",
+                interaction = "inline",
                 description = "Flash inline interaction",
                 opts = {
                     user_prompt = true,
-                    short_name = "flash_inline",
+                    alias = "flash_inline",
                     adapter = {
                         name = "gemini",
                         model = "gemini-2.5-flash",
@@ -53,7 +53,7 @@ return {
             chat = {
                 adapter = {
                     name = "copilot",
-                    model = "gemini-2.5-pro",
+                    model = "gemini-3-pro-preview",
                 },
                 keymaps = {
                     send = {
