@@ -24,9 +24,6 @@ Use `gh` CLI to gather all PR metadata and changes:
 # Get PR metadata and changed files in one call
 gh pr view "$PR" \
   --json title,body,baseRefName,headRefName,state,additions,deletions,changedFiles,files,number,statusCheckRollup
-
-# Get the full diff
-gh pr diff "$PR"
 ```
 
 From the `files` field, derive the list of changed file paths and **filter out**:
@@ -40,19 +37,41 @@ Extract:
 
 - **Title and description**: Understand the stated intent
 - **Base and head branches**: For local checkout
-- **Full diff**: The actual code changes
 - **Changed file paths**: To scope context gathering
 - **CI status** (via `statusCheckRollup`): To understand test/check health
 
 ---
 
-## Phase 2: Local Checkout
+## Phase 2: Local Checkout and Diff
 
-Checkout the PR branch locally to enable full codebase analysis:
+1. Checkout the PR branch locally:
 
 ```bash
 gh pr checkout "$PR"
 ```
+
+2. Generate the diff locally against the base branch (retrieved in Phase 1). **Crucial**: Filter out lock files to avoid context window issues.
+
+```bash
+# Use the base branch name from Phase 1 (e.g., origin/main or origin/develop)
+# If the base branch is not locally available, fetch it first:
+git fetch origin "$BASE_BRANCH"
+git diff "origin/$BASE_BRANCH"...HEAD -- . ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)pnpm-lock.yaml' ':(exclude)Cargo.lock' ':(exclude)*.lock'
+```
+
+Use this filtered local diff for your analysis.
+
+3. **If the diff is too large or truncated**, diff files individually:
+
+```bash
+# Get list of changed files (excluding lock files)
+git diff --name-only "origin/$BASE_BRANCH"...HEAD -- . ':(exclude)*.lock' ':(exclude)package-lock.json' ':(exclude)yarn.lock' ':(exclude)pnpm-lock.yaml' ':(exclude)Cargo.lock'
+
+# Then diff each file separately
+git diff "origin/$BASE_BRANCH"...HEAD -- path/to/file.ts
+```
+
+Process files in priority order: core logic and public APIs first, tests and ancillary files later. For very large PRs, consider spawning parallel agents to review subsets of files.
 
 ---
 
