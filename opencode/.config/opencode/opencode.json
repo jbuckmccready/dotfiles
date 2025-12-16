@@ -162,7 +162,7 @@
         },
         "opus-4-5-ultra": {
           "id": "claude-opus-4-5",
-          "name": "Claude opus 4.5 Ultra",
+          "name": "Claude Opus 4.5 Ultra",
           "options": {
             "thinking": {
               "type": "enabled",
@@ -172,7 +172,7 @@
         },
         "opus-4-5-high": {
           "id": "claude-opus-4-5",
-          "name": "Claude opus 4.5 High",
+          "name": "Claude Opus 4.5 High",
           "options": {
             "thinking": {
               "type": "enabled",
@@ -182,7 +182,7 @@
         },
         "opus-4-5-med": {
           "id": "claude-opus-4-5",
-          "name": "Claude opus 4.5 Medium",
+          "name": "Claude Opus 4.5 Medium",
           "options": {
             "thinking": {
               "type": "enabled",
@@ -192,7 +192,7 @@
         },
         "opus-4-5-low": {
           "id": "claude-opus-4-5",
-          "name": "Claude opus 4.5 Low",
+          "name": "Claude Opus 4.5 Low",
           "options": {
             "thinking": {
               "type": "enabled",
