@@ -115,6 +115,44 @@
             "reasoningSummary": "auto",
             "include": ["reasoning.encrypted_content"]
           }
+        },
+        "gpt-5.2": {
+          "options": {
+            "reasoningEffort": "medium",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2-xhigh": {
+          "id": "gpt-5.2",
+          "name": "GPT-5.2 xHigh",
+          "options": {
+            "reasoningEffort": "xhigh",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2-high": {
+          "id": "gpt-5.2",
+          "name": "GPT-5.2 High",
+          "options": {
+            "reasoningEffort": "high",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
+        },
+        "gpt-5.2-low": {
+          "id": "gpt-5.2",
+          "name": "GPT-5.2 Low",
+          "options": {
+            "reasoningEffort": "low",
+            "textVerbosity": "low",
+            "reasoningSummary": "auto",
+            "include": ["reasoning.encrypted_content"]
+          }
         }
       }
     },
