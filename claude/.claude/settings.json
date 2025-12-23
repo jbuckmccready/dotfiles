@@ -33,5 +33,9 @@
       "Skill(shortcut)"
     ],
     "deny": []
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
   }
 }
