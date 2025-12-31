@@ -16,6 +16,7 @@ return {
             markdown = { "prettier" },
             rust = { lsp_format = "prefer" },
             scss = { "prettier" },
+            svelte = { "prettier", lsp_format = "fallback" },
             sh = { "shfmt" },
             terraform = { lsp_format = "prefer" },
             ["terraform-vars"] = { lsp_format = "prefer" },
