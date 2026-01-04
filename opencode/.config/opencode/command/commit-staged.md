@@ -4,4 +4,4 @@ agent: git-committer
 subtask: false
 ---
 
-Commit the currently staged changes.
+Git commit the currently staged changes.

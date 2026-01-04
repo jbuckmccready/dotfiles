@@ -4,4 +4,4 @@ agent: git-committer
 subtask: false
 ---
 
-Commit $ARGUMENTS.
+Git commit $ARGUMENTS.
