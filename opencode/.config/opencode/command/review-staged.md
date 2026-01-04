@@ -115,6 +115,12 @@ Search for and read:
 - Use `git blame` on complex sections to understand evolution
 - Note if changes touch recently modified code (potential conflicts or churn)
 
+### 3.6 Proactive Verification
+
+- **Run Linters/Type-checkers**: Identify and execute the project's linting and static analysis tools (e.g., `npm run lint`, `tsc`, `ruff check`, `cargo check`).
+- **Run Relevant Tests**: Identify and execute unit or integration tests affected by the changes. Focus on tests for the modified files.
+- **Analyze Results**: Capture any errors, warnings, or test failures. These should be treated as high-priority findings in the final review.
+
 ---
 
 ## Phase 4: Code Review
@@ -123,6 +129,7 @@ Analyze the changes systematically across these dimensions:
 
 ### 4.1 Correctness and Bugs
 
+- **Verification Failures**: Prioritize any linting errors, type-checking failures, or broken tests found in Phase 3.6.
 - Assume basic compilation and type checks pass; focus primarily on logical correctness and behavior
 - Logic errors or off-by-one mistakes
 - Null/undefined handling issues
@@ -186,6 +193,12 @@ If there are notably well-designed aspects, list a brief bullet summary (e.g., c
 ### Changes Overview
 
 Bullet list of the key changes made, organized by area or file.
+
+### Verification Results
+
+Summary of any automated checks performed:
+- **Linters/Type-checkers**: Results and any warnings/errors.
+- **Tests**: List of tests run and their status (Pass/Fail).
 
 ### Issues Found
 
