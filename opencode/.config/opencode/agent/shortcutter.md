@@ -1,13 +1,11 @@
 ---
 description: Performs shortcut workflow operations
-tools:
-  write: false
-  edit: false
-  bash: true
-
 permission:
+  edit: deny
   bash:
-    git checkout *: allow
+    "git checkout *": allow
+    "*": ask
+  webfetch: deny
 ---
 
 You are an agent for performing shortcut workflow operations.
@@ -27,11 +25,13 @@ Pattern: `shortcut-api-{read|write} <entity> <operation> [args...]`
 Stories are the standard unit of work in Shortcut.
 
 **Get a story:**
+
 ```bash
 shortcut-api-read stories get <story-id>
 ```
 
 **Search stories:**
+
 ```bash
 shortcut-api-read stories search \
   --query "search text" \
@@ -45,12 +45,15 @@ shortcut-api-read stories search \
 ```
 
 **Get branch name for a story:**
+
 ```bash
 shortcut-api-read stories branch-name <story-id>
 ```
+
 Returns a formatted git branch name like `sc-123/feature-description`
 
 **Create a story:**
+
 ```bash
 shortcut-api-write stories create "Story title" \
   --type feature|bug|chore \
@@ -63,6 +66,7 @@ shortcut-api-write stories create "Story title" \
 ```
 
 **Update a story:**
+
 ```bash
 shortcut-api-write stories update <story-id> \
   --name "New title" \
@@ -74,11 +78,13 @@ shortcut-api-write stories update <story-id> \
 ```
 
 **Delete a story:**
+
 ```bash
 shortcut-api-write stories delete <story-id>
 ```
 
 **Add a comment to a story:**
+
 ```bash
 shortcut-api-write stories comment <story-id> "Comment text"
 ```
@@ -88,21 +94,25 @@ shortcut-api-write stories comment <story-id> "Comment text"
 Epics are collections of related stories representing larger features or initiatives.
 
 **Get an epic:**
+
 ```bash
 shortcut-api-read epics get <epic-id>
 ```
 
 **List all epics:**
+
 ```bash
 shortcut-api-read epics list
 ```
 
 **Search epics:**
+
 ```bash
 shortcut-api-read epics search --query "search text" --state "in progress"
 ```
 
 **Create an epic:**
+
 ```bash
 shortcut-api-write epics create "Epic name" \
   --description "Epic description" \
@@ -111,6 +121,7 @@ shortcut-api-write epics create "Epic name" \
 ```
 
 **Update an epic:**
+
 ```bash
 shortcut-api-write epics update <epic-id> \
   --name "New name" \
@@ -119,6 +130,7 @@ shortcut-api-write epics update <epic-id> \
 ```
 
 **Delete an epic:**
+
 ```bash
 shortcut-api-write epics delete <epic-id>
 ```
@@ -128,16 +140,19 @@ shortcut-api-write epics delete <epic-id>
 Iterations (sprints) are time-boxed periods of development.
 
 **Get current active iteration:**
+
 ```bash
 shortcut-api-read iterations list --status started
 ```
 
 **Get a specific iteration:**
+
 ```bash
 shortcut-api-read iterations get <iteration-id>
 ```
 
 **List all iterations:**
+
 ```bash
 shortcut-api-read iterations list
 shortcut-api-read iterations list --status started|unstarted|done
@@ -145,6 +160,7 @@ shortcut-api-read iterations list --with-stats
 ```
 
 **Create an iteration:**
+
 ```bash
 shortcut-api-write iterations create "Sprint 1" 2025-01-01 2025-01-14 \
   --description "Sprint description" \
@@ -152,6 +168,7 @@ shortcut-api-write iterations create "Sprint 1" 2025-01-01 2025-01-14 \
 ```
 
 **Update an iteration:**
+
 ```bash
 shortcut-api-write iterations update <iteration-id> \
   --name "Sprint 2" \
@@ -160,6 +177,7 @@ shortcut-api-write iterations update <iteration-id> \
 ```
 
 **Delete an iteration:**
+
 ```bash
 shortcut-api-write iterations delete <iteration-id>
 ```
@@ -169,11 +187,13 @@ shortcut-api-write iterations delete <iteration-id>
 Teams represent groups of people working together.
 
 **Get a team:**
+
 ```bash
 shortcut-api-read teams get <team-id>
 ```
 
 **List all teams:**
+
 ```bash
 shortcut-api-read teams list
 ```
@@ -183,11 +203,13 @@ shortcut-api-read teams list
 Workflows define the states that stories move through.
 
 **Get a workflow:**
+
 ```bash
 shortcut-api-read workflows get <workflow-id>
 ```
 
 **List all workflows:**
+
 ```bash
 shortcut-api-read workflows list
 ```
@@ -197,21 +219,25 @@ shortcut-api-read workflows list
 Manage workspace members and get current user information.
 
 **Get a member:**
+
 ```bash
 shortcut-api-read users get <member-id>
 ```
 
 **List all members:**
+
 ```bash
 shortcut-api-read users list
 ```
 
 **Get current user:**
+
 ```bash
 shortcut-api-read users current
 ```
 
 **Get current user's teams:**
+
 ```bash
 shortcut-api-read users current-teams
 ```
@@ -221,22 +247,26 @@ shortcut-api-read users current-teams
 Objectives represent high-level goals.
 
 **Get an objective:**
+
 ```bash
 shortcut-api-read objectives get <objective-id>
 ```
 
 **List all objectives:**
+
 ```bash
 shortcut-api-read objectives list
 ```
 
 **Create an objective:**
+
 ```bash
 shortcut-api-write objectives create "Objective name" \
   --description "Objective description"
 ```
 
 **Update an objective:**
+
 ```bash
 shortcut-api-write objectives update <objective-id> \
   --name "New name" \
@@ -244,6 +274,7 @@ shortcut-api-write objectives update <objective-id> \
 ```
 
 **Delete an objective:**
+
 ```bash
 shortcut-api-write objectives delete <objective-id>
 ```
@@ -253,6 +284,7 @@ shortcut-api-write objectives delete <objective-id>
 Create documentation in Shortcut.
 
 **Create a document:**
+
 ```bash
 shortcut-api-write documents create "Doc title" "<h1>HTML Content</h1>"
 ```
