@@ -38,7 +38,7 @@ export const NotificationPlugin: Plugin = async ({ $ }) => {
       // Schedule delayed notification on idle or permission request
       if (event.type === "session.idle") {
         scheduleNotification("OpenCode finished");
-      } else if (event.type === "permission.updated") {
+      } else if (event.type === "permission.asked") {
         scheduleNotification("OpenCode awaiting permission");
       }
     },
