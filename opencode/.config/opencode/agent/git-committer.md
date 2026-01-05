@@ -6,6 +6,5 @@ permission:
   bash:
     "git commit *": allow
     "git add *": allow
-    "*": ask
   webfetch: deny
 ---

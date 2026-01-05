@@ -4,7 +4,6 @@ permission:
   edit: deny
   bash:
     "git checkout *": allow
-    "*": ask
   webfetch: deny
 ---
 
