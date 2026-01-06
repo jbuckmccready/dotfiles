@@ -57,6 +57,19 @@ shortcut-api-write stories create "Story title" \
   --estimate 3
 ```
 
+**Create a story and checkout a branch:**
+
+```bash
+shortcut-api-write stories create-and-checkout "Story title" \
+  --type feature|bug|chore \
+  --description "Story description" \
+  --team-id <team-id> \
+  --owner-ids <user-id> <user-id> \
+  --iteration-id <iteration-id> \
+  --epic-id <epic-id> \
+  --estimate 3
+```
+
 **Update a story:**
 
 ```bash

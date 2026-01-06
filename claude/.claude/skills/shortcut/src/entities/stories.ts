@@ -14,6 +14,7 @@ import {
   output,
   outputError,
 } from "../client.js";
+import { assertInGitRepo, gitSwitchCreate } from "../git.js";
 
 export async function getStory(storyId: number): Promise<FormattedStory> {
   const client = new ShortcutClient();
@@ -231,17 +232,24 @@ export async function deleteStory(storyId: number): Promise<DeleteResult> {
   return { success: true, message: `Story ${storyId} deleted` };
 }
 
+export function buildStoryBranchName(
+  storyId: number,
+  storyName: string,
+): string {
+  let sanitizedName = storyName.toLowerCase();
+  sanitizedName = sanitizedName.replace(/[^a-z0-9]+/g, "-");
+  sanitizedName = sanitizedName.replace(/^-+|-+$/g, "");
+  sanitizedName = sanitizedName.slice(0, 50);
+
+  return `sc-${storyId}/${sanitizedName}`;
+}
+
 export async function getStoryBranchName(
   storyId: number,
 ): Promise<BranchNameResult> {
   const story = await getStory(storyId);
 
-  let sanitizedName = story.name.toLowerCase();
-  sanitizedName = sanitizedName.replace(/[^a-z0-9]+/g, "-");
-  sanitizedName = sanitizedName.replace(/^-+|-+$/g, "");
-  sanitizedName = sanitizedName.slice(0, 50);
-
-  const branchName = `sc-${storyId}/${sanitizedName}`;
+  const branchName = buildStoryBranchName(storyId, story.name);
 
   return {
     story_id: storyId,
@@ -367,6 +375,65 @@ export function registerWriteCommands(program: Command): void {
           estimate: opts.estimate ? parseInt(opts.estimate, 10) : undefined,
         });
         output(result);
+      } catch (e) {
+        outputError(e);
+      }
+    });
+
+  stories
+    .command("create-and-checkout <name>")
+    .description("Create story and checkout new git branch")
+    .option("--type <type>", "Story type (feature, bug, chore)", "feature")
+    .option("--description <desc>", "Story description")
+    .option("--team-id <id>", "Team ID")
+    .option("--owner-ids <ids...>", "Owner IDs")
+    .option("--requester-id <id>", "Requester ID (defaults to current user)")
+    .option("--iteration-id <id>", "Iteration ID")
+    .option("--epic-id <id>", "Epic ID")
+    .option("--workflow-state-id <id>", "Workflow state ID", "500004783")
+    .option("--estimate <n>", "Story point estimate")
+    .action(async (name: string, opts) => {
+      try {
+        await assertInGitRepo();
+
+        const story = await createStory({
+          name,
+          storyType: opts.type,
+          description: opts.description,
+          teamId: opts.teamId,
+          ownerIds: opts.ownerIds,
+          requesterId: opts.requesterId,
+          iterationId: opts.iterationId
+            ? parseInt(opts.iterationId, 10)
+            : undefined,
+          epicId: opts.epicId ? parseInt(opts.epicId, 10) : undefined,
+          workflowStateId: opts.workflowStateId
+            ? parseInt(opts.workflowStateId, 10)
+            : undefined,
+          estimate: opts.estimate ? parseInt(opts.estimate, 10) : undefined,
+        });
+
+        const branchName = buildStoryBranchName(story.id, story.name);
+
+        try {
+          await gitSwitchCreate(branchName);
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          console.error(
+            JSON.stringify(
+              {
+                error: message,
+                story,
+                branch_name: branchName,
+              },
+              null,
+              2,
+            ),
+          );
+          process.exit(1);
+        }
+
+        output({ story, branch_name: branchName });
       } catch (e) {
         outputError(e);
       }

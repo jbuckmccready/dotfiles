@@ -47,6 +47,9 @@ shortcut-api-{read|write} <entity> <operation> [args...]
 # Create a story
 ./shortcut-api-write stories create "Fix login bug" --type bug --team-id team-uuid
 
+# Create a story and checkout a branch
+./shortcut-api-write stories create-and-checkout "Fix login bug" --type bug --team-id team-uuid
+
 # Get branch name for a story
 ./shortcut-api-read stories branch-name 123
 ```
