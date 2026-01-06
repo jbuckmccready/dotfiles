@@ -1,8 +1,9 @@
 ---
 description: Create a new shortcut story
-agent: shortcutter
 subtask: false
 ---
+
+Use the shortcut skill to perform all operations related to shortcut stories and branches.
 
 Create a new shortcut story based on the following input:
 <input>
@@ -14,7 +15,7 @@ Example title inputs:
 - bug(staked-tx-relay): fix deadlock under high load
 
 Input should follow something like this (may be slightly different, you must interpret it):
-```
+```text
 title="feat(edge-gatway): add v2 rate limiting" owner="Alice"
 ```
 

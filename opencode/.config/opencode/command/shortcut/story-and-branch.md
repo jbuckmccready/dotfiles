@@ -1,8 +1,9 @@
 ---
 description: Create a new shortcut story and checkout new branch using shortcut story branch name
-agent: shortcutter
 subtask: false
 ---
+
+Use the shortcut skill to perform all operations related to shortcut stories and branches.
 
 Create a new shortcut story based on the following input:
 <input>
@@ -14,7 +15,7 @@ Example title inputs:
 - bug(staked-tx-relay): fix deadlock under high load
 
 Input should follow something like this (may be slightly different, you must interpret it):
-```
+```text
 title="feat(edge-gatway): add v2 rate limiting" owner="Alice"
 ```
 
@@ -26,5 +27,4 @@ Requester: [current user, IMPORTANT: must use id for the requester]
 Type: [set based on title if unspecified in input, allowed: feature, bug, or chore]
 Iteration: [from input, default to the currently started iteration across all teams if unspecified in input]
 
-1. Create a new shortcut story with the above details.
-2. Checkout a new git branch using the shortcut story branch name: `git checkout -b <branch-name>`
+Use `shortcut-api-write stories create-and-checkout` to create the story and checkout the branch in one step.

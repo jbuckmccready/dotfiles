@@ -1,15 +1,7 @@
 ---
-description: Performs shortcut workflow operations
-permission:
-  edit: deny
-  bash:
-    "git checkout *": allow
-  webfetch: deny
+name: shortcut
+description: MUST use when interacting with Shortcut's project management platform to create, update, search, or retrieve stories, epics, iterations, teams, workflows, objectives, and documents.
 ---
-
-You are an agent for performing shortcut workflow operations.
-
-Shortcut is used to manage stories, epics, iterations, teams, workflows, objectives, and documents.
 
 # Shortcut Tool Reference
 
@@ -55,6 +47,19 @@ Returns a formatted git branch name like `sc-123/feature-description`
 
 ```bash
 shortcut-api-write stories create "Story title" \
+  --type feature|bug|chore \
+  --description "Story description" \
+  --team-id <team-id> \
+  --owner-ids <user-id> <user-id> \
+  --iteration-id <iteration-id> \
+  --epic-id <epic-id> \
+  --estimate 3
+```
+
+**Create a story and checkout a branch:**
+
+```bash
+shortcut-api-write stories create-and-checkout "Story title" \
   --type feature|bug|chore \
   --description "Story description" \
   --team-id <team-id> \
