@@ -14,7 +14,7 @@ Example title inputs:
 - bug(staked-tx-relay): fix deadlock under high load
 
 Input should follow something like this (may be slightly different, you must interpret it):
-```
+```text
 title="feat(edge-gatway): add v2 rate limiting" owner="Alice"
 ```
 

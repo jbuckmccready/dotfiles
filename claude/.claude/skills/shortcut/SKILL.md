@@ -1,6 +1,6 @@
 ---
 name: shortcut
-description: Shortcut integration for managing stories, epics, iterations, teams, workflows, objectives, and documents. Use when interacting with Shortcut's project management platform to create, update, search, or retrieve project data.
+description: MUST use when interacting with Shortcut's project management platform to create, update, search, or retrieve stories, epics, iterations, teams, workflows, objectives, and documents.
 allowed-tools: Bash(shortcut-api-read:*)
 ---
 
