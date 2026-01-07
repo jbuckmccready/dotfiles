@@ -4,4 +4,17 @@ description: Create a commit of staged changes
 disable-model-invocation: true
 ---
 
-Use the Skill(git-commit) to git commit the currently staged changes.
+## Context
+
+- Current git status: !`git status`
+- Staged changes: !`git diff --cached`
+- Current branch: !`git branch --show-current`
+- Recent commits: !`git log --oneline -10`
+
+## Your task
+
+Based on the staged changes above, use the Skill(git-commit) to create a single git commit.
+
+Additional instructions: $ARGUMENTS
+
+Do not stage any additional files. Do not use any other tools or do anything else. Do not send any other text or messages besides the tool call.
