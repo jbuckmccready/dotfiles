@@ -4,6 +4,15 @@ return {
     lazy = false,
     opts = {
         bigfile = { enabled = true },
+        lazygit = {
+            config = {
+                os = {
+                    editPreset = "nvim-remote",
+                    -- Open in existing nvim window rather than opening new tab (default behavior for nvim-remote)
+                    edit = 'nvim --server "$NVIM" --remote-send "q"; nvim --server "$NVIM" --remote {{filename}}',
+                },
+            },
+        },
         dashboard = { enabled = false },
         explorer = { enabled = true },
         indent = {
