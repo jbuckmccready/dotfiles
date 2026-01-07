@@ -1,5 +1,5 @@
 import type { Plugin } from "@opencode-ai/plugin";
-import type { EventSessionStatus } from "@opencode-ai/sdk";
+import type { Event, EventSessionStatus } from "@opencode-ai/sdk/v2";
 
 const NOTIFY_SCRIPT = "~/.claude/hooks/notify.sh";
 const DELAY_MS = 15_000; // 15 seconds
@@ -25,11 +25,17 @@ export const NotificationPlugin: Plugin = async ({ $ }) => {
   };
 
   return {
-    event: async ({ event }) => {
-      // Cancel when session becomes busy (user sent a message)
+    event: async ({ event: _event }) => {
+      // HACK: cast to v2 Event type (Plugin package not yet updated for permission.asked)
+      const event = _event as Event;
+
+      // Cancel on any user activity
       if (
-        event.type === "session.status" &&
-        (event as EventSessionStatus).properties.status.type === "busy"
+        // Session became busy
+        (event.type === "session.status" &&
+          (event as EventSessionStatus).properties.status.type === "busy") ||
+        // User replied to permission prompt
+        event.type === "permission.replied"
       ) {
         clearPendingTimeout();
         return;
