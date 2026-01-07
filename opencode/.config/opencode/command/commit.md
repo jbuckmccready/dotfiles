@@ -4,4 +4,4 @@ agent: git-committer
 subtask: false
 ---
 
-Git commit $ARGUMENTS.
+Use the git-commit skill to git commit $ARGUMENTS.

@@ -4,4 +4,4 @@ agent: git-committer
 subtask: false
 ---
 
-Git commit the currently staged changes.
+Use the git-commit skill to git commit the currently staged changes.
