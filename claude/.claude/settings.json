@@ -20,7 +20,7 @@
       "Bash(gh pr diff:*)",
       "Skill(:*)"
     ],
-    "deny": []
+    "deny": ["NotebookEdit"]
   },
   "hooks": {
     "Notification": [
