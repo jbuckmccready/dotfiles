@@ -14,10 +14,11 @@
       "Bash(git status:*)",
       "Bash(git describe:*)",
       "Bash(git show:*)",
+      "Bash(git rev-parse:*)",
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "Skill(shortcut)"
+      "Skill(:*)"
     ],
     "deny": []
   },
