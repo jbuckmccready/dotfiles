@@ -5,6 +5,7 @@
   "share": "disabled",
   "lsp": false,
   "formatter": false,
+  "plugin": ["opencode-antigravity-auth@beta"],
   "mcp": {
     "playwright": {
       "type": "local",
@@ -147,86 +148,96 @@
         }
       }
     },
-    "anthropic": {
+    "google": {
       "models": {
-        "sonnet-4-5-ultra": {
-          "id": "claude-sonnet-4-5",
-          "name": "Claude Sonnet 4.5 Ultra",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 32768
-            }
+        "antigravity-gemini-3-pro": {
+          "name": "Gemini 3 Pro (Antigravity)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          },
+          "variants": {
+            "low": { "thinkingLevel": "low" },
+            "high": { "thinkingLevel": "high" }
           }
         },
-        "sonnet-4-5-high": {
-          "id": "claude-sonnet-4-5",
-          "name": "Claude Sonnet 4.5 High",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 8192
-            }
+        "antigravity-gemini-3-flash": {
+          "name": "Gemini 3 Flash (Antigravity)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          },
+          "variants": {
+            "minimal": { "thinkingLevel": "minimal" },
+            "low": { "thinkingLevel": "low" },
+            "medium": { "thinkingLevel": "medium" },
+            "high": { "thinkingLevel": "high" }
           }
         },
-        "sonnet-4-5-med": {
-          "id": "claude-sonnet-4-5",
-          "name": "Claude Sonnet 4.5 Medium",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 4096
-            }
+        "antigravity-claude-sonnet-4-5": {
+          "name": "Claude Sonnet 4.5 (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
           }
         },
-        "sonnet-4-5-low": {
-          "id": "claude-sonnet-4-5",
-          "name": "Claude Sonnet 4.5 Low",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 1024
-            }
+        "antigravity-claude-sonnet-4-5-thinking": {
+          "name": "Claude Sonnet 4.5 Thinking (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          },
+          "variants": {
+            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
+            "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
           }
         },
-        "opus-4-5-ultra": {
-          "id": "claude-opus-4-5",
-          "name": "Claude Opus 4.5 Ultra",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 32768
-            }
+        "antigravity-claude-opus-4-5-thinking": {
+          "name": "Claude Opus 4.5 Thinking (Antigravity)",
+          "limit": { "context": 200000, "output": 64000 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          },
+          "variants": {
+            "low": { "thinkingConfig": { "thinkingBudget": 8192 } },
+            "max": { "thinkingConfig": { "thinkingBudget": 32768 } }
           }
         },
-        "opus-4-5-high": {
-          "id": "claude-opus-4-5",
-          "name": "Claude Opus 4.5 High",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 8192
-            }
+        "gemini-2.5-flash": {
+          "name": "Gemini 2.5 Flash (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
           }
         },
-        "opus-4-5-med": {
-          "id": "claude-opus-4-5",
-          "name": "Claude Opus 4.5 Medium",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 4096
-            }
+        "gemini-2.5-pro": {
+          "name": "Gemini 2.5 Pro (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
           }
         },
-        "opus-4-5-low": {
-          "id": "claude-opus-4-5",
-          "name": "Claude Opus 4.5 Low",
-          "options": {
-            "thinking": {
-              "type": "enabled",
-              "budgetTokens": 1024
-            }
+        "gemini-3-flash-preview": {
+          "name": "Gemini 3 Flash Preview (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65536 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
+          }
+        },
+        "gemini-3-pro-preview": {
+          "name": "Gemini 3 Pro Preview (Gemini CLI)",
+          "limit": { "context": 1048576, "output": 65535 },
+          "modalities": {
+            "input": ["text", "image", "pdf"],
+            "output": ["text"]
           }
         }
       }
