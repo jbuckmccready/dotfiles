@@ -13,9 +13,7 @@ return {
             jsonc = { "prettier" },
             less = { "prettier" },
             lua = { "stylua" },
-            -- disabled for now, waiting on bug to be fixed: https://github.com/prettier/prettier/issues/8004
-            -- update: that bug was fixed but now there's always a newline inserted before lists which is annoying
-            -- markdown = { "prettier" },
+            markdown = { "prettier" },
             rust = { lsp_format = "prefer" },
             scss = { "prettier" },
             svelte = { "prettier", lsp_format = "fallback" },
