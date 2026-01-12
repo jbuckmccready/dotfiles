@@ -9,12 +9,12 @@
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "@playwright/mcp@latest"],
+      "command": ["bunx", "@playwright/mcp@latest"],
       "enabled": false
     },
     "svelte": {
       "type": "local",
-      "command": ["npx", "-y", "@sveltejs/mcp"],
+      "command": ["bunx", "-y", "@sveltejs/mcp"],
       "enabled": false
     }
   },
