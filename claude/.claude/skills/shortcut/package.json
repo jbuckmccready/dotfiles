@@ -5,7 +5,8 @@
   "scripts": {
     "read": "bun run src/cli-read.ts",
     "write": "bun run src/cli-write.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "commander": "^12.1.0"
