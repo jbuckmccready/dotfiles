@@ -236,10 +236,12 @@ export function buildStoryBranchName(
   storyId: number,
   storyName: string,
 ): string {
-  let sanitizedName = storyName.toLowerCase();
-  sanitizedName = sanitizedName.replace(/[^a-z0-9]+/g, "-");
-  sanitizedName = sanitizedName.replace(/^-+|-+$/g, "");
-  sanitizedName = sanitizedName.slice(0, 50);
+  const sanitizedName = storyName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, 50)
+    .replace(/-+$/, "");
 
   return `sc-${storyId}/${sanitizedName}`;
 }
