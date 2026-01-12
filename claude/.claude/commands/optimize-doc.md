@@ -1,5 +1,6 @@
 ---
 description: Optimize documentation for conciseness and clarity
+disable-model-invocation: true
 ---
 
 # Optimize Documentation Command
@@ -11,6 +12,7 @@ description: Optimize documentation for conciseness and clarity
 Make documentation more concise and clearer without introducing vagueness or misinterpretation.
 
 **Optimization Goals** (in priority order):
+
 1. **Eliminate vagueness**: Strengthen instructions with explicit criteria and measurable steps
 2. **Increase conciseness**: Remove redundancy while preserving all necessary information
 3. **Preserve clarity AND meaning**: Never sacrifice understanding or semantic accuracy for brevity
@@ -18,6 +20,7 @@ Make documentation more concise and clearer without introducing vagueness or mis
 **Critical Constraint**: Instructions (text + examples) should only be updated if the new version retains BOTH the same meaning AND the same clarity as the old version. If optimization reduces clarity or changes meaning, reject the change.
 
 **Idempotent Design**: This command can be run multiple times on the same document:
+
 - **First pass**: Strengthens vague instructions, removes obvious redundancy
 - **Second pass**: Further conciseness improvements if instructions are now self-sufficient
 - **Subsequent passes**: No changes if already optimized
@@ -29,12 +32,14 @@ For each instruction section in the document:
 ### Step 1: Evaluate for Vagueness/Ambiguity
 
 **Is the instruction clear WITHOUT the examples?**
+
 - Cover the examples and read only the instruction
 - Can it be executed correctly without looking at examples?
 - Does it contain subjective terms like "clearly", "properly", "immediately" without definition?
 - Are there measurable criteria or explicit steps?
 
 **Decision Tree**:
+
 ```
 Can instruction be followed correctly without examples?
 ├─ YES → Instruction is CLEAR → Proceed to Step 2
@@ -100,11 +105,13 @@ Can instruction be followed correctly without examples?
 The following content types are necessary for CORRECT EXECUTION - preserve even if instructions are technically clear:
 
 ### 1. **Concrete Examples Defining "Correct"**
+
 - Examples showing EXACT correct vs incorrect patterns when instruction uses abstract terms
 - Specific file paths, line numbers, or command outputs showing what success looks like
 - **Test**: Does the example define something ambiguous in the instruction?
 
 **KEEP when instruction says "delete" but example shows this means "remove entire entry, not mark complete"**:
+
 ```
 bash
 # ❌ WRONG: Marking complete in
@@ -122,11 +129,13 @@ vim changelog.md  # ADD under ## 2025-10-08
 **REMOVE if instruction already says "remove entire entry" explicitly** - example becomes redundant.
 
 ### 2. **Sequential Steps for State Machines**
+
 - Numbered workflows where order matters for correctness
 - State transition sequences where skipping/reordering causes failures
 - **Test**: Can steps be executed in different order and still work?
 
 **KEEP numbered sequence** when order is mandatory:
+
 ```
 1. Complete SYNTHESIS phase
 2. Present plan to user
@@ -138,11 +147,13 @@ vim changelog.md  # ADD under ## 2025-10-08
 **REMOVE numbering** if steps are independent checks that can run in any order.
 
 ### 3. **Inline Comments That Specify WHAT to Verify**
+
 - Comments explaining what output to expect or check
 - Annotations specifying exact conditions for success/failure
 - **Test**: Does comment specify success criteria not in the instruction?
 
 **KEEP comments specifying criteria**:
+
 ```
 bash
 # Before rewriting: git rev-list --count HEAD
@@ -153,6 +164,7 @@ bash
 **REMOVE comments explaining WHY** (e.g., "This prevents data loss because..." is educational, not operational).
 
 ### 4. **Disambiguation Examples**
+
 - Multiple examples showing boundary between prohibited/permitted when rule uses subjective terms
 - Examples that resolve ambiguity in instruction wording
 - **Test**: Can the instruction be misinterpreted without this example?
@@ -161,25 +173,31 @@ bash
 **REMOVE examples that just restate clear instructions**.
 
 ### 5. **Pattern Extraction Rules**
+
 - Annotations that generalize specific examples into reusable decision principles
 - Text that teaches how to apply the same reasoning to future cases
 - **Test**: Does this text extract a general rule from a specific example?
 
 **KEEP pattern extraction annotations**:
+
 ```
 [Specific example code block]
 → Shows that "delete" means remove lines, not change checkbox.
 ```
+
 The arrow extracts the general principle (what "delete" means) from the specific example.
 
 **REMOVE pure commentary**:
+
 ```
 [Example code block]
 → This is a good practice to follow.
 ```
+
 Generic praise without extracting a reusable decision rule.
 
 **Critical Distinction**:
+
 - ✅ **KEEP**: "→ Specifies exactly what success looks like" (teaches pattern recognition)
 - ❌ **REMOVE**: "This example helps you understand the concept" (generic educational)
 - ✅ **KEEP**: "→ Claude doesn't need to know why" (generalizes when to remove content)
@@ -239,16 +257,19 @@ Generic praise without extracting a reusable decision rule.
 ### 📋 Duplication Taxonomy
 
 **Type 1: Quick-Reference + Detailed** (KEEP BOTH)
+
 - Simple list (3-5 words per item) for fast scanning
 - Detailed section with tests, examples, edge cases
 - **Purpose**: Different use cases - quick lookup vs deep understanding
 
 **Type 2: Exact Duplication** (CONSOLIDATE)
+
 - Same information, same level of detail, same context
 - Appearing in multiple places with no contextual justification
 - **Purpose**: Genuine redundancy - consolidate to single source
 
 **Type 3: Pedagogical Repetition** (CONTEXT-DEPENDENT)
+
 - Key rules stated multiple times for emphasis
 - Summary + detailed explanation
 - **Purpose**: Learning/retention - keep if document is pedagogical, remove if reference doc
@@ -288,15 +309,18 @@ Generic praise without extracting a reusable decision rule.
 ### Examples Applying the Test
 
 **REMOVE THIS** (explains WHY):
+
 ```
 **RATIONALE**: Git history rewriting can silently drop commits or changes,
 especially during interactive rebases where "pick" lines might be accidentally
 deleted or conflicts might be resolved incorrectly. Manual verification is the
 only reliable way to ensure no data loss occurred.
 ```
+
 → Claude doesn't need to know why; just needs to know to verify.
 
 **KEEP THIS** (defines WHAT "correct" means):
+
 ```
 **ARCHIVAL SUCCESS CRITERIA**:
 - `git diff todo.md` shows ONLY deletions
@@ -304,11 +328,14 @@ only reliable way to ensure no data loss occurred.
 - Both files in SAME commit
 - `grep task-name todo.md` returns no matches
 ```
+
 → Specifies exactly what success looks like; needed for correct execution.
 
 **REMOVE THIS** (restates clear instruction):
+
 ```
 When lock acquisition fails, you should not delete the lock file.
 Instead, select an alternative task to work on.
 ```
+
 → If instruction already says "If lock acquisiti...

@@ -1,10 +1,12 @@
 ---
 description: Step 5 of 5 in the spec workflow. Execute one specific task from the spec's Tasks section, implementing only the scoped changes described and verifying acceptance criteria.
+disable-model-invocation: true
 ---
 
 # execute_task
 
 ## Purpose
+
 **Step 5 of 5** in the spec workflow. Execute one specific task from the spec's Tasks section, implementing only the scoped changes described and verifying acceptance criteria.
 
 **Workflow Order:** initialize_spec → create_resource → update_spec → create_tasks → **execute_task**
@@ -12,12 +14,14 @@ description: Step 5 of 5 in the spec workflow. Execute one specific task from th
 ---
 
 ## Inputs
+
 - **SPEC_SLUG** (kebab-case) — which spec this task belongs to
 - **TASK_ID** (T-XXX format) — which specific task to execute
 
 ---
 
 ## Outputs
+
 - Code changes as specified in the task's implementation details
 - Updated task header status in the spec (`[done YYYY-MM-DDTHH:MM:SSZ]`)
 - Verification that acceptance criteria are met (recorded in execution summary)
@@ -25,6 +29,7 @@ description: Step 5 of 5 in the spec workflow. Execute one specific task from th
 ---
 
 ## Rules
+
 - **Read first**:
   - `specs/<SPEC_SLUG>/spec.md` — find the specific task (T-XXX)
   - All files under `specs/<SPEC_SLUG>/resources/*.md` — implementation context
@@ -43,40 +48,47 @@ description: Step 5 of 5 in the spec workflow. Execute one specific task from th
 ## Implementation Process
 
 ### 1. Task Analysis
+
 - Read the specific task (T-XXX) from the spec
 - Understand what requirement(s) it addresses (R-XXX references)
 - Review acceptance criteria for success definition
 - Parse implementation details for specific changes needed
 
 ### 2. Codebase Inspection
+
 - Examine current state of files mentioned in implementation details
 - Understand existing patterns, naming conventions, and structure
 - Identify any dependencies or integration points
 - Check for potential conflicts with other code
 
 ### 3. Implementation
+
 - Make the specific code changes described in the task
 - Follow the file paths, component names, and patterns specified
 - Use the integration points and APIs mentioned in implementation details
 - Apply code snippets or examples provided in the task
 
 ### 4. Verification
+
 - Test the changes according to the task's testing approach
 - Verify each acceptance criterion is met
 - Run any automated tests that might be affected
 - Perform manual testing if specified
 
 ### 5. Documentation
+
 - Update any relevant documentation if the task specifies it
 - Add comments to code if the changes are complex
 - Document any deviations from the original task plan
 
 ### 6. Execution Summary (append to end of task subsection)
+
 Add a short "Execution Summary" block listing: changed files, acceptance criteria pass/fail list, test commands run, notes.
 
 ---
 
 ## Success Indicators
+
 - All acceptance criteria from the task are demonstrably met
 - Code follows existing patterns and conventions
 - No breaking changes to unrelated functionality
@@ -86,7 +98,9 @@ Add a short "Execution Summary" block listing: changed files, acceptance criteri
 ---
 
 ## Failure Handling
+
 If the task cannot be completed as written:
+
 - **Document the issue clearly**: What specifically cannot be implemented and why
 - **Suggest task refinement**: How the task should be modified to be implementable
 - **Partial implementation**: If some parts can be completed, implement those and document what's missing
@@ -114,6 +128,7 @@ Notes: No side effects detected; performance unchanged.
 ---
 
 ## Definition of Done
+
 - [ ] Task (T-XXX) located and analyzed from the spec
 - [ ] Current codebase state inspected and understood
 - [ ] All specified code changes implemented
@@ -123,5 +138,7 @@ Notes: No side effects detected; performance unchanged.
 - [ ] No breaking changes introduced to unrelated functionality
 - [ ] Any issues or deviations documented clearly
 - [ ] Ready for next task execution or spec completion
+
+```
 
 ```

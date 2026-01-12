@@ -1,10 +1,12 @@
 ---
 description: Step 4 of 5 in the spec workflow. Generate concrete, bite-sized tasks that, when completed, will satisfy all spec requirements.
+disable-model-invocation: true
 ---
 
 # create_tasks
 
 ## Purpose
+
 **Step 4 of 5** in the spec workflow. Generate concrete, bite-sized tasks that, when completed, will satisfy all spec requirements. Each task must be actionable, traceable to requirements, and scoped for coding agents to implement.
 
 **Workflow Order:** initialize_spec → create_resource → update_spec → **create_tasks** → execute_task
@@ -12,16 +14,19 @@ description: Step 4 of 5 in the spec workflow. Generate concrete, bite-sized tas
 ---
 
 ## Inputs
+
 - **SPEC_SLUG** (kebab-case) — which spec to generate tasks for
 
 ---
 
 ## Outputs
+
 - Updated `specs/<SPEC_SLUG>/spec.md` — Tasks section only (other sections preserved)
 
 ---
 
 ## Rules
+
 - **Read first**:
   - `specs/<SPEC_SLUG>/spec.md` — current requirements and context
   - All files under `specs/<SPEC_SLUG>/resources/*.md` — implementation guidance
@@ -108,6 +113,7 @@ Addresses requirements R-YYY and R-ZZZ by... [explanation]
 ---
 
 ## Definition of Done
+
 - [ ] **Codebase inspected** to understand existing patterns, file structures, and relevant implementations
 - [ ] Tasks section completely populated with all required tasks
 - [ ] Every requirement (R-XXX) covered by at least one task

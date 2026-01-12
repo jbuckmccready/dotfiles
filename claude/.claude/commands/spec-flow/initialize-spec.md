@@ -1,10 +1,12 @@
 ---
 description: Step 1 of 5 in the spec workflow. Start a new spec from a human description and optional initial resource sources.
+disable-model-invocation: true
 ---
 
 # initialize_spec
 
 ## Purpose
+
 **Step 1 of 5** in the spec workflow. Start a new spec from a human description and optional initial resource sources. The result is a new `spec.md` in `specs/<kebab-case-slug>/` with the standard structure.
 
 **Workflow Order:** **initialize_spec** → create_resource → update_spec → create_tasks → execute_task
@@ -20,12 +22,14 @@ $ARGUMENTS
 ---
 
 ## Outputs
+
 - `specs/<kebab-case-slug>/spec.md` with all required sections in place
 - `specs/<kebab-case-slug>/resources/` directory created (empty initially)
 
 ---
 
 ## Rules
+
 - **Title**: Derive a Title Case title from the description
 - **Slug**: Generate a kebab-case slug from the title (e.g., "AI Agent Chat" → "ai-agent-chat")
 - **Anchors**: Use consistent section anchors for machine edits:
@@ -90,6 +94,7 @@ spec:
 ---
 
 ## Definition of Done
+
 - [ ] `specs/<kebab-case-slug>/` directory created
 - [ ] `spec.md` file created with all required sections
 - [ ] `resources/` subdirectory created (empty)

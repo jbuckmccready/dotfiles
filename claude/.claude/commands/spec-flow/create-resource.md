@@ -1,10 +1,12 @@
 ---
 description: Step 2 of 5 in the spec workflow. Analyze a referenced resource in depth and record findings in a dedicated file. Update the parent spec's Resources section with a concise summary.
+disable-model-invocation: true
 ---
 
 # create_resource
 
 ## Purpose
+
 **Step 2 of 5** in the spec workflow. Analyze a referenced resource in depth and record findings in a dedicated file. Update the parent spec's Resources section with a concise summary.
 
 **Workflow Order:** initialize_spec → **create_resource** → update_spec → create_tasks → execute_task
@@ -12,6 +14,7 @@ description: Step 2 of 5 in the spec workflow. Analyze a referenced resource in 
 ---
 
 ## Definition of Done
+
 - [ ] Analysis document created at `specs/<SPEC_SLUG>/resources/<resource-slug>.md`
 - [ ] Document follows template structure
 - [ ] All analysis sections completed with spec-specific insights
@@ -22,6 +25,7 @@ description: Step 2 of 5 in the spec workflow. Analyze a referenced resource in 
 ---
 
 ## Inputs
+
 - **SPEC_SLUG** (kebab-case) — which spec this resource belongs to
 - **RESOURCE_NAME** (string) — human-readable name for the resource
 - **RESOURCE_SOURCE** (URL, repo path, or identifier) — where to find the resource
@@ -29,6 +33,7 @@ description: Step 2 of 5 in the spec workflow. Analyze a referenced resource in 
 ---
 
 ## Research Tools
+
 Use appropriate tools to thoroughly research the resource:
 
 - **Web searching** — Search for official documentation, tutorials, and authoritative technical resources
@@ -41,12 +46,14 @@ Focus on official sources and authoritative documentation.
 ---
 
 ## Outputs
+
 1. `specs/<SPEC_SLUG>/resources/<resource-slug>.md` — analysis document
 2. Updated `specs/<SPEC_SLUG>/spec.md` — Resources section only
 
 ---
 
 ## Rules
+
 - **Resource slug**: kebab-case from RESOURCE_NAME (e.g., "React Native Gifted Chat" → "react-native-gifted-chat")
 - **Resource ID allocation**: If updating existing entry, keep its ID. For new entries, find the current highest RS number (e.g., RS-001, RS-004 present → next is RS-005; do not backfill gaps)
 - **Timestamps**: On first creation set created & updated to same value (UTC ISO). On edits only bump updated

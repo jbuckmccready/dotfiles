@@ -1,5 +1,6 @@
 ---
 description: Create a new shortcut story
+disable-model-invocation: true
 ---
 
 Use the Skill(shortcut) to perform all operations related to shortcut stories and branches.
@@ -10,10 +11,12 @@ $ARGUMENTS
 </input>
 
 Example title inputs:
+
 - feat(edge-gatway): add v2 rate limiting
 - bug(staked-tx-relay): fix deadlock under high load
 
 Input should follow something like this (may be slightly different, you must interpret it):
+
 ```text
 title="feat(edge-gatway): add v2 rate limiting" owner="Alice"
 ```

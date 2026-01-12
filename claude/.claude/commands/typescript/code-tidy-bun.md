@@ -1,6 +1,7 @@
 ---
 description: Tidy up TypeScript code by running type check and formatter using Bun
 allowed-tools: Bash(bunx tsc --noEmit), Bash(bunx prettier --write .)
+disable-model-invocation: true
 ---
 
 1. Run type check: `bunx tsc --noEmit`

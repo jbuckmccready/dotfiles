@@ -1,5 +1,6 @@
 ---
 description: Open a Github Pull Request using the project template and Shortcut story title
+disable-model-invocation: true
 ---
 
 Open a new pull request for the current branch.

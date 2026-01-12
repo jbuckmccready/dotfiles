@@ -1,5 +1,6 @@
 ---
 description: Perform a thorough code review of a GitHub Pull Request
+disable-model-invocation: true
 ---
 
 # review-pr

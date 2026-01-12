@@ -1,10 +1,12 @@
 ---
 description: Step 3 of 5 in the spec workflow. Update a spec's Overview and Requirements based on resource analysis insights.
+disable-model-invocation: true
 ---
 
 # update_spec
 
 ## Purpose
+
 **Step 3 of 5** in the spec workflow. Refine a spec's Overview and Requirements after resources have been analyzed. The goal is to make the spec sharper, more accurate, and implementation-ready, informed by resource analysis insights.
 
 **Workflow Order:** initialize_spec → create_resource → **update_spec** → create_tasks → execute_task
@@ -12,16 +14,19 @@ description: Step 3 of 5 in the spec workflow. Update a spec's Overview and Requ
 ---
 
 ## Inputs
+
 - **SPEC_SLUG** (kebab-case) — which spec to update
 
 ---
 
 ## Outputs
+
 - Updated `specs/<SPEC_SLUG>/spec.md` — Overview and Requirements sections only (other sections preserved)
 
 ---
 
 ## Rules
+
 - **Read first**:
   - `specs/<SPEC_SLUG>/spec.md` — current state
   - All files under `specs/<SPEC_SLUG>/resources/*.md` — analysis insights
@@ -41,6 +46,7 @@ description: Step 3 of 5 in the spec workflow. Update a spec's Overview and Requ
 ## Update Template
 
 ### Overview Section
+
 ```text
 ## Overview
 <!-- @section:overview -->
@@ -58,6 +64,7 @@ Key considerations:
 ```
 
 ### Requirements Section
+
 ```text
 ## Requirements
 <!-- @section:requirements -->
@@ -72,6 +79,7 @@ Key considerations:
 ---
 
 ## Definition of Done
+
 - [ ] Overview section rewritten with resource analysis insights
 - [ ] Requirements updated to be testable and feasible based on analyzed resources
 - [ ] All requirement IDs preserved or properly traced
