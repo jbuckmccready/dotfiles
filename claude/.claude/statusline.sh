@@ -6,16 +6,13 @@ input=$(cat)
 # Extract data from JSON
 cwd=$(echo "$input" | jq -r '.cwd')
 project_dir=$(echo "$input" | jq -r '.workspace.project_dir // .cwd')
-input_tokens=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-output_tokens=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
-max_tokens=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 model=$(echo "$input" | jq -r '.model.display_name // "Claude"')
-
-total_tokens=$((input_tokens + output_tokens))
 
 # Colors (Catppuccin Mocha)
 yellow=$'\033[38;2;249;226;175m'
 gray=$'\033[38;2;108;112;134m'
+lavender=$'\033[38;2;180;190;254m'
 reset=$'\033[0m'
 
 # Format directory display
@@ -42,25 +39,11 @@ if git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
     branch=" ${gray}${branch}${dirty}${reset}"
 fi
 
-# Calculate context percentage
-if [ "$max_tokens" -gt 0 ]; then
-    pct=$((total_tokens * 100 / max_tokens))
-else
-    pct=0
-fi
-
-# Format token counts (e.g., 12.5k)
-format_tokens() {
-    local t=$1
-    if [ "$t" -ge 1000 ]; then
-        awk "BEGIN {printf \"%.1fk\", $t/1000}"
-    else
-        echo "$t"
-    fi
-}
-
-in_display=$(format_tokens "$input_tokens")
-out_display=$(format_tokens "$output_tokens")
+# Generate progress bar
+bar_width=10
+filled=$((used_pct * bar_width / 100))
+empty=$((bar_width - filled))
+bar=$(printf '█%.0s' $(seq 1 $filled 2>/dev/null))$(printf '░%.0s' $(seq 1 $empty 2>/dev/null))
 
 # Output plain text
-echo "${yellow}${pwd_display}${reset}${branch} ${gray}↓ ${in_display} ↑ ${out_display} (${pct}%) ${model}${reset}"
+echo "${yellow}${pwd_display}${reset}${branch} ${gray}│ ${model} │ ${lavender}${bar} ${used_pct}%${reset}"
