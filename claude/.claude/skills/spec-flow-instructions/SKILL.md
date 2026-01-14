@@ -3,7 +3,7 @@ name: spec-flow
 description: MUST use when working with spec files in `specs/` directories, or when commands reference this skill for conventions.
 ---
 
-# Spec Flow
+# Spec Flow Instructions
 
 A 5-step workflow for specification-driven development.
 

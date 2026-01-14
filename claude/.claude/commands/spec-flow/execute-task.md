@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # execute_task
 
-Use the spec-flow-instructions skill if it is not active before doing anything.
+Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
 
 ## Purpose
 
