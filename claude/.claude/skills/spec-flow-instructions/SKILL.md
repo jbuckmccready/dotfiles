@@ -1,9 +1,9 @@
 ---
-name: spec-flow
+name: spec-flow-instructions
 description: MUST use when working with spec files in `specs/` directories, or when commands reference this skill for conventions.
 ---
 
-# Spec Flow Instructions
+# Spec Flow Instructions Skill
 
 A 5-step workflow for specification-driven development.
 

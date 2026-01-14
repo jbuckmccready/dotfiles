@@ -36,4 +36,4 @@ Expects: `<DESCRIPTION> <INSTRUCTIONS>`
 
 ## spec.md Template
 
-spec.md template is provided by the Skill(spec-flow).
+Use template at `templates/spec.md` from the spec-flow-instructions skill.
