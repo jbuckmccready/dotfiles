@@ -79,7 +79,7 @@ Open a new pull request for the current branch.
      fi
 
      # BASE_BRANCH determined in step 1 (defaults to repo default, or upstream if --base was passed)
-     gh pr create $DRAFT_FLAG --push --base "$BASE_BRANCH" --title "$TITLE" --body "$(cat <<'EOF'
+     gh pr create $DRAFT_FLAG --base "$BASE_BRANCH" --title "$TITLE" --body "$(cat <<'EOF'
      ...template with filled sections...
      EOF
      )"
