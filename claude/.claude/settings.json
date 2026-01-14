@@ -18,7 +18,8 @@
       "Bash(gh pr list:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
-      "Skill(:*)"
+      "Skill(:*)",
+      "Read(~/.claude/skills/*)"
     ],
     "deny": ["NotebookEdit"]
   },
