@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # create_tasks
 
-Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
+Use the spec-flow-instructions skill if spec flow instructions is not in context before doing anything.
 
 ## Purpose
 
@@ -15,9 +15,10 @@ Generate concrete implementation tasks that satisfy all requirements. Each task 
 
 $ARGUMENTS
 
-Expects: `<SPEC_SLUG>`
+Expects: `<SPEC_SLUG> <INSTRUCTIONS>`
 
 - **SPEC_SLUG**: kebab-case spec identifier
+- **INSTRUCTIONS**: specific considerations for task generation (optional)
 
 ## Output
 
@@ -28,6 +29,7 @@ Expects: `<SPEC_SLUG>`
 
 ### 1. Read Context
 
+- Instructions provided in the input
 - `specs/<SPEC_SLUG>/spec.md` — refined requirements
 - All files under `specs/<SPEC_SLUG>/resources/*.md` — implementation guidance
 - **Inspect the codebase** — current structure, patterns, file locations, component names
@@ -46,7 +48,7 @@ For each requirement, determine what implementation work is needed:
 - **Requirement coverage**: Every active R-XXX must map to at least one task
 - **Task specificity**: Include specific file paths, component names, function signatures
 - **Task independence**: Keep independent when possible; mark dependencies explicitly
-- **Section scope**: Only modify Tasks section between anchors
+- **Section scope**: Only modify Tasks section within the spec file
 
 ## Rules
 

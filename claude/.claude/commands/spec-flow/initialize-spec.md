@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # initialize_spec
 
-Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
+Use the spec-flow-instructions skill if spec flow instructions is not in context before doing anything.
 
 ## Purpose
 
@@ -14,6 +14,11 @@ Start a new spec from a human description. Creates `specs/<slug>/spec.md` with s
 ## Input
 
 $ARGUMENTS
+
+Expects: `<DESCRIPTION> <INSTRUCTIONS>`
+
+- **DESCRIPTION**: human description of the spec to initialize
+- **INSTRUCTIONS**: specific considerations for spec initialization (optional)
 
 ## Output
 

@@ -142,7 +142,7 @@ Files Changed (N):
 
 - [ ] Spec and all resource analyses reviewed
 - [ ] Problems and inconsistencies identified
-- [ ] Ambiguities recorded in `@section:questions`
+- [ ] Ambiguities recorded in Open Questions section
 - [ ] User prompted for each open question (use AskUserQuestion tool)
 - [ ] Questions section updated with answers or cleared when resolved
 - [ ] Overview refined for clarity

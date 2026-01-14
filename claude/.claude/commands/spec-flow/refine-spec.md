@@ -5,19 +5,20 @@ disable-model-invocation: true
 
 # refine_spec
 
-Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
+Use the spec-flow-instructions skill if spec flow instructions is not in context before doing anything.
 
 ## Purpose
 
-Review the spec with fresh context from resource analysis. Refine the Overview and Requirements for clarity, consistency, and completeness. Surface problems and ask questions about ambiguities before proceeding to task creation.
+Review the spec with fresh context from resource analysis. Refine the Overview and Requirements for clarity, consistency, and completeness. Surface problems and ask questions about ambiguities, update spec requirements accordingly.
 
 ## Input
 
 $ARGUMENTS
 
-Expects: `<SPEC_SLUG>`
+Expects: `<SPEC_SLUG> <INSTRUCTIONS>`
 
 - **SPEC_SLUG**: kebab-case spec identifier
+- **INSTRUCTIONS**: specific considerations for refinement (optional)
 
 ## Output
 
@@ -30,6 +31,7 @@ Expects: `<SPEC_SLUG>`
 
 ### 1. Read Context
 
+- Instructions provided in the input
 - `specs/<SPEC_SLUG>/spec.md` — current state
 - All files under `specs/<SPEC_SLUG>/resources/*.md` — analysis insights
 
@@ -65,7 +67,7 @@ Based on resource insights and user answers:
 
 ## Rules
 
-- **Section scope**: Only modify Overview and Requirements sections between their anchors
+- **Section scope**: Only modify Overview and Requirements sections within the spec file
 - **Ask first**: If significant ambiguities exist, ask questions before making changes
 - **Be specific**: Questions should be concrete, not open-ended
 - **Preserve intent**: Refinements should clarify, not change the user's goals

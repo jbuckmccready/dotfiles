@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # execute_task
 
-Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
+Use the spec-flow-instructions skill if spec flow instructions is not in context before doing anything.
 
 ## Purpose
 
@@ -15,10 +15,11 @@ Execute one specific task from the spec's Tasks section. Implement only the scop
 
 $ARGUMENTS
 
-Expects: `<SPEC_SLUG> <TASK_ID>` (may be multiple `<TASK_ID`, if argument not provided then it is to be inferred/created from context)
+Expects: `<SPEC_SLUG> <TASK_ID> <INSTRUCTIONS>` (may be multiple `<TASK_ID`, if argument not provided then it is to be inferred/created from context)
 
 - **SPEC_SLUG**: kebab-case spec identifier
 - **TASK_ID**: T-XXX format task identifier
+- **INSTRUCTIONS**: specific considerations for task execution (optional)
 
 ## Output
 
@@ -30,6 +31,7 @@ Expects: `<SPEC_SLUG> <TASK_ID>` (may be multiple `<TASK_ID`, if argument not pr
 
 ### 1. Task Analysis
 
+- Read instructions provided in the input
 - Read specific task (T-XXX) from spec
 - Understand which requirements it addresses (R-XXX)
 - Review acceptance criteria

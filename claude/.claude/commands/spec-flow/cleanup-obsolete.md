@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # cleanup_obsolete
 
-Use the spec-flow-instructions if spec flow instructions is not context before doing anything.
+Use the spec-flow-instructions skill if spec flow instructions is not in context before doing anything.
 
 ## Purpose
 
@@ -15,9 +15,10 @@ Remove all requirements marked as `[obsolete]` and renumber remaining requiremen
 
 $ARGUMENTS
 
-Expects: `<SPEC_SLUG>`
+Expects: `<SPEC_SLUG> <INSTRUCTIONS>`
 
 - **SPEC_SLUG**: kebab-case spec identifier
+- **INSTRUCTIONS**: specific considerations for cleanup (optional)
 
 ## Output
 
@@ -33,6 +34,7 @@ Expects: `<SPEC_SLUG>`
 
 ### 1. Read Context
 
+- Instructions provided in the input
 - `specs/<SPEC_SLUG>/spec.md` — identify obsolete and active requirements
 - All files under `specs/<SPEC_SLUG>/resources/*.md` — identify requirement references
 
