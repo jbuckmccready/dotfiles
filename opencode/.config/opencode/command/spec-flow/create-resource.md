@@ -47,4 +47,4 @@ Focus on official sources and authoritative documentation.
 
 ## Analysis Document Template
 
-Use template at `templates/resource.md` from the spec-flow-instructions skill.
+Use the resource template provided by the spec-flow-instructions skill.
