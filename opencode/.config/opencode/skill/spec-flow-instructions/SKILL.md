@@ -1,9 +1,9 @@
 ---
-name: spec-flow
+name: spec-flow-instructions
 description: MUST use when working with spec files in `specs/` directories, or when commands reference this skill for conventions.
 ---
 
-# Spec Flow Instructions
+# Spec Flow Instructions Skill
 
 A 5-step workflow for specification-driven development.
 
@@ -26,8 +26,74 @@ specs/<SPEC_SLUG>/
 
 ## Templates
 
-- `templates/spec.md` — Use for new specs. Includes sections for Overview, Requirements, Resources, Tasks, and Questions.
-- `templates/resource.md` — Use for resource analysis files. Includes frontmatter and sections for Summary, Key Insights, Spec Alignment, Implementation Blueprint, and Risks.
+### Spec Template (spec.md)
+
+```markdown
+---
+spec:
+  title: "<Title Case>"
+  slug: "<kebab-case>"
+---
+
+## Overview
+
+<Brief description of what this specification accomplishes>
+
+## Requirements
+
+- (R-001) <Requirement description>
+
+## Resources
+
+<Resource entries will be added here as RS-XXX>
+
+## Open Questions
+
+<Questions identified during refine_spec that need user input>
+
+## Tasks
+
+<Tasks will be generated during create_tasks>
+```
+
+### Resource Template (for resources)
+
+```markdown
+---
+resource:
+  id: "RS-XXX"
+  title: "<Resource Name>"
+  source: "<URL or path>"
+  spec_slug: "<SPEC_SLUG>"
+  supports_requirements: [R-XXX]
+---
+
+# <Resource Name>
+
+## Source
+
+<URL or path to the resource>
+
+## Summary
+
+<2-3 sentences: what this resource is and why it matters for this spec>
+
+## Key Insights
+
+<Core concepts, patterns, and mental models relevant to spec requirements>
+
+## Spec Alignment
+
+<How this resource supports specific requirements, cite R-XXX IDs>
+
+## Implementation Blueprint
+
+<Practical entry points, code patterns, and setup requirements>
+
+## Risks & Considerations
+
+<Limitations, pitfalls, and alternatives to consider>
+```
 
 ## ID Allocation
 
@@ -65,7 +131,7 @@ Convert Title Case to kebab-case:
 
 ## Resource Analysis
 
-Use template at `templates/resource.md`. Section guidance:
+Use the **Resource Template** above. Section guidance:
 
 - **Summary**: What this resource is and why it matters for this spec (2-3 sentences)
 - **Key Insights**: Problem it solves, core abstractions, usage patterns, integration points
@@ -119,7 +185,7 @@ Files Changed (N):
 ### initialize_spec
 
 - [ ] `specs/<slug>/` directory created
-- [ ] `spec.md` created from `templates/spec.md`
+- [ ] `spec.md` created using the **Spec Template** above
 - [ ] `resources/` subdirectory created
 - [ ] Requirements derived from description
 - [ ] Resource placeholders for mentioned URIs/paths only
