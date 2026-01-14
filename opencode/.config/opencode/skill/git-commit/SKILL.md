@@ -3,14 +3,9 @@ name: git-commit
 description: MUST use when committing changes to a git repository, contains guidelines for creating git commit messages
 ---
 
+# Git Commit Guidelines
+
 **IMPORTANT**: you must follow the commit message format and guidelines.
-
-## Before Creating the Commit
-
-- Use read based git commands to understand the current state of the repository for any requested commits.
-- Minimize git commands used to only what is necessary to understand context for creating the commit.
-- Check for any accidentally staged files.
-- Ensure commit message and description adheres to the guidelines below.
 
 ## Commit Message Format
 
