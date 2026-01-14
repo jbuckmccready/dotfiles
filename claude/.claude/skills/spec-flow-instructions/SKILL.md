@@ -24,11 +24,10 @@ specs/<SPEC_SLUG>/
     └── <resource-slug>.md     # Resource analysis files
 ```
 
-Use template at `templates/spec.md` when creating new specs.
+## Templates
 
-## Spec Template
-
-Use template at `templates/spec.md` for new specs and always maintain the template structure. It includes sections for Overview, Requirements, Resources, Tasks, and Questions. Fill in each section according to the workflow steps.
+- `templates/spec.md` — Use for new specs. Includes sections for Overview, Requirements, Resources, Tasks, and Questions.
+- `templates/resource.md` — Use for resource analysis files. Includes frontmatter and sections for Summary, Key Insights, Spec Alignment, Implementation Blueprint, and Risks.
 
 ## ID Allocation
 
@@ -64,20 +63,15 @@ Convert Title Case to kebab-case:
 - (RS-XXX) **<Name>** — Source: <url/path> — Analysis: `resources/<slug>.md` — Summary: <2-3 sentences>
 ```
 
-## Resource Analysis Template
+## Resource Analysis
 
-```yaml
----
-resource:
-  id: "RS-XXX"
-  title: "<Resource Name>"
-  source: "<URL or path>"
-  spec_slug: "<SPEC_SLUG>"
-  supports_requirements: [R-001, R-003]
----
-```
+Use template at `templates/resource.md`. Section guidance:
 
-Sections: Source, Summary, Key Insights, Spec Alignment, Implementation Blueprint, Risks & Considerations
+- **Summary**: What this resource is and why it matters for this spec (2-3 sentences)
+- **Key Insights**: Problem it solves, core abstractions, usage patterns, integration points
+- **Spec Alignment**: How it supports requirements (cite R-XXX), relevant vs irrelevant parts, gaps filled or created
+- **Implementation Blueprint**: Entry points (APIs, CLIs, SDKs), code patterns, proof-of-concept approach, dependencies
+- **Risks & Considerations**: Limitations, performance concerns, maintenance considerations, alternatives
 
 ## Task Format
 
