@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # create_resource
 
-Must use the Skill(spec-flow) for file structure, ID allocation, resource entry format, and Definition of Done.
+Use the spec-flow-instructions skill if it is not active before doing anything.
 
 ## Purpose
 

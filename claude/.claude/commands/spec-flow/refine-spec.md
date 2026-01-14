@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # refine_spec
 
-Must use the Skill(spec-flow) for file structure, ID allocation, section anchors, and Definition of Done.
+Use the spec-flow-instructions skill if it is not active before doing anything.
 
 ## Purpose
 
@@ -61,7 +61,7 @@ Based on resource insights and user answers:
 - **Requirements**: Make concrete, testable, feasible
 - **No implementation details**: Requirements describe WHAT, not HOW
 - **ID preservation**: Keep existing IDs; show traceability for merged items: `(R-002) [merged into R-003]`
-- **Obsolute Requirements**: Mark obsolete requirements as deleted and delete their content leaving just a stub with a note: `(R-002) [deleted]`
+- **Obsolete Requirements**: Mark obsolete requirements with `[obsolete]` tag, preserving their content: `(R-002) [obsolete] Original requirement text here`
 
 ## Rules
 

@@ -43,7 +43,7 @@ Rules:
 - Sequential numbering starting from 001
 - Never backfill gaps (if R-001, R-003 exist → next is R-004)
 - Preserve existing IDs when updating, show traceability for merged items: `(R-002) [merged into R-003]`
-- Mark obsolete requirements as deleted and delete their content leaving just a stub with a note: `(R-002) [deleted]`
+- Mark obsolete requirements with `[obsolete]` tag, preserving their content: `(R-002) [obsolete] Original requirement text here`
 
 ## Slug Generation
 

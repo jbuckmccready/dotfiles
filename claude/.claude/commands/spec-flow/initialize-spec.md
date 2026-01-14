@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # initialize_spec
 
-Must use the Skill(spec-flow) for file structure, ID allocation, section anchors, and Definition of Done.
+Use the spec-flow-instructions skill if it is not active before doing anything.
 
 ## Purpose
 

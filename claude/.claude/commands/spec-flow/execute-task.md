@@ -5,7 +5,7 @@ disable-model-invocation: true
 
 # execute_task
 
-Must use the Skill(spec-flow) for file structure, execution summary format, and Definition of Done.
+Use the spec-flow-instructions skill if it is not active before doing anything.
 
 ## Purpose
 
