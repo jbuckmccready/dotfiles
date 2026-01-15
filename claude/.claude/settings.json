@@ -1,5 +1,8 @@
 {
   "includeCoAuthoredBy": false,
+  "env": {
+    "TMPPREFIX": "/tmp/claude/zsh"
+  },
   "permissions": {
     "allow": [
       "Bash(pwd)",
@@ -21,7 +24,22 @@
       "Skill(:*)",
       "Read(~/.claude/skills/*)"
     ],
-    "deny": ["NotebookEdit"]
+    "deny": [
+      "NotebookEdit",
+      "Bash(sudo *)",
+      "Bash(docker *)",
+      "Read(./.env)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)"
+    ]
+  },
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowLocalBinding": true
+    }
   },
   "hooks": {
     "Notification": [
