@@ -12,6 +12,8 @@ export KUBE_EDITOR=nvim
 
 export PATH="$HOME/.claude/skills/shortcut:$PATH"
 
+export PATH="$HOME/.bun/bin:$PATH"
+
 export PATH="$HOME/.local/bin:$PATH"
 
 export PATH="/Applications/Docker.app/Contents/Resources/bin:$PATH"
