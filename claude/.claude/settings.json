@@ -1,5 +1,6 @@
 {
   "includeCoAuthoredBy": false,
+  "plansDirectory": "./.claude/plans",
   "env": {
     "TMPPREFIX": "/tmp/claude/zsh"
   },
