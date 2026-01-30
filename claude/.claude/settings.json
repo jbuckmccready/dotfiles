@@ -2,6 +2,7 @@
   "includeCoAuthoredBy": false,
   "plansDirectory": "./.claude/plans",
   "env": {
+    "CLAUDE_CODE_TMPDIR": "/tmp/claude",
     "TMPPREFIX": "/tmp/claude/zsh"
   },
   "permissions": {
