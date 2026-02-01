@@ -13,7 +13,7 @@ subtask: false
 
 ## Your task
 
-Use the git-commit skill if git commit skill guidelines not in context, then based on the above changes create a single git commit.
+Based on the above changes create a single git commit.
 
 Additional instructions: $ARGUMENTS
 

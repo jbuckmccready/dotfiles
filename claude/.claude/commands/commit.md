@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*), Skill(git-commit)
+allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*)
 description: Create a git commit
 disable-model-invocation: true
 ---
@@ -13,7 +13,7 @@ disable-model-invocation: true
 
 ## Your task
 
-Use the git-commit skill if git commit skill guidelines not in context, then based on the above changes create a single git commit.
+Based on the above changes create a single git commit.
 
 Additional instructions: $ARGUMENTS
 
