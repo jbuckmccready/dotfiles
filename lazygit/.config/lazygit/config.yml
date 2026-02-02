@@ -1,5 +1,6 @@
 notARepository: 'quit'
 git:
+  overrideGpg: true
   # See https://github.com/jesseduffield/lazygit/blob/master/docs/Custom_Pagers.md
   pagers:
     - colorArg: always
