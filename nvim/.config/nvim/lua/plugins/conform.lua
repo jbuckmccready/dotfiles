@@ -22,6 +22,7 @@ return {
             ["terraform-vars"] = { lsp_format = "prefer" },
             typescript = { "prettier", lsp_format = "fallback" },
             typescriptreact = { "prettier", lsp_format = "fallback" },
+            zig = { "zigfmt" },
             -- For filetypes without a formatter:
             ["_"] = { "trim_whitespace", "trim_newlines" },
         },
