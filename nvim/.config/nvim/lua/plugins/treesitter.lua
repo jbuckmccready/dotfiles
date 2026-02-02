@@ -32,19 +32,12 @@ return {
             require("nvim-treesitter.install").ensure_installed(parsers_installed)
         end, 1000)
 
-        -- auto-start highlights & indentation
+        -- auto-start highlights
         vim.api.nvim_create_autocmd("FileType", {
             desc = "User: enable treesitter highlighting",
-            callback = function(ctx)
-                -- start treesitter for highlights
+            callback = function()
                 -- errors for filetypes with no parser
-                local has_started = pcall(vim.treesitter.start)
-
-                -- indent
-                local no_indent = {}
-                if has_started and not vim.list_contains(no_indent, ctx.match) then
-                    vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-                end
+                pcall(vim.treesitter.start)
             end,
         })
     end,
