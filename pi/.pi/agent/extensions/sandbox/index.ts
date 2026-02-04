@@ -70,11 +70,16 @@ const DEFAULT_CONFIG: SandboxConfig = {
       "api.github.com",
       "raw.githubusercontent.com",
     ],
+    allowUnixSockets: [
+      "/private/var/run/mDNSResponder",
+      ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
+    ],
+    allowLocalBinding: true,
     deniedDomains: [],
   },
   filesystem: {
     denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-    allowWrite: [".", "/tmp"],
+    allowWrite: [".", "/tmp", "~/.cache/zig"],
     denyWrite: [".env", ".env.*", "*.pem", "*.key"],
   },
 };
