@@ -1,10 +1,15 @@
 # font
-font-family = "ZedMono Nerd Font"
-font-style = Medium
-font-style-bold = Bold
-font-style-italic = Medium Italic
-font-style-bold-italic = Bold Italic
-font-size = 16
+font-family = "Lilex Nerd Font"
+font-style = Regular
+font-style-bold = Medium
+font-style-italic = Italic
+font-style-bold-italic = Medium Italic
+font-size = 15
+
+# MacOS only font thickening
+font-thicken = true
+# 0-255
+font-thicken-strength = 75
 
 # cursor
 shell-integration-features = no-cursor
