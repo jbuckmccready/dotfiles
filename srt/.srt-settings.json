@@ -11,14 +11,15 @@
       "*.pypi.org",
       "github.com",
       "*.github.com",
-      "api.github.com",
       "raw.githubusercontent.com"
     ],
+    "allowUnixSockets": ["/private/var/run/mDNSResponder"],
+    "allowLocalBinding": false,
     "deniedDomains": []
   },
   "filesystem": {
     "denyRead": ["~/.ssh", "~/.aws", "~/.gnupg"],
-    "allowWrite": [".", "/tmp", "~/.claude"],
+    "allowWrite": [".", "/tmp", "/private/tmp"],
     "denyWrite": [".env", ".env.*", "*.pem", "*.key"]
   }
 }
