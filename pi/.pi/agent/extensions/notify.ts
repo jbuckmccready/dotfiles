@@ -9,7 +9,7 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { execFile, execFileSync } from "child_process";
+import { execFile, execFileSync } from "node:child_process";
 
 function commandExists(cmd: string): boolean {
   try {
@@ -38,13 +38,13 @@ $n.ShowBalloonTip(5000)
 Start-Sleep -Seconds 5
 $n.Dispose()
 `;
-    execFile("powershell.exe", ["-Command", ps], { stdio: "ignore" });
+    execFile("powershell.exe", ["-Command", ps], () => {});
   } else if (commandExists("terminal-notifier")) {
     // macOS with terminal-notifier
-    execFile("terminal-notifier", ["-title", title, "-message", body, "-sound", "Ping"]);
+    execFile("terminal-notifier", ["-title", title, "-message", body, "-sound", "Ping"], () => {});
   } else if (commandExists("notify-send")) {
     // Linux
-    execFile("notify-send", [title, body]);
+    execFile("notify-send", [title, body], () => {});
   }
 }
 
