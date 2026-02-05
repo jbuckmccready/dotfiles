@@ -6,6 +6,13 @@
  * Originally by Armin Ronacher
  * https://github.com/mitsuhiko/agent-stuff/blob/534c7048326f28c2ef379663ecb770cb5501164c/pi-extensions/todos.ts
  *
+ * Modified:
+ * - Refactored TodoToolDetails to discriminated union with `kind` field
+ * - Added todoError() and todoResult() helpers to reduce boilerplate
+ * - Simplified normalizeTodoSettings()
+ * - Changed rootTui to rootTuiRef pattern
+ * - The changes also fix typescript LSP errors
+ *
  * File format in .pi/todos:
  * - The file starts with a JSON object (not YAML) containing the front matter:
  *   { id, title, tags, status, created_at, assigned_to_session }
@@ -134,9 +141,8 @@ const TodoParams = Type.Object({
     ),
 });
 
-type TodoAction =
-    | "list"
-    | "list-all"
+type TodoListAction = "list" | "list-all";
+type TodoSingleAction =
     | "get"
     | "create"
     | "update"
@@ -144,6 +150,7 @@ type TodoAction =
     | "delete"
     | "claim"
     | "release";
+type TodoAction = TodoListAction | TodoSingleAction;
 
 type TodoOverlayAction = "back" | "work";
 
@@ -159,24 +166,28 @@ type TodoMenuAction =
     | "view";
 
 type TodoToolDetails =
+    | { kind: "error"; action: TodoAction; error: string }
     | {
-          action: "list" | "list-all";
+          kind: "list";
+          action: TodoListAction;
           todos: TodoFrontMatter[];
           currentSessionId?: string;
-          error?: string;
       }
-    | {
-          action:
-              | "get"
-              | "create"
-              | "update"
-              | "append"
-              | "delete"
-              | "claim"
-              | "release";
-          todo: TodoRecord;
-          error?: string;
-      };
+    | { kind: "todo"; action: TodoSingleAction; todo: TodoRecord };
+
+function todoError(action: TodoAction, error: string) {
+    return {
+        content: [{ type: "text" as const, text: error }],
+        details: { kind: "error" as const, action, error },
+    };
+}
+
+function todoResult(action: TodoSingleAction, todo: TodoRecord) {
+    return {
+        content: [{ type: "text" as const, text: serializeTodoForAgent(todo) }],
+        details: { kind: "todo" as const, action, todo },
+    };
+}
 
 function formatTodoId(id: string): string {
     return `${TODO_ID_PREFIX}${id}`;
@@ -873,13 +884,12 @@ function getTodoSettingsPath(todosDir: string): string {
 }
 
 function normalizeTodoSettings(raw: Partial<TodoSettings>): TodoSettings {
-    const gc = raw.gc ?? DEFAULT_TODO_SETTINGS.gc;
-    const gcDays = Number.isFinite(raw.gcDays)
-        ? raw.gcDays
-        : DEFAULT_TODO_SETTINGS.gcDays;
     return {
-        gc: Boolean(gc),
-        gcDays: Math.max(0, Math.floor(gcDays)),
+        gc: Boolean(raw.gc ?? DEFAULT_TODO_SETTINGS.gc),
+        gcDays: Math.max(
+            0,
+            Math.floor(raw.gcDays ?? DEFAULT_TODO_SETTINGS.gcDays),
+        ),
     };
 }
 
@@ -1664,6 +1674,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                             },
                         ],
                         details: {
+                            kind: "list",
                             action: "list",
                             todos: listedTodos,
                             currentSessionId,
@@ -1682,6 +1693,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                             },
                         ],
                         details: {
+                            kind: "list",
                             action: "list-all",
                             todos,
                             currentSessionId,
@@ -1691,54 +1703,25 @@ export default function todosExtension(pi: ExtensionAPI) {
 
                 case "get": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: { action: "get", error: "id required" },
-                        };
+                        return todoError("get", "id required");
                     }
                     const validated = validateTodoId(params.id);
                     if ("error" in validated) {
-                        return {
-                            content: [{ type: "text", text: validated.error }],
-                            details: { action: "get", error: validated.error },
-                        };
+                        return todoError("get", validated.error);
                     }
                     const normalizedId = validated.id;
                     const displayId = formatTodoId(normalizedId);
                     const filePath = getTodoPath(todosDir, normalizedId);
                     const todo = await ensureTodoExists(filePath, normalizedId);
                     if (!todo) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: `Todo ${displayId} not found`,
-                                },
-                            ],
-                            details: { action: "get", error: "not found" },
-                        };
+                        return todoError("get", `Todo ${displayId} not found`);
                     }
-                    return {
-                        content: [
-                            { type: "text", text: serializeTodoForAgent(todo) },
-                        ],
-                        details: { action: "get", todo },
-                    };
+                    return todoResult("get", todo);
                 }
 
                 case "create": {
                     if (!params.title) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: title required" },
-                            ],
-                            details: {
-                                action: "create",
-                                error: "title required",
-                            },
-                        };
+                        return todoError("create", "title required");
                     }
                     await ensureTodosDir(todosDir);
                     const id = await generateTodoId(todosDir);
@@ -1763,52 +1746,28 @@ export default function todosExtension(pi: ExtensionAPI) {
                     );
 
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "create", error: result.error },
-                        };
+                        return todoError("create", result.error);
                     }
 
-                    return {
-                        content: [
-                            { type: "text", text: serializeTodoForAgent(todo) },
-                        ],
-                        details: { action: "create", todo },
-                    };
+                    return todoResult("create", todo);
                 }
 
                 case "update": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: { action: "update", error: "id required" },
-                        };
+                        return todoError("update", "id required");
                     }
                     const validated = validateTodoId(params.id);
                     if ("error" in validated) {
-                        return {
-                            content: [{ type: "text", text: validated.error }],
-                            details: {
-                                action: "update",
-                                error: validated.error,
-                            },
-                        };
+                        return todoError("update", validated.error);
                     }
                     const normalizedId = validated.id;
                     const displayId = formatTodoId(normalizedId);
                     const filePath = getTodoPath(todosDir, normalizedId);
                     if (!existsSync(filePath)) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: `Todo ${displayId} not found`,
-                                },
-                            ],
-                            details: { action: "update", error: "not found" },
-                        };
+                        return todoError(
+                            "update",
+                            `Todo ${displayId} not found`,
+                        );
                     }
                     const result = await withTodoLock(
                         todosDir,
@@ -1843,56 +1802,28 @@ export default function todosExtension(pi: ExtensionAPI) {
                     );
 
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "update", error: result.error },
-                        };
+                        return todoError("update", result.error);
                     }
 
-                    const updatedTodo = result as TodoRecord;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: serializeTodoForAgent(updatedTodo),
-                            },
-                        ],
-                        details: { action: "update", todo: updatedTodo },
-                    };
+                    return todoResult("update", result);
                 }
 
                 case "append": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: { action: "append", error: "id required" },
-                        };
+                        return todoError("append", "id required");
                     }
                     const validated = validateTodoId(params.id);
                     if ("error" in validated) {
-                        return {
-                            content: [{ type: "text", text: validated.error }],
-                            details: {
-                                action: "append",
-                                error: validated.error,
-                            },
-                        };
+                        return todoError("append", validated.error);
                     }
                     const normalizedId = validated.id;
                     const displayId = formatTodoId(normalizedId);
                     const filePath = getTodoPath(todosDir, normalizedId);
                     if (!existsSync(filePath)) {
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: `Todo ${displayId} not found`,
-                                },
-                            ],
-                            details: { action: "append", error: "not found" },
-                        };
+                        return todoError(
+                            "append",
+                            `Todo ${displayId} not found`,
+                        );
                     }
                     const result = await withTodoLock(
                         todosDir,
@@ -1920,32 +1851,15 @@ export default function todosExtension(pi: ExtensionAPI) {
                     );
 
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "append", error: result.error },
-                        };
+                        return todoError("append", result.error);
                     }
 
-                    const updatedTodo = result as TodoRecord;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: serializeTodoForAgent(updatedTodo),
-                            },
-                        ],
-                        details: { action: "append", todo: updatedTodo },
-                    };
+                    return todoResult("append", result);
                 }
 
                 case "claim": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: { action: "claim", error: "id required" },
-                        };
+                        return todoError("claim", "id required");
                     }
                     const result = await claimTodoAssignment(
                         todosDir,
@@ -1954,34 +1868,14 @@ export default function todosExtension(pi: ExtensionAPI) {
                         Boolean(params.force),
                     );
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "claim", error: result.error },
-                        };
+                        return todoError("claim", result.error);
                     }
-                    const updatedTodo = result as TodoRecord;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: serializeTodoForAgent(updatedTodo),
-                            },
-                        ],
-                        details: { action: "claim", todo: updatedTodo },
-                    };
+                    return todoResult("claim", result);
                 }
 
                 case "release": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: {
-                                action: "release",
-                                error: "id required",
-                            },
-                        };
+                        return todoError("release", "id required");
                     }
                     const result = await releaseTodoAssignment(
                         todosDir,
@@ -1990,42 +1884,18 @@ export default function todosExtension(pi: ExtensionAPI) {
                         Boolean(params.force),
                     );
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "release", error: result.error },
-                        };
+                        return todoError("release", result.error);
                     }
-                    const updatedTodo = result as TodoRecord;
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: serializeTodoForAgent(updatedTodo),
-                            },
-                        ],
-                        details: { action: "release", todo: updatedTodo },
-                    };
+                    return todoResult("release", result);
                 }
 
                 case "delete": {
                     if (!params.id) {
-                        return {
-                            content: [
-                                { type: "text", text: "Error: id required" },
-                            ],
-                            details: { action: "delete", error: "id required" },
-                        };
+                        return todoError("delete", "id required");
                     }
-
                     const validated = validateTodoId(params.id);
                     if ("error" in validated) {
-                        return {
-                            content: [{ type: "text", text: validated.error }],
-                            details: {
-                                action: "delete",
-                                error: validated.error,
-                            },
-                        };
+                        return todoError("delete", validated.error);
                     }
                     const result = await deleteTodo(
                         todosDir,
@@ -2033,26 +1903,9 @@ export default function todosExtension(pi: ExtensionAPI) {
                         ctx,
                     );
                     if (typeof result === "object" && "error" in result) {
-                        return {
-                            content: [{ type: "text", text: result.error }],
-                            details: { action: "delete", error: result.error },
-                        };
+                        return todoError("delete", result.error);
                     }
-
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: serializeTodoForAgent(
-                                    result as TodoRecord,
-                                ),
-                            },
-                        ],
-                        details: {
-                            action: "delete",
-                            todo: result as TodoRecord,
-                        },
-                    };
+                    return todoResult("delete", result);
                 }
             }
         },
@@ -2084,7 +1937,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                 return new Text(text?.type === "text" ? text.text : "", 0, 0);
             }
 
-            if (details.error) {
+            if (details.kind === "error") {
                 return new Text(
                     theme.fg("error", `Error: ${details.error}`),
                     0,
@@ -2092,7 +1945,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                 );
             }
 
-            if (details.action === "list" || details.action === "list-all") {
+            if (details.kind === "list") {
                 let text = renderTodoList(
                     theme,
                     details.todos,
@@ -2108,11 +1961,6 @@ export default function todosExtension(pi: ExtensionAPI) {
                     }
                 }
                 return new Text(text, 0, 0);
-            }
-
-            if (!details.todo) {
-                const text = result.content[0];
-                return new Text(text?.type === "text" ? text.text : "", 0, 0);
             }
 
             let text = renderTodoDetail(theme, details.todo, expanded);
@@ -2177,9 +2025,9 @@ export default function todosExtension(pi: ExtensionAPI) {
             }
 
             let nextPrompt: string | null = null;
-            let rootTui: TUI | null = null;
+            const rootTuiRef = { current: null as TUI | null };
             await ctx.ui.custom<void>((tui, theme, _kb, done) => {
-                rootTui = tui;
+                rootTuiRef.current = tui;
                 let selector: TodoSelectorComponent | null = null;
                 let actionMenu: TodoActionMenuComponent | null = null;
                 let deleteConfirm: TodoDeleteConfirmComponent | null = null;
@@ -2485,7 +2333,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 
             if (nextPrompt) {
                 ctx.ui.setEditorText(nextPrompt);
-                rootTui?.requestRender();
+                rootTuiRef.current?.requestRender();
             }
         },
     });
