@@ -4,6 +4,8 @@
  * Originally by Armin Ronacher
  * https://github.com/mitsuhiko/agent-stuff/blob/534c7048326f28c2ef379663ecb770cb5501164c/pi-extensions/answer.ts
  *
+ * Modified:
+ * - Minor changes to fix typescript lsp errors
  *
  * Provides a `/review` command that prompts the agent to review code changes.
  * Supports multiple review modes:
@@ -41,7 +43,6 @@ import {
     type SelectItem,
     SelectList,
     Text,
-    Key,
 } from "@mariozechner/pi-tui";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -798,9 +799,6 @@ export default function reviewExtension(pi: ExtensionAPI) {
                     },
                 );
 
-                // Enable search
-                selectList.searchable = true;
-
                 selectList.onSelect = (item) => done(item.value);
                 selectList.onCancel = () => done(null);
 
@@ -880,9 +878,6 @@ export default function reviewExtension(pi: ExtensionAPI) {
                     noMatch: (text) => theme.fg("warning", text),
                 },
             );
-
-            // Enable search
-            selectList.searchable = true;
 
             selectList.onSelect = (item) => {
                 const commit = commits.find((c) => c.sha === item.value);
@@ -1389,7 +1384,7 @@ Preserve exact file paths, function names, and error messages.
     // Register the /end-review command
     pi.registerCommand("end-review", {
         description: "Complete review and return to original position",
-        handler: async (args, ctx) => {
+        handler: async (_args, ctx) => {
             if (!ctx.hasUI) {
                 ctx.ui.notify("End-review requires interactive mode", "error");
                 return;
