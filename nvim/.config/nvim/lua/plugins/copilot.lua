@@ -30,6 +30,8 @@ return {
                 },
             },
             filetypes = {
+                -- Uncomment to disable all filetypes for offline mode
+                -- ["*"] = false,
                 -- Enable some filetypes that default to disabled
                 yaml = true,
                 markdown = true,
