@@ -49,3 +49,6 @@ abbr -a cd "z"
 
 # fzf shell integration
 fzf --fish | source
+
+# direnv integration
+direnv hook fish | source
