@@ -84,7 +84,12 @@ const DEFAULT_CONFIG: SandboxConfig = {
         // Builds that need cache access should redirect it locally:
         //   zig:  ZIG_LOCAL_CACHE_DIR=.zig-cache ZIG_GLOBAL_CACHE_DIR=.zig-cache zig build
         //   npm:  npm install --cache .npm-cache
-        allowWrite: [".", "/tmp"],
+        allowWrite: [
+            ".",
+            "/tmp",
+            // Required for MacOS as /tmp is symlink to /private/tmp
+            "/private/tmp",
+        ],
         denyWrite: [".env", ".env.*", "*.pem", "*.key"],
     },
 };
