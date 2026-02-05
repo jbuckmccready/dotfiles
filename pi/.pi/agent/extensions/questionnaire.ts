@@ -13,6 +13,7 @@ import {
   matchesKey,
   Text,
   truncateToWidth,
+  wrapTextWithAnsi,
 } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 
@@ -309,6 +310,20 @@ export default function questionnaire(pi: ExtensionAPI) {
             // Helper to add truncated line
             const add = (s: string) => lines.push(truncateToWidth(s, width));
 
+            // Helper to add wrapped lines: wraps at width - indent, then
+            // prepends indent to every line so total never exceeds width.
+            const addWrapped = (
+              text: string,
+              indent: number,
+              styleFn?: (s: string) => string,
+            ) => {
+              const pad = " ".repeat(indent);
+              for (const line of wrapTextWithAnsi(text, width - indent)) {
+                const full = pad + line;
+                lines.push(styleFn ? styleFn(full) : full);
+              }
+            };
+
             add(theme.fg("accent", "─".repeat(width)));
 
             // Tab bar (multi-question only)
@@ -346,20 +361,26 @@ export default function questionnaire(pi: ExtensionAPI) {
                 const prefix = selected ? theme.fg("accent", "> ") : "  ";
                 const color = selected ? "accent" : "text";
                 // Mark "Type something" differently when in input mode
-                if (isOther && inputMode) {
-                  add(prefix + theme.fg("accent", `${i + 1}. ${opt.label} ✎`));
-                } else {
-                  add(prefix + theme.fg(color, `${i + 1}. ${opt.label}`));
+                const labelText = isOther && inputMode
+                  ? `${i + 1}. ${opt.label} ✎`
+                  : `${i + 1}. ${opt.label}`;
+                const labelColor = isOther && inputMode ? "accent" : color;
+                const wrapped = wrapTextWithAnsi(labelText, width - 5);
+                lines.push(prefix + theme.fg(labelColor, wrapped[0]));
+                for (let j = 1; j < wrapped.length; j++) {
+                  lines.push("     " + theme.fg(labelColor, wrapped[j]));
                 }
                 if (opt.description) {
-                  add(`     ${theme.fg("muted", opt.description)}`);
+                  for (const dLine of wrapTextWithAnsi(opt.description, width - 5)) {
+                    lines.push("     " + theme.fg("muted", dLine));
+                  }
                 }
               }
             }
 
             // Content
             if (inputMode && q) {
-              add(theme.fg("text", ` ${q.prompt}`));
+              addWrapped(q.prompt, 1, (s) => theme.fg("text", s));
               lines.push("");
               // Show options for reference
               renderOptions();
@@ -376,10 +397,15 @@ export default function questionnaire(pi: ExtensionAPI) {
               for (const question of questions) {
                 const answer = answers.get(question.id);
                 if (answer) {
-                  const prefix = answer.wasCustom ? "(wrote) " : "";
-                  add(
-                    `${theme.fg("muted", ` ${question.label}: `)}${theme.fg("text", prefix + answer.label)}`,
-                  );
+                  const ansPrefix = answer.wasCustom ? "(wrote) " : "";
+                  const ansHeader = ` ${question.label}: `;
+                  const ansIndent = " ".repeat(ansHeader.length);
+                  const ansText = ansPrefix + answer.label;
+                  const ansWrapped = wrapTextWithAnsi(ansText, width - ansHeader.length);
+                  lines.push(theme.fg("muted", ansHeader) + theme.fg("text", ansWrapped[0]));
+                  for (let j = 1; j < ansWrapped.length; j++) {
+                    lines.push(ansIndent + theme.fg("text", ansWrapped[j]));
+                  }
                 }
               }
               lines.push("");
@@ -393,7 +419,7 @@ export default function questionnaire(pi: ExtensionAPI) {
                 add(theme.fg("warning", ` Unanswered: ${missing}`));
               }
             } else if (q) {
-              add(theme.fg("text", ` ${q.prompt}`));
+              addWrapped(q.prompt, 1, (s) => theme.fg("text", s));
               lines.push("");
               renderOptions();
             }
