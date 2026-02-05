@@ -42,306 +42,311 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  SandboxManager,
-  type SandboxRuntimeConfig,
+    SandboxManager,
+    type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import {
-  type BashOperations,
-  createBashTool,
+    type BashOperations,
+    createBashTool,
 } from "@mariozechner/pi-coding-agent";
 
 interface SandboxConfig extends SandboxRuntimeConfig {
-  enabled?: boolean;
+    enabled?: boolean;
 }
 
 const DEFAULT_CONFIG: SandboxConfig = {
-  enabled: true,
-  network: {
-    allowedDomains: [
-      "npmjs.org",
-      "*.npmjs.org",
-      "registry.npmjs.org",
-      "registry.yarnpkg.com",
-      "pypi.org",
-      "*.pypi.org",
-      "github.com",
-      "*.github.com",
-      "api.github.com",
-      "raw.githubusercontent.com",
-    ],
-    allowUnixSockets: [
-      "/private/var/run/mDNSResponder",
-      ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
-    ],
-    allowLocalBinding: true,
-    deniedDomains: [],
-  },
-  filesystem: {
-    denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-    // NOTE: Global caches are excluded to prevent the agent from
-    // poisoning them with code that runs outside the sandbox later.
-    // Builds that need cache access should redirect it locally:
-    //   zig:  ZIG_LOCAL_CACHE_DIR=.zig-cache ZIG_GLOBAL_CACHE_DIR=.zig-cache zig build
-    //   npm:  npm install --cache .npm-cache
-    allowWrite: [".", "/tmp"],
-    denyWrite: [".env", ".env.*", "*.pem", "*.key"],
-  },
+    enabled: true,
+    network: {
+        allowedDomains: [
+            "npmjs.org",
+            "*.npmjs.org",
+            "registry.npmjs.org",
+            "registry.yarnpkg.com",
+            "pypi.org",
+            "*.pypi.org",
+            "github.com",
+            "*.github.com",
+            "api.github.com",
+            "raw.githubusercontent.com",
+        ],
+        allowUnixSockets: [
+            "/private/var/run/mDNSResponder",
+            ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
+        ],
+        allowLocalBinding: true,
+        deniedDomains: [],
+    },
+    filesystem: {
+        denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
+        // NOTE: Global caches are excluded to prevent the agent from
+        // poisoning them with code that runs outside the sandbox later.
+        // Builds that need cache access should redirect it locally:
+        //   zig:  ZIG_LOCAL_CACHE_DIR=.zig-cache ZIG_GLOBAL_CACHE_DIR=.zig-cache zig build
+        //   npm:  npm install --cache .npm-cache
+        allowWrite: [".", "/tmp"],
+        denyWrite: [".env", ".env.*", "*.pem", "*.key"],
+    },
 };
 
 function loadConfig(cwd: string): SandboxConfig {
-  const projectConfigPath = join(cwd, ".pi", "sandbox.json");
-  const globalConfigPath = join(homedir(), ".pi", "agent", "sandbox.json");
+    const projectConfigPath = join(cwd, ".pi", "sandbox.json");
+    const globalConfigPath = join(homedir(), ".pi", "agent", "sandbox.json");
 
-  let globalConfig: Partial<SandboxConfig> = {};
-  let projectConfig: Partial<SandboxConfig> = {};
+    let globalConfig: Partial<SandboxConfig> = {};
+    let projectConfig: Partial<SandboxConfig> = {};
 
-  if (existsSync(globalConfigPath)) {
-    try {
-      globalConfig = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
-    } catch (e) {
-      console.error(`Warning: Could not parse ${globalConfigPath}: ${e}`);
+    if (existsSync(globalConfigPath)) {
+        try {
+            globalConfig = JSON.parse(readFileSync(globalConfigPath, "utf-8"));
+        } catch (e) {
+            console.error(`Warning: Could not parse ${globalConfigPath}: ${e}`);
+        }
     }
-  }
 
-  if (existsSync(projectConfigPath)) {
-    try {
-      projectConfig = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
-    } catch (e) {
-      console.error(`Warning: Could not parse ${projectConfigPath}: ${e}`);
+    if (existsSync(projectConfigPath)) {
+        try {
+            projectConfig = JSON.parse(
+                readFileSync(projectConfigPath, "utf-8"),
+            );
+        } catch (e) {
+            console.error(
+                `Warning: Could not parse ${projectConfigPath}: ${e}`,
+            );
+        }
     }
-  }
 
-  return deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), projectConfig);
+    return deepMerge(deepMerge(DEFAULT_CONFIG, globalConfig), projectConfig);
 }
 
 function deepMerge(
-  base: SandboxConfig,
-  overrides: Partial<SandboxConfig>,
+    base: SandboxConfig,
+    overrides: Partial<SandboxConfig>,
 ): SandboxConfig {
-  const result: SandboxConfig = { ...base };
+    const result: SandboxConfig = { ...base };
 
-  if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
-  if (overrides.network) {
-    result.network = { ...base.network, ...overrides.network };
-  }
-  if (overrides.filesystem) {
-    result.filesystem = { ...base.filesystem, ...overrides.filesystem };
-  }
+    if (overrides.enabled !== undefined) result.enabled = overrides.enabled;
+    if (overrides.network) {
+        result.network = { ...base.network, ...overrides.network };
+    }
+    if (overrides.filesystem) {
+        result.filesystem = { ...base.filesystem, ...overrides.filesystem };
+    }
 
-  const extOverrides = overrides as {
-    ignoreViolations?: Record<string, string[]>;
-    enableWeakerNestedSandbox?: boolean;
-  };
-  const extResult = result as {
-    ignoreViolations?: Record<string, string[]>;
-    enableWeakerNestedSandbox?: boolean;
-  };
+    const extOverrides = overrides as {
+        ignoreViolations?: Record<string, string[]>;
+        enableWeakerNestedSandbox?: boolean;
+    };
+    const extResult = result as {
+        ignoreViolations?: Record<string, string[]>;
+        enableWeakerNestedSandbox?: boolean;
+    };
 
-  if (extOverrides.ignoreViolations) {
-    extResult.ignoreViolations = extOverrides.ignoreViolations;
-  }
-  if (extOverrides.enableWeakerNestedSandbox !== undefined) {
-    extResult.enableWeakerNestedSandbox =
-      extOverrides.enableWeakerNestedSandbox;
-  }
+    if (extOverrides.ignoreViolations) {
+        extResult.ignoreViolations = extOverrides.ignoreViolations;
+    }
+    if (extOverrides.enableWeakerNestedSandbox !== undefined) {
+        extResult.enableWeakerNestedSandbox =
+            extOverrides.enableWeakerNestedSandbox;
+    }
 
-  return result;
+    return result;
 }
 
 function createSandboxedBashOps(): BashOperations {
-  return {
-    async exec(command, cwd, { onData, signal, timeout }) {
-      if (!existsSync(cwd)) {
-        throw new Error(`Working directory does not exist: ${cwd}`);
-      }
-
-      const wrappedCommand = await SandboxManager.wrapWithSandbox(command);
-
-      return new Promise((resolve, reject) => {
-        const child = spawn("bash", ["-c", wrappedCommand], {
-          cwd,
-          detached: true,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-
-        let timedOut = false;
-        let timeoutHandle: NodeJS.Timeout | undefined;
-
-        if (timeout !== undefined && timeout > 0) {
-          timeoutHandle = setTimeout(() => {
-            timedOut = true;
-            if (child.pid) {
-              try {
-                process.kill(-child.pid, "SIGKILL");
-              } catch {
-                child.kill("SIGKILL");
-              }
+    return {
+        async exec(command, cwd, { onData, signal, timeout }) {
+            if (!existsSync(cwd)) {
+                throw new Error(`Working directory does not exist: ${cwd}`);
             }
-          }, timeout * 1000);
-        }
 
-        child.stdout?.on("data", onData);
-        child.stderr?.on("data", onData);
+            const wrappedCommand =
+                await SandboxManager.wrapWithSandbox(command);
 
-        child.on("error", (err) => {
-          if (timeoutHandle) clearTimeout(timeoutHandle);
-          reject(err);
-        });
+            return new Promise((resolve, reject) => {
+                const child = spawn("bash", ["-c", wrappedCommand], {
+                    cwd,
+                    detached: true,
+                    stdio: ["ignore", "pipe", "pipe"],
+                });
 
-        const onAbort = () => {
-          if (child.pid) {
-            try {
-              process.kill(-child.pid, "SIGKILL");
-            } catch {
-              child.kill("SIGKILL");
-            }
-          }
-        };
+                let timedOut = false;
+                let timeoutHandle: NodeJS.Timeout | undefined;
 
-        signal?.addEventListener("abort", onAbort, { once: true });
+                if (timeout !== undefined && timeout > 0) {
+                    timeoutHandle = setTimeout(() => {
+                        timedOut = true;
+                        if (child.pid) {
+                            try {
+                                process.kill(-child.pid, "SIGKILL");
+                            } catch {
+                                child.kill("SIGKILL");
+                            }
+                        }
+                    }, timeout * 1000);
+                }
 
-        child.on("close", (code) => {
-          if (timeoutHandle) clearTimeout(timeoutHandle);
-          signal?.removeEventListener("abort", onAbort);
+                child.stdout?.on("data", onData);
+                child.stderr?.on("data", onData);
 
-          if (signal?.aborted) {
-            reject(new Error("aborted"));
-          } else if (timedOut) {
-            reject(new Error(`timeout:${timeout}`));
-          } else {
-            resolve({ exitCode: code });
-          }
-        });
-      });
-    },
-  };
+                child.on("error", (err) => {
+                    if (timeoutHandle) clearTimeout(timeoutHandle);
+                    reject(err);
+                });
+
+                const onAbort = () => {
+                    if (child.pid) {
+                        try {
+                            process.kill(-child.pid, "SIGKILL");
+                        } catch {
+                            child.kill("SIGKILL");
+                        }
+                    }
+                };
+
+                signal?.addEventListener("abort", onAbort, { once: true });
+
+                child.on("close", (code) => {
+                    if (timeoutHandle) clearTimeout(timeoutHandle);
+                    signal?.removeEventListener("abort", onAbort);
+
+                    if (signal?.aborted) {
+                        reject(new Error("aborted"));
+                    } else if (timedOut) {
+                        reject(new Error(`timeout:${timeout}`));
+                    } else {
+                        resolve({ exitCode: code });
+                    }
+                });
+            });
+        },
+    };
 }
 
 export default function (pi: ExtensionAPI) {
-  pi.registerFlag("no-sandbox", {
-    description: "Disable OS-level sandboxing for bash commands",
-    type: "boolean",
-    default: false,
-  });
+    pi.registerFlag("no-sandbox", {
+        description: "Disable OS-level sandboxing for bash commands",
+        type: "boolean",
+        default: false,
+    });
 
-  const localCwd = process.cwd();
-  const localBash = createBashTool(localCwd);
+    const localCwd = process.cwd();
+    const localBash = createBashTool(localCwd);
 
-  let sandboxEnabled = false;
-  let sandboxInitialized = false;
+    let sandboxEnabled = false;
+    let sandboxInitialized = false;
 
-  pi.registerTool({
-    ...localBash,
-    label: "bash (sandboxed)",
-    async execute(id, params, signal, onUpdate, _ctx) {
-      if (!sandboxEnabled || !sandboxInitialized) {
-        return localBash.execute(id, params, signal, onUpdate);
-      }
+    pi.registerTool({
+        ...localBash,
+        label: "bash (sandboxed)",
+        async execute(id, params, signal, onUpdate, _ctx) {
+            if (!sandboxEnabled || !sandboxInitialized) {
+                return localBash.execute(id, params, signal, onUpdate);
+            }
 
-      const sandboxedBash = createBashTool(localCwd, {
-        operations: createSandboxedBashOps(),
-      });
-      return sandboxedBash.execute(id, params, signal, onUpdate);
-    },
-  });
+            const sandboxedBash = createBashTool(localCwd, {
+                operations: createSandboxedBashOps(),
+            });
+            return sandboxedBash.execute(id, params, signal, onUpdate);
+        },
+    });
 
-  pi.on("user_bash", () => {
-    if (!sandboxEnabled || !sandboxInitialized) return;
-    return { operations: createSandboxedBashOps() };
-  });
+    pi.on("user_bash", () => {
+        if (!sandboxEnabled || !sandboxInitialized) return;
+        return { operations: createSandboxedBashOps() };
+    });
 
-  pi.on("session_start", async (_event, ctx) => {
-    const noSandbox = pi.getFlag("no-sandbox") as boolean;
+    pi.on("session_start", async (_event, ctx) => {
+        const noSandbox = pi.getFlag("no-sandbox") as boolean;
 
-    if (noSandbox) {
-      sandboxEnabled = false;
-      ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
-      return;
-    }
+        if (noSandbox) {
+            sandboxEnabled = false;
+            ctx.ui.notify("Sandbox disabled via --no-sandbox", "warning");
+            return;
+        }
 
-    const config = loadConfig(ctx.cwd);
+        const config = loadConfig(ctx.cwd);
 
-    if (!config.enabled) {
-      sandboxEnabled = false;
-      ctx.ui.notify("Sandbox disabled via config", "info");
-      return;
-    }
+        if (!config.enabled) {
+            sandboxEnabled = false;
+            ctx.ui.notify("Sandbox disabled via config", "info");
+            return;
+        }
 
-    const platform = process.platform;
-    if (platform !== "darwin" && platform !== "linux") {
-      sandboxEnabled = false;
-      ctx.ui.notify(`Sandbox not supported on ${platform}`, "warning");
-      return;
-    }
+        const platform = process.platform;
+        if (platform !== "darwin" && platform !== "linux") {
+            sandboxEnabled = false;
+            ctx.ui.notify(`Sandbox not supported on ${platform}`, "warning");
+            return;
+        }
 
-    try {
-      const configExt = config as unknown as {
-        ignoreViolations?: Record<string, string[]>;
-        enableWeakerNestedSandbox?: boolean;
-      };
+        try {
+            const configExt = config as unknown as {
+                ignoreViolations?: Record<string, string[]>;
+                enableWeakerNestedSandbox?: boolean;
+            };
 
-      await SandboxManager.initialize({
-        network: config.network,
-        filesystem: config.filesystem,
-        ignoreViolations: configExt.ignoreViolations,
-        enableWeakerNestedSandbox: configExt.enableWeakerNestedSandbox,
-      });
+            await SandboxManager.initialize({
+                network: config.network,
+                filesystem: config.filesystem,
+                ignoreViolations: configExt.ignoreViolations,
+                enableWeakerNestedSandbox: configExt.enableWeakerNestedSandbox,
+            });
 
-      sandboxEnabled = true;
-      sandboxInitialized = true;
+            sandboxEnabled = true;
+            sandboxInitialized = true;
 
-      const networkCount = config.network?.allowedDomains?.length ?? 0;
-      const writeCount = config.filesystem?.allowWrite?.length ?? 0;
-      ctx.ui.setStatus(
-        "sandbox",
-        ctx.ui.theme.fg(
-          "accent",
-          `🔒 Sandbox: ${networkCount} domains, ${writeCount} write paths`,
-        ),
-      );
-      ctx.ui.notify("Sandbox initialized", "info");
-    } catch (err) {
-      sandboxEnabled = false;
-      ctx.ui.notify(
-        `Sandbox initialization failed: ${err instanceof Error ? err.message : err}`,
-        "error",
-      );
-    }
-  });
+            const networkCount = config.network?.allowedDomains?.length ?? 0;
+            const writeCount = config.filesystem?.allowWrite?.length ?? 0;
+            ctx.ui.setStatus(
+                "sandbox",
+                ctx.ui.theme.fg(
+                    "accent",
+                    `🔒 Sandbox: ${networkCount} domains, ${writeCount} write paths`,
+                ),
+            );
+            ctx.ui.notify("Sandbox initialized", "info");
+        } catch (err) {
+            sandboxEnabled = false;
+            ctx.ui.notify(
+                `Sandbox initialization failed: ${err instanceof Error ? err.message : err}`,
+                "error",
+            );
+        }
+    });
 
-  pi.on("session_shutdown", async () => {
-    if (sandboxInitialized) {
-      try {
-        await SandboxManager.reset();
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-  });
+    pi.on("session_shutdown", async () => {
+        if (sandboxInitialized) {
+            try {
+                await SandboxManager.reset();
+            } catch {
+                // Ignore cleanup errors
+            }
+        }
+    });
 
-  pi.registerCommand("sandbox", {
-    description: "Show sandbox configuration",
-    handler: async (_args, ctx) => {
-      if (!sandboxEnabled) {
-        ctx.ui.notify("Sandbox is disabled", "info");
-        return;
-      }
+    pi.registerCommand("sandbox", {
+        description: "Show sandbox configuration",
+        handler: async (_args, ctx) => {
+            if (!sandboxEnabled) {
+                ctx.ui.notify("Sandbox is disabled", "info");
+                return;
+            }
 
-      const config = loadConfig(ctx.cwd);
-      const lines = [
-        "Sandbox Configuration:",
-        "",
-        "Network:",
-        `  Allowed: ${config.network?.allowedDomains?.join(", ") || "(none)"}`,
-        `  Denied: ${config.network?.deniedDomains?.join(", ") || "(none)"}`,
-        "",
-        "Filesystem:",
-        `  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
-        `  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
-        `  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
-      ];
-      ctx.ui.notify(lines.join("\n"), "info");
-    },
-  });
+            const config = loadConfig(ctx.cwd);
+            const lines = [
+                "Sandbox Configuration:",
+                "",
+                "Network:",
+                `  Allowed: ${config.network?.allowedDomains?.join(", ") || "(none)"}`,
+                `  Denied: ${config.network?.deniedDomains?.join(", ") || "(none)"}`,
+                "",
+                "Filesystem:",
+                `  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
+                `  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
+                `  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
+            ];
+            ctx.ui.notify(lines.join("\n"), "info");
+        },
+    });
 }
