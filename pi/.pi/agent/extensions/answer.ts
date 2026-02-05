@@ -4,7 +4,13 @@
  * Originally by Armin Ronacher
  * https://github.com/mitsuhiko/agent-stuff/blob/534c7048326f28c2ef379663ecb770cb5501164c/pi-extensions/answer.ts
  *
- * Modified to fix ts type errors and change shortcut to Alt+A.
+ * Modified:
+ * - Fixed SelectListTheme type errors
+ * - Changed shortcut to Alt+A (tmux/Ghostty compatibility)
+ * - Use pi Theme instead of hardcoded ANSI colors
+ * - Wrap-around Tab/Shift+Tab navigation
+ * - Block submission when answers are missing
+ * - Surface extraction errors via ui.notify
  *
  * Custom interactive TUI for answering questions.
  *
@@ -25,7 +31,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
-import { BorderedLoader } from "@mariozechner/pi-coding-agent";
+import { BorderedLoader, type Theme } from "@mariozechner/pi-coding-agent";
 import {
   type Component,
   Editor,
@@ -154,17 +160,18 @@ class QnAComponent implements Component {
   private cachedWidth?: number;
   private cachedLines?: string[];
 
-  // Colors - using proper reset sequences
-  private dim = (s: string) => `\x1b[2m${s}\x1b[0m`;
-  private bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
-  private cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
-  private green = (s: string) => `\x1b[32m${s}\x1b[0m`;
-  private yellow = (s: string) => `\x1b[33m${s}\x1b[0m`;
-  private gray = (s: string) => `\x1b[90m${s}\x1b[0m`;
+  // Theme-derived styling helpers
+  private dim: (s: string) => string;
+  private bold: (s: string) => string;
+  private accent: (s: string) => string;
+  private success: (s: string) => string;
+  private warning: (s: string) => string;
+  private muted: (s: string) => string;
 
   constructor(
     questions: ExtractedQuestion[],
     tui: TUI,
+    theme: Theme,
     onDone: (result: string | null) => void,
   ) {
     this.questions = questions;
@@ -172,13 +179,21 @@ class QnAComponent implements Component {
     this.tui = tui;
     this.onDone = onDone;
 
-    // Create a minimal theme for the editor
+    // Bind theme styling helpers
+    this.dim = (s) => theme.fg("dim", s);
+    this.bold = (s) => theme.bold(s);
+    this.accent = (s) => theme.fg("accent", s);
+    this.success = (s) => theme.fg("success", s);
+    this.warning = (s) => theme.fg("warning", s);
+    this.muted = (s) => theme.fg("muted", s);
+
+    // Create editor theme from the pi theme
     const editorTheme: EditorTheme = {
       borderColor: this.dim,
       selectList: {
-        selectedPrefix: this.cyan,
-        selectedText: (s: string) => `\x1b[44m${s}\x1b[0m`,
-        description: this.gray,
+        selectedPrefix: this.accent,
+        selectedText: (s: string) => theme.bg("selectedBg", s),
+        description: this.muted,
         scrollInfo: this.dim,
         noMatch: this.dim,
       },
@@ -197,6 +212,11 @@ class QnAComponent implements Component {
   private allQuestionsAnswered(): boolean {
     this.saveCurrentAnswer();
     return this.answers.every((a) => (a?.trim() || "").length > 0);
+  }
+
+  private unansweredCount(): number {
+    this.saveCurrentAnswer();
+    return this.answers.filter((a) => (a?.trim() || "").length === 0).length;
   }
 
   private saveCurrentAnswer(): void {
@@ -265,19 +285,19 @@ class QnAComponent implements Component {
       return;
     }
 
-    // Tab / Shift+Tab for navigation
+    // Tab / Shift+Tab for navigation (with wrap-around)
     if (matchesKey(data, Key.tab)) {
-      if (this.currentIndex < this.questions.length - 1) {
-        this.navigateTo(this.currentIndex + 1);
-        this.tui.requestRender();
-      }
+      const next = (this.currentIndex + 1) % this.questions.length;
+      this.navigateTo(next);
+      this.tui.requestRender();
       return;
     }
     if (matchesKey(data, Key.shift("tab"))) {
-      if (this.currentIndex > 0) {
-        this.navigateTo(this.currentIndex - 1);
-        this.tui.requestRender();
-      }
+      const prev =
+        (this.currentIndex - 1 + this.questions.length) %
+        this.questions.length;
+      this.navigateTo(prev);
+      this.tui.requestRender();
       return;
     }
 
@@ -305,10 +325,11 @@ class QnAComponent implements Component {
       this.saveCurrentAnswer();
       if (this.currentIndex < this.questions.length - 1) {
         this.navigateTo(this.currentIndex + 1);
-      } else {
-        // On last question - show confirmation
+      } else if (this.allQuestionsAnswered()) {
+        // On last question - show confirmation only if all answered
         this.showingConfirmation = true;
       }
+      // If not all answered, Enter on last question is a no-op
       this.invalidate();
       this.tui.requestRender();
       return;
@@ -353,7 +374,7 @@ class QnAComponent implements Component {
 
     // Title
     lines.push(padToWidth(this.dim("╭" + horizontalLine(boxWidth - 2) + "╮")));
-    const title = `${this.bold(this.cyan("Questions"))} ${this.dim(`(${this.currentIndex + 1}/${this.questions.length})`)}`;
+    const title = `${this.bold(this.accent("Questions"))} ${this.dim(`(${this.currentIndex + 1}/${this.questions.length})`)}`;
     lines.push(padToWidth(boxLine(title)));
     lines.push(padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤")));
 
@@ -363,9 +384,9 @@ class QnAComponent implements Component {
       const answered = (this.answers[i]?.trim() || "").length > 0;
       const current = i === this.currentIndex;
       if (current) {
-        progressParts.push(this.cyan("●"));
+        progressParts.push(this.accent("●"));
       } else if (answered) {
-        progressParts.push(this.green("●"));
+        progressParts.push(this.success("●"));
       } else {
         progressParts.push(this.dim("○"));
       }
@@ -384,7 +405,7 @@ class QnAComponent implements Component {
     // Context if present
     if (q.context) {
       lines.push(padToWidth(emptyBoxLine()));
-      const contextText = this.gray(`> ${q.context}`);
+      const contextText = this.muted(`> ${q.context}`);
       const wrappedContext = wrapTextWithAnsi(contextText, contentWidth - 2);
       for (const line of wrappedContext) {
         lines.push(padToWidth(boxLine(line)));
@@ -415,7 +436,7 @@ class QnAComponent implements Component {
       lines.push(
         padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤")),
       );
-      const confirmMsg = `${this.yellow("Submit all answers?")} ${this.dim("(Enter/y to confirm, Esc/n to cancel)")}`;
+      const confirmMsg = `${this.warning("Submit all answers?")} ${this.dim("(Enter/y to confirm, Esc/n to cancel)")}`;
       lines.push(
         padToWidth(boxLine(truncateToWidth(confirmMsg, contentWidth))),
       );
@@ -423,7 +444,12 @@ class QnAComponent implements Component {
       lines.push(
         padToWidth(this.dim("├" + horizontalLine(boxWidth - 2) + "┤")),
       );
-      const controls = `${this.dim("Tab/Enter")} next · ${this.dim("Shift+Tab")} prev · ${this.dim("Shift+Enter")} newline · ${this.dim("Esc")} cancel`;
+      const unanswered = this.unansweredCount();
+      const unansweredHint =
+        unanswered > 0
+          ? ` · ${this.warning(`${unanswered} unanswered`)}`
+          : "";
+      const controls = `${this.dim("Tab/Enter")} next · ${this.dim("Shift+Tab")} prev · ${this.dim("Shift+Enter")} newline · ${this.dim("Esc")} cancel${unansweredHint}`;
       lines.push(padToWidth(boxLine(truncateToWidth(controls, contentWidth))));
     }
     lines.push(padToWidth(this.dim("╰" + horizontalLine(boxWidth - 2) + "╯")));
@@ -526,7 +552,13 @@ export default function (pi: ExtensionAPI) {
 
         doExtract()
           .then(done)
-          .catch(() => done(null));
+          .catch((err) => {
+            ctx.ui.notify(
+              `Extraction failed: ${err instanceof Error ? err.message : String(err)}`,
+              "error",
+            );
+            done(null);
+          });
 
         return loader;
       },
@@ -544,8 +576,8 @@ export default function (pi: ExtensionAPI) {
 
     // Show the Q&A component
     const answersResult = await ctx.ui.custom<string | null>(
-      (tui, _theme, _kb, done) => {
-        return new QnAComponent(extractionResult.questions, tui, done);
+      (tui, theme, _kb, done) => {
+        return new QnAComponent(extractionResult.questions, tui, theme, done);
       },
     );
 
