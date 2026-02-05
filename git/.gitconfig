@@ -28,3 +28,12 @@
 
 [delta]
 	features = catppuccin-mocha
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[gpg "ssh"]
+	allowedSignersFile = ~/.ssh/git_allowed_signers
+
+[include]
+	path = ~/.gitconfig.local

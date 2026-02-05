@@ -24,6 +24,16 @@ stow tmux
 - lazygit
 - delta and difftastic for diffs
 
+## Machine-Local Config
+
+Some settings are machine-specific and not tracked in this repo. Git is configured to include `~/.gitconfig.local` for per-machine overrides (e.g., SSH signing key):
+
+```sh
+# ~/.gitconfig.local
+[user]
+	signingkey = key::ssh-ed25519 <your-key-here>
+```
+
 ## Install Notes
 
 ### Neovim Plugins
