@@ -79,6 +79,11 @@ const DEFAULT_CONFIG: SandboxConfig = {
   },
   filesystem: {
     denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
+    // NOTE: Global caches are excluded to prevent the agent from
+    // poisoning them with code that runs outside the sandbox later.
+    // Builds that need cache access should redirect it locally:
+    //   zig:  ZIG_LOCAL_CACHE_DIR=.zig-cache ZIG_GLOBAL_CACHE_DIR=.zig-cache zig build
+    //   npm:  npm install --cache .npm-cache
     allowWrite: [".", "/tmp"],
     denyWrite: [".env", ".env.*", "*.pem", "*.key"],
   },
