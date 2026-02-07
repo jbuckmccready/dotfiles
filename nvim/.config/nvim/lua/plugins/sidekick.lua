@@ -82,6 +82,14 @@ return {
             mode = { "n", "v" },
         },
         {
+            "<leader>ai",
+            function()
+                require("sidekick.cli").toggle({ name = "pi", focus = true })
+            end,
+            desc = "Toggle Pi CLI",
+            mode = { "n", "v" },
+        },
+        {
             "<leader>ap",
             function()
                 require("sidekick.cli").prompt()
@@ -111,6 +119,13 @@ return {
                     hide_ctrl_z = false,
                     prompt = false,
                     stopinsert = false,
+                },
+            },
+            tools = {
+                pi = {
+                    cmd = { "pi" },
+                    is_proc = "\\<pi\\>",
+                    url = "https://github.com/badlogic/pi-mono",
                 },
             },
             mux = {
