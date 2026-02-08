@@ -1,6 +1,6 @@
 This plan looks good, proceed:
 
-- Write this plan out to a markdown file in `./pi/todos/`, name it `{date}-{slug-description}.md` (e.g. `2024-06-01-refactor-connection.md`)
+- Write this plan out to a markdown file in `./pi/plans/`, name it `{date}-{slug-description}.md` (e.g. `2024-06-01-refactor-connection.md`)
 - Create TODOs for all the work to be done:
   - Divide work across TODOs that make sense for the work to be done
   - Incude in each TODO body any dependency on other TODOs
