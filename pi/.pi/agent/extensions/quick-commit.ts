@@ -47,7 +47,7 @@ Common types: feat, fix, refactor, perf, docs, test, chore, style
 
 Guidelines:
 - Keep subject line under 72 characters
-- For simple changes, the subject line may be sufficient
+- For simple changes, only the subject line is sufficient
 - Add a body when changes involve multiple files or need explanation
 - Limit body to 3-5 bullet points for most commits
 - No extra blank lines between bullet points
