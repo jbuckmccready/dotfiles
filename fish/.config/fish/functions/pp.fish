@@ -1,4 +1,12 @@
 function pp --description "Paste files/directories from persistent clipboard"
+    argparse s/sudo -- $argv
+    or return
+
+    set -l elevate
+    if set -q _flag_sudo
+        set elevate sudo
+    end
+
     set -l clip_dir ~/.local/share/file-clipboard
     set -l entries_file $clip_dir/entries
     set -l mode_file $clip_dir/mode
@@ -45,11 +53,11 @@ function pp --description "Paste files/directories from persistent clipboard"
         end
 
         if test $mode = cut
-            if not mv $src $dest
+            if not $elevate mv $src $dest
                 set failed (math $failed + 1)
             end
         else
-            if not cp -R $src $dest
+            if not $elevate cp -R $src $dest
                 set failed (math $failed + 1)
             end
         end
