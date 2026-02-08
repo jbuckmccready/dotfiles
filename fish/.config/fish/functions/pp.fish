@@ -2,9 +2,9 @@ function pp --description "Paste files/directories from persistent clipboard"
     argparse s/sudo -- $argv
     or return
 
-    set -l elevate
+    set -l use_sudo 0
     if set -q _flag_sudo
-        set elevate sudo
+        set use_sudo 1
     end
 
     set -l clip_dir ~/.local/share/file-clipboard
@@ -52,12 +52,19 @@ function pp --description "Paste files/directories from persistent clipboard"
             echo "pp: '$basename' exists, saving as '$(basename $dest)'"
         end
 
+        set -l cmd
         if test $mode = cut
-            if not $elevate mv $src $dest
+            set cmd mv $src $dest
+        else
+            set cmd cp -R $src $dest
+        end
+
+        if test $use_sudo -eq 1
+            if not sudo $cmd
                 set failed (math $failed + 1)
             end
         else
-            if not $elevate cp -R $src $dest
+            if not $cmd
                 set failed (math $failed + 1)
             end
         end
