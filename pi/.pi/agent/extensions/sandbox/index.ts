@@ -90,7 +90,14 @@ const DEFAULT_CONFIG: SandboxConfig = {
             // Required for MacOS as /tmp is symlink to /private/tmp
             "/private/tmp",
         ],
-        denyWrite: [".env", ".env.*", "*.pem", "*.key"],
+        denyWrite: [
+            ".env",
+            ".env.*",
+            "*.pem",
+            "*.key",
+            // Prevent pi from tampering with its own sandbox config
+            ".pi/sandbox.json",
+        ],
     },
 };
 
