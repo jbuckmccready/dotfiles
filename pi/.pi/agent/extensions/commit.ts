@@ -168,6 +168,17 @@ Guidelines:
 - Limit body to 3-5 bullet points for most commits
 - No extra blank lines between bullet points
 
+## When to Include WHY (Not Just WHAT)
+
+Include reasoning only when:
+- Security implications exist
+- Performance trade-offs were made
+- The change fixes a non-obvious bug
+- Breaking changes or migration steps are needed
+- The approach chosen could be confusing without context
+
+Otherwise, focus on describing WHAT changed concisely.
+
 ## Steps
 
 ${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<message>"\``;
