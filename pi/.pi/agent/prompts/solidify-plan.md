@@ -1,4 +1,4 @@
-This plan looks good, proceed:
+This $ARGUMENTS plan looks good, proceed:
 
 - Create TODOs for all the work to be done:
   - Divide work across TODOs that make sense for the work to be done
