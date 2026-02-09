@@ -8,6 +8,7 @@
     "@sinclair/typebox": "*"
   },
   "devDependencies": {
-    "@types/node": "^25.2.0"
+    "@types/node": "^25.2.0",
+    "typescript": "^5.9.3"
   }
 }
