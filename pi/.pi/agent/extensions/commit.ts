@@ -92,7 +92,38 @@ async function selectCommitModel(
     return ctx.model;
 }
 
-function buildPrompt(mode: "staged" | "uncommitted", args: string): string {
+type GitContext = {
+    status: string;
+    diff: string;
+    branch: string;
+    log: string;
+};
+
+async function gatherGitContext(
+    pi: ExtensionAPI,
+    mode: "staged" | "uncommitted",
+): Promise<GitContext | null> {
+    const diffArgs = mode === "staged" ? ["diff", "--cached"] : ["diff"];
+    const [status, diff, branch, log] = await Promise.all([
+        pi.exec("git", ["status"]),
+        pi.exec("git", diffArgs),
+        pi.exec("git", ["branch", "--show-current"]),
+        pi.exec("git", ["log", "--oneline", "-10"]),
+    ]);
+    if (status.code !== 0) return null;
+    return {
+        status: status.stdout,
+        diff: diff.stdout,
+        branch: branch.stdout.trim(),
+        log: log.stdout,
+    };
+}
+
+function buildPrompt(
+    mode: "staged" | "uncommitted",
+    args: string,
+    gitContext: GitContext,
+): string {
     const modeDescription =
         mode === "staged" ? "staged changes only" : "all uncommitted changes";
 
@@ -102,16 +133,27 @@ function buildPrompt(mode: "staged" | "uncommitted", args: string): string {
         prompt += `\n\nAdditional instructions: ${args.trim()}`;
     }
 
-    const steps = [
-        `Run \`git status\` and \`git diff --cached\`${mode === "uncommitted" ? " (and `git diff` for unstaged changes)" : ""} to understand the changes`,
-        "Generate an appropriate commit message",
-    ];
-    if (mode === "uncommitted") {
-        steps.push("Stage the changes with `git add -A`");
-    }
-    steps.push('Execute `git commit -m "<message>"`');
-
     prompt += `
+
+## Git Context
+
+### git status
+\`\`\`
+${gitContext.status}
+\`\`\`
+
+### git diff${mode === "staged" ? " --cached" : ""}
+\`\`\`
+${gitContext.diff}
+\`\`\`
+
+### Branch
+${gitContext.branch}
+
+### Recent log
+\`\`\`
+${gitContext.log}
+\`\`\`
 
 ## Commit Message Guidelines
 
@@ -128,7 +170,7 @@ Guidelines:
 
 ## Steps
 
-${steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`;
+${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<message>"\``;
 
     return prompt;
 }
@@ -252,11 +294,17 @@ export default function commitExtension(pi: ExtensionAPI) {
                     : undefined,
             } satisfies CommitSessionState);
 
+            const gitContext = await gatherGitContext(pi, mode);
+            if (!gitContext) {
+                ctx.ui.notify("Failed to gather git context", "error");
+                return;
+            }
+
             await pi.setModel(commitModel);
 
             const modeLabel = mode === "staged" ? "staged changes" : "all uncommitted changes";
             ctx.ui.notify(`Starting commit session (${modeLabel}) using ${commitModel.id}`, "info");
-            pi.sendUserMessage(buildPrompt(mode, args));
+            pi.sendUserMessage(buildPrompt(mode, args, gitContext));
         },
     });
 
