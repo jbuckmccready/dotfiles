@@ -26,7 +26,21 @@ abbr -a nv "nvim"
 abbr -a ls "lsd"
 abbr -a l 'lsd -l'
 abbr -a la 'lsd -lA'
-abbr -a lt 'lsd --tree'
+function lt --description 'lsd tree with optional depth'
+    if test (count $argv) -gt 0
+        lsd --tree --depth $argv[1]
+    else
+        lsd --tree
+    end
+end
+
+function lta --description 'lsd tree with hidden files and optional depth'
+    if test (count $argv) -gt 0
+        lsd --tree -A --depth $argv[1]
+    else
+        lsd --tree -A
+    end
+end
 abbr -a las 'lsd -lA --total-size'
 
 # fzf connect to tmux session (really simple, using tmux prefix + T most of the time)
