@@ -91,9 +91,8 @@ const DEFAULT_CONFIG: SandboxConfig = {
             "/private/var/run/mDNSResponder",
             ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
         ],
-        // NOTE: this one is somewhat dangerous to set true, when set true, and on
-        // MacOS, the domain name restrictions can be bypassed by just unsetting proxy
-        // env vars
+        // NOTE: this one is somewhat dangerous, when set to true, the domain name
+        // restrictions can be bypassed by just unsetting proxy env vars (tested on MacOS)
         allowLocalBinding: false,
         deniedDomains: [],
     },
