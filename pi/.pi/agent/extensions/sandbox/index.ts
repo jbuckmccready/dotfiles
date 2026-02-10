@@ -1,6 +1,18 @@
 /**
  * Sandbox Extension - OS-level sandboxing for bash commands
  *
+ * Originally based on the official Pi sandbox extension example:
+ * https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/examples/extensions/sandbox/index.ts
+ *
+ * Original implementation: Pi maintainers (@mariozechner and contributors).
+ *
+ * Modified in this repository:
+ * - Added `commandEnv` config support for sandboxed command env overrides
+ * - Added shared cache defaults under `~/.pi/sandbox-cache` (npm, bun, pnpm, pip, uv, zig, go, rust, xdg)
+ * - Added per-command `CLAUDE_TMPDIR` alignment before `wrapWithSandbox()` so sandbox TMPDIR follows config (`/tmp` by default)
+ * - Added command-env details to `/sandbox` output
+ * - Expanded default sandbox filesystem/network settings for local development
+ *
  * Uses @anthropic-ai/sandbox-runtime to enforce filesystem and network
  * restrictions on bash commands at the OS level (sandbox-exec on macOS,
  * bubblewrap on Linux).
@@ -21,6 +33,9 @@
  *     "denyRead": ["~/.ssh", "~/.aws"],
  *     "allowWrite": [".", "/tmp"],
  *     "denyWrite": [".env"]
+ *   },
+ *   "commandEnv": {
+ *     "BUN_INSTALL_CACHE_DIR": "~/.pi/sandbox-cache/bun"
  *   }
  * }
  * ```
@@ -31,8 +46,7 @@
  * - `/sandbox` - show current sandbox configuration
  *
  * Setup:
- * 1. Copy sandbox/ directory to ~/.pi/agent/extensions/
- * 2. Run `npm install` in ~/.pi/agent/extensions/sandbox/
+ * Run `npm install` in this directory
  *
  * Linux also requires: bubblewrap, socat, ripgrep
  */
@@ -53,6 +67,9 @@ import {
 
 interface SandboxConfig extends SandboxRuntimeConfig {
     enabled?: boolean;
+    // Extra environment variables injected into sandboxed bash commands.
+    // Can be used to override default cache variables.
+    commandEnv?: Record<string, string>;
 }
 
 const DEFAULT_CONFIG: SandboxConfig = {
@@ -79,16 +96,18 @@ const DEFAULT_CONFIG: SandboxConfig = {
     },
     filesystem: {
         denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-        // NOTE: Global caches are excluded to prevent the agent from
-        // poisoning them with code that runs outside the sandbox later.
-        // Builds that need cache access should redirect it locally:
-        //   zig:  ZIG_LOCAL_CACHE_DIR=.zig-cache ZIG_GLOBAL_CACHE_DIR=.zig-cache zig build
-        //   npm:  npm install --cache .npm-cache
+        // NOTE: Global user caches are excluded to prevent the agent from
+        // poisoning caches used outside the sandbox. Sandboxed bash commands
+        // are automatically configured to use ~/.pi/sandbox-cache for package
+        // manager/build caches, while TMPDIR uses /tmp.
         allowWrite: [
             ".",
             "/tmp",
             // Required for MacOS as /tmp is symlink to /private/tmp
             "/private/tmp",
+            // Shared global cache directory for sandbox to use without risking poisoning
+            // caches used outside the sandbox
+            "~/.pi/sandbox-cache",
         ],
         denyWrite: [
             ".env",
@@ -100,6 +119,62 @@ const DEFAULT_CONFIG: SandboxConfig = {
         ],
     },
 };
+
+const SANDBOX_CACHE_ROOT = join(homedir(), ".pi", "sandbox-cache");
+
+function getDefaultCacheEnv(cacheRoot: string): Record<string, string> {
+    const npmCache = join(cacheRoot, "npm");
+    const bunCache = join(cacheRoot, "bun");
+    const pnpmStore = join(cacheRoot, "pnpm-store");
+    const yarnCache = join(cacheRoot, "yarn");
+    const pipCache = join(cacheRoot, "pip");
+    const uvCache = join(cacheRoot, "uv");
+    const zigLocalCache = join(cacheRoot, "zig-local");
+    const zigGlobalCache = join(cacheRoot, "zig-global");
+    const goBuildCache = join(cacheRoot, "go-build");
+    const goModCache = join(cacheRoot, "go-mod");
+    const cargoHome = join(cacheRoot, "cargo");
+    const rustupHome = join(cacheRoot, "rustup");
+    const xdgCache = join(cacheRoot, "xdg");
+
+    return {
+        TMPDIR: "/tmp",
+        npm_config_cache: npmCache,
+        NPM_CONFIG_CACHE: npmCache,
+        BUN_INSTALL_CACHE_DIR: bunCache,
+        PNPM_STORE_DIR: pnpmStore,
+        YARN_CACHE_FOLDER: yarnCache,
+        PIP_CACHE_DIR: pipCache,
+        UV_CACHE_DIR: uvCache,
+        ZIG_LOCAL_CACHE_DIR: zigLocalCache,
+        ZIG_GLOBAL_CACHE_DIR: zigGlobalCache,
+        GOCACHE: goBuildCache,
+        GOMODCACHE: goModCache,
+        CARGO_HOME: cargoHome,
+        RUSTUP_HOME: rustupHome,
+        XDG_CACHE_HOME: xdgCache,
+    };
+}
+
+function expandHomeDir(value: string): string {
+    if (value === "~") return homedir();
+    if (value.startsWith("~/")) return join(homedir(), value.slice(2));
+    return value;
+}
+
+function getSandboxCommandEnv(config: SandboxConfig): Record<string, string> {
+    const defaultCacheEnv = getDefaultCacheEnv(SANDBOX_CACHE_ROOT);
+    const expandedConfigEnv: Record<string, string> = {};
+
+    for (const [key, value] of Object.entries(config.commandEnv ?? {})) {
+        expandedConfigEnv[key] = expandHomeDir(value);
+    }
+
+    return {
+        ...defaultCacheEnv,
+        ...expandedConfigEnv,
+    };
+}
 
 function loadConfig(cwd: string): SandboxConfig {
     const projectConfigPath = join(cwd, ".pi", "sandbox.json");
@@ -148,10 +223,12 @@ function deepMerge(
     const extOverrides = overrides as {
         ignoreViolations?: Record<string, string[]>;
         enableWeakerNestedSandbox?: boolean;
+        commandEnv?: Record<string, string>;
     };
     const extResult = result as {
         ignoreViolations?: Record<string, string[]>;
         enableWeakerNestedSandbox?: boolean;
+        commandEnv?: Record<string, string>;
     };
 
     if (extOverrides.ignoreViolations) {
@@ -161,16 +238,29 @@ function deepMerge(
         extResult.enableWeakerNestedSandbox =
             extOverrides.enableWeakerNestedSandbox;
     }
+    if (extOverrides.commandEnv) {
+        extResult.commandEnv = {
+            ...(base.commandEnv ?? {}),
+            ...extOverrides.commandEnv,
+        };
+    }
 
     return result;
 }
 
-function createSandboxedBashOps(): BashOperations {
+function createSandboxedBashOps(config: SandboxConfig): BashOperations {
+    const commandEnv = getSandboxCommandEnv(config);
+    const sandboxTmpDir = commandEnv.TMPDIR || "/tmp";
+
     return {
         async exec(command, cwd, { onData, signal, timeout }) {
             if (!existsSync(cwd)) {
                 throw new Error(`Working directory does not exist: ${cwd}`);
             }
+
+            // sandbox-runtime injects TMPDIR based on CLAUDE_TMPDIR.
+            // Keep it aligned with our configured TMPDIR.
+            process.env.CLAUDE_TMPDIR = sandboxTmpDir;
 
             const wrappedCommand =
                 await SandboxManager.wrapWithSandbox(command);
@@ -180,6 +270,10 @@ function createSandboxedBashOps(): BashOperations {
                     cwd,
                     detached: true,
                     stdio: ["ignore", "pipe", "pipe"],
+                    env: {
+                        ...process.env,
+                        ...commandEnv,
+                    },
                 });
 
                 let timedOut = false;
@@ -247,6 +341,7 @@ export default function (pi: ExtensionAPI) {
 
     let sandboxEnabled = false;
     let sandboxInitialized = false;
+    let activeConfig: SandboxConfig = DEFAULT_CONFIG;
 
     pi.registerTool({
         ...localBash,
@@ -257,7 +352,7 @@ export default function (pi: ExtensionAPI) {
             }
 
             const sandboxedBash = createBashTool(localCwd, {
-                operations: createSandboxedBashOps(),
+                operations: createSandboxedBashOps(activeConfig),
             });
             return sandboxedBash.execute(id, params, signal, onUpdate);
         },
@@ -265,7 +360,7 @@ export default function (pi: ExtensionAPI) {
 
     pi.on("user_bash", () => {
         if (!sandboxEnabled || !sandboxInitialized) return;
-        return { operations: createSandboxedBashOps() };
+        return { operations: createSandboxedBashOps(activeConfig) };
     });
 
     pi.on("session_start", async (_event, ctx) => {
@@ -278,6 +373,7 @@ export default function (pi: ExtensionAPI) {
         }
 
         const config = loadConfig(ctx.cwd);
+        activeConfig = config;
 
         if (!config.enabled) {
             sandboxEnabled = false;
@@ -346,6 +442,7 @@ export default function (pi: ExtensionAPI) {
             }
 
             const config = loadConfig(ctx.cwd);
+            const commandEnv = getSandboxCommandEnv(config);
             const lines = [
                 "Sandbox Configuration:",
                 "",
@@ -357,6 +454,12 @@ export default function (pi: ExtensionAPI) {
                 `  Deny Read: ${config.filesystem?.denyRead?.join(", ") || "(none)"}`,
                 `  Allow Write: ${config.filesystem?.allowWrite?.join(", ") || "(none)"}`,
                 `  Deny Write: ${config.filesystem?.denyWrite?.join(", ") || "(none)"}`,
+                "",
+                "Command Env:",
+                `  Cache Root: ${SANDBOX_CACHE_ROOT}`,
+                `  TMPDIR: ${commandEnv.TMPDIR || "(unset)"}`,
+                `  CLAUDE_TMPDIR (process): ${process.env.CLAUDE_TMPDIR || "(unset)"}`,
+                `  Variables: ${Object.keys(commandEnv).join(", ") || "(none)"}`,
             ];
             ctx.ui.notify(lines.join("\n"), "info");
         },
