@@ -29,6 +29,13 @@ type CommitSessionState = {
 // Module-level state (runtime cache, restored from persisted state on lifecycle events)
 let commitOriginId: string | undefined;
 let commitOriginalModel: Model<any> | undefined;
+let commitInCurrentSession = false;
+
+function resetCommitState() {
+    commitOriginId = undefined;
+    commitOriginalModel = undefined;
+    commitInCurrentSession = false;
+}
 
 function setCommitWidget(ctx: ExtensionContext, active: boolean) {
     if (!ctx.hasUI) return;
@@ -38,8 +45,12 @@ function setCommitWidget(ctx: ExtensionContext, active: boolean) {
     }
     ctx.ui.setWidget("commit", (_tui, theme) => {
         const text = new Text(
-            theme.fg("warning", "Commit session active, return with /end-commit"),
-            0, 0,
+            theme.fg(
+                "warning",
+                "Commit session active, return with /end-commit",
+            ),
+            0,
+            0,
         );
         return {
             render: (width: number) => text.render(width),
@@ -67,23 +78,23 @@ function getCommitState(ctx: ExtensionContext): CommitSessionState | undefined {
 }
 
 function applyCommitState(ctx: ExtensionContext) {
+    resetCommitState();
     const state = getCommitState(ctx);
     if (state?.active) {
         commitOriginId = state.originId;
         commitOriginalModel = resolveModel(ctx, state.originalModel);
-        setCommitWidget(ctx, true);
-    } else {
-        commitOriginId = undefined;
-        commitOriginalModel = undefined;
-        setCommitWidget(ctx, false);
     }
+    setCommitWidget(ctx, !!state?.active);
 }
 
 async function selectCommitModel(
     ctx: ExtensionContext,
 ): Promise<Model<Api> | undefined> {
     for (const candidate of MODEL_CANDIDATES) {
-        const model = ctx.modelRegistry.find(candidate.provider, candidate.modelId);
+        const model = ctx.modelRegistry.find(
+            candidate.provider,
+            candidate.modelId,
+        );
         if (model) {
             const apiKey = await ctx.modelRegistry.getApiKey(model);
             if (apiKey) return model;
@@ -191,35 +202,64 @@ export default function commitExtension(pi: ExtensionAPI) {
     pi.on("session_switch", (_event, ctx) => applyCommitState(ctx));
     pi.on("session_tree", (_event, ctx) => applyCommitState(ctx));
 
+    pi.on("agent_end", async (_event, ctx) => {
+        if (!commitInCurrentSession) return;
+        const originalModel = commitOriginalModel;
+        resetCommitState();
+
+        if (originalModel) {
+            await pi.setModel(originalModel);
+            ctx.ui.notify("Commit complete. Model restored.", "info");
+        }
+    });
+
     pi.registerCommand("commit", {
-        description: "Start an autonomous commit session (model commits with full tool access)",
+        description:
+            "Start an autonomous commit session (model commits with full tool access)",
         handler: async (args, ctx) => {
             if (!ctx.hasUI) {
                 ctx.ui.notify("commit requires interactive mode", "error");
                 return;
             }
 
-            if (commitOriginId || getCommitState(ctx)?.active) {
+            if (
+                commitInCurrentSession ||
+                commitOriginId ||
+                getCommitState(ctx)?.active
+            ) {
                 ctx.ui.notify(
-                    "Already in a commit session. Use /end-commit to finish first.",
+                    "Already in a commit session." +
+                        (commitOriginId
+                            ? " Use /end-commit to finish first."
+                            : ""),
                     "warning",
                 );
                 return;
             }
 
-            const { code: gitCode } = await pi.exec("git", ["rev-parse", "--git-dir"]);
+            const { code: gitCode } = await pi.exec("git", [
+                "rev-parse",
+                "--git-dir",
+            ]);
             if (gitCode !== 0) {
                 ctx.ui.notify("Not a git repository", "error");
                 return;
             }
 
             // Detect staged vs uncommitted
-            const { stdout: stagedStat } = await pi.exec("git", ["diff", "--cached", "--stat"]);
+            const { stdout: stagedStat } = await pi.exec("git", [
+                "diff",
+                "--cached",
+                "--stat",
+            ]);
             let mode: "staged" | "uncommitted";
             if (stagedStat.trim()) {
                 mode = "staged";
             } else {
-                const { stdout: statusOutput } = await pi.exec("git", ["status", "--porcelain"]);
+                const { stdout: statusOutput } = await pi.exec("git", [
+                    "status",
+                    "--porcelain",
+                ]);
                 if (!statusOutput.trim()) {
                     ctx.ui.notify("No changes to commit", "info");
                     return;
@@ -266,8 +306,7 @@ export default function commitExtension(pi: ExtensionAPI) {
                 );
                 if (!firstUserMessage) {
                     ctx.ui.notify("No user message found in session", "error");
-                    commitOriginId = undefined;
-                    commitOriginalModel = undefined;
+                    resetCommitState();
                     return;
                 }
 
@@ -277,13 +316,11 @@ export default function commitExtension(pi: ExtensionAPI) {
                         label: "commit",
                     });
                     if (result.cancelled) {
-                        commitOriginId = undefined;
-                        commitOriginalModel = undefined;
+                        resetCommitState();
                         return;
                     }
                 } catch (error) {
-                    commitOriginId = undefined;
-                    commitOriginalModel = undefined;
+                    resetCommitState();
                     ctx.ui.notify(
                         `Failed to start commit session: ${error instanceof Error ? error.message : String(error)}`,
                         "error",
@@ -294,16 +331,20 @@ export default function commitExtension(pi: ExtensionAPI) {
                 // Restore origin — session_tree events during navigation may have cleared it
                 commitOriginId = originId;
                 ctx.ui.setEditorText("");
+                setCommitWidget(ctx, true);
+                pi.appendEntry(COMMIT_STATE_TYPE, {
+                    active: true,
+                    originId: commitOriginId,
+                    originalModel: originalModel
+                        ? {
+                              provider: originalModel.provider,
+                              modelId: originalModel.id,
+                          }
+                        : undefined,
+                } satisfies CommitSessionState);
+            } else {
+                commitInCurrentSession = true;
             }
-
-            setCommitWidget(ctx, true);
-            pi.appendEntry(COMMIT_STATE_TYPE, {
-                active: true,
-                originId: commitOriginId,
-                originalModel: originalModel
-                    ? { provider: originalModel.provider, modelId: originalModel.id }
-                    : undefined,
-            } satisfies CommitSessionState);
 
             const gitContext = await gatherGitContext(pi, mode);
             if (!gitContext) {
@@ -313,8 +354,14 @@ export default function commitExtension(pi: ExtensionAPI) {
 
             await pi.setModel(commitModel);
 
-            const modeLabel = mode === "staged" ? "staged changes" : "all uncommitted changes";
-            ctx.ui.notify(`Starting commit session (${modeLabel}) using ${commitModel.id}`, "info");
+            const modeLabel =
+                mode === "staged"
+                    ? "staged changes"
+                    : "all uncommitted changes";
+            ctx.ui.notify(
+                `Starting commit session (${modeLabel}) using ${commitModel.id}`,
+                "info",
+            );
             pi.sendUserMessage(buildPrompt(mode, args, gitContext));
         },
     });
@@ -338,16 +385,24 @@ export default function commitExtension(pi: ExtensionAPI) {
                     originId ??= state.originId;
                     originalModel ??= resolveModel(ctx, state.originalModel);
                 } else if (!originId && !originalModel) {
-                    ctx.ui.notify("Not in a commit session (use /commit first)", "info");
+                    ctx.ui.notify(
+                        "Not in a commit session (use /commit first)",
+                        "info",
+                    );
                     return;
                 }
             }
 
             if (originId) {
                 try {
-                    const result = await ctx.navigateTree(originId, { summarize: false });
+                    const result = await ctx.navigateTree(originId, {
+                        summarize: false,
+                    });
                     if (result.cancelled) {
-                        ctx.ui.notify("Navigation cancelled. Use /end-commit to try again.", "info");
+                        ctx.ui.notify(
+                            "Navigation cancelled. Use /end-commit to try again.",
+                            "info",
+                        );
                         return;
                     }
                 } catch (error) {
@@ -359,16 +414,20 @@ export default function commitExtension(pi: ExtensionAPI) {
                 }
             }
 
+            resetCommitState();
             setCommitWidget(ctx, false);
-            commitOriginId = undefined;
-            commitOriginalModel = undefined;
-            pi.appendEntry(COMMIT_STATE_TYPE, { active: false } satisfies CommitSessionState);
+            pi.appendEntry(COMMIT_STATE_TYPE, {
+                active: false,
+            } satisfies CommitSessionState);
 
             if (originalModel) {
                 await pi.setModel(originalModel);
             }
 
-            ctx.ui.notify("Commit session ended. Returned to original position.", "info");
+            ctx.ui.notify(
+                "Commit session ended. Returned to original position.",
+                "info",
+            );
         },
     });
 }
