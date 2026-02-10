@@ -1,7 +1,7 @@
 /**
  * Commit Extension - autonomous git commit using session branching
  *
- * /commit [instructions]  - branch session, switch to cheap model, commit autonomously
+ * /commit [instructions]  - commit autonomously (branches use cheap model, current session keeps active model)
  * /end-commit             - return to original session and restore model
  */
 
@@ -39,24 +39,25 @@ function resetCommitState() {
 
 function setCommitWidget(ctx: ExtensionContext, active: boolean) {
     if (!ctx.hasUI) return;
-    if (!active) {
-        ctx.ui.setWidget("commit", undefined);
-        return;
-    }
-    ctx.ui.setWidget("commit", (_tui, theme) => {
-        const text = new Text(
-            theme.fg(
-                "warning",
-                "Commit session active, return with /end-commit",
-            ),
-            0,
-            0,
-        );
-        return {
-            render: (width: number) => text.render(width),
-            invalidate: () => text.invalidate(),
-        };
-    });
+    ctx.ui.setWidget(
+        "commit",
+        active
+            ? (_tui, theme) => {
+                  const text = new Text(
+                      theme.fg(
+                          "warning",
+                          "Commit session active, return with /end-commit",
+                      ),
+                      0,
+                      0,
+                  );
+                  return {
+                      render: (width: number) => text.render(width),
+                      invalidate: () => text.invalidate(),
+                  };
+              }
+            : undefined,
+    );
 }
 
 function resolveModel(
@@ -137,14 +138,11 @@ function buildPrompt(
 ): string {
     const modeDescription =
         mode === "staged" ? "staged changes only" : "all uncommitted changes";
+    const instructions = args.trim()
+        ? `\n\nAdditional instructions: ${args.trim()}`
+        : "";
 
-    let prompt = `You are performing a git commit. Commit ${modeDescription} autonomously — do not ask for confirmation.`;
-
-    if (args.trim()) {
-        prompt += `\n\nAdditional instructions: ${args.trim()}`;
-    }
-
-    prompt += `
+    return `You are performing a git commit. Commit ${modeDescription} autonomously — do not ask for confirmation.${instructions}
 
 ## Git Context
 
@@ -192,9 +190,9 @@ Otherwise, focus on describing WHAT changed concisely.
 
 ## Steps
 
-${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<message>"\``;
+${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<message>"\`
 
-    return prompt;
+Do not output any text or explanation. Only use tools.`;
 }
 
 export default function commitExtension(pi: ExtensionAPI) {
@@ -202,20 +200,14 @@ export default function commitExtension(pi: ExtensionAPI) {
     pi.on("session_switch", (_event, ctx) => applyCommitState(ctx));
     pi.on("session_tree", (_event, ctx) => applyCommitState(ctx));
 
-    pi.on("agent_end", async (_event, ctx) => {
+    pi.on("agent_end", async (_event, _ctx) => {
         if (!commitInCurrentSession) return;
-        const originalModel = commitOriginalModel;
         resetCommitState();
-
-        if (originalModel) {
-            await pi.setModel(originalModel);
-            ctx.ui.notify("Commit complete. Model restored.", "info");
-        }
     });
 
     pi.registerCommand("commit", {
         description:
-            "Start an autonomous commit session (model commits with full tool access)",
+            "Autonomous git commit (uses fast model in branch, current model in session)",
         handler: async (args, ctx) => {
             if (!ctx.hasUI) {
                 ctx.ui.notify("commit requires interactive mode", "error");
@@ -284,16 +276,14 @@ export default function commitExtension(pi: ExtensionAPI) {
                 useFreshSession = choice === "Empty branch";
             }
 
-            const commitModel = await selectCommitModel(ctx);
-            if (!commitModel) {
-                ctx.ui.notify("No model available", "error");
-                return;
-            }
-
-            const originalModel = ctx.model;
-            commitOriginalModel = originalModel;
-
             if (useFreshSession) {
+                const commitModel = await selectCommitModel(ctx);
+                if (!commitModel) {
+                    ctx.ui.notify("No model available", "error");
+                    return;
+                }
+                const originalModel = ctx.model;
+                commitOriginalModel = originalModel;
                 const originId = ctx.sessionManager.getLeafId() ?? undefined;
                 if (!originId) {
                     ctx.ui.notify("Failed to determine origin", "error");
@@ -342,6 +332,7 @@ export default function commitExtension(pi: ExtensionAPI) {
                           }
                         : undefined,
                 } satisfies CommitSessionState);
+                await pi.setModel(commitModel);
             } else {
                 commitInCurrentSession = true;
             }
@@ -352,14 +343,12 @@ export default function commitExtension(pi: ExtensionAPI) {
                 return;
             }
 
-            await pi.setModel(commitModel);
-
             const modeLabel =
                 mode === "staged"
                     ? "staged changes"
                     : "all uncommitted changes";
             ctx.ui.notify(
-                `Starting commit session (${modeLabel}) using ${commitModel.id}`,
+                `Starting commit (${modeLabel})`,
                 "info",
             );
             pi.sendUserMessage(buildPrompt(mode, args, gitContext));
