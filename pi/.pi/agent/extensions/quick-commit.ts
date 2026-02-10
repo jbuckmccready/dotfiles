@@ -28,8 +28,8 @@ const CODEX_MODEL_ID = "gpt-5.1-codex-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
-    { provider: "openai-codex", modelId: CODEX_MODEL_ID },
     { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
+    { provider: "openai-codex", modelId: CODEX_MODEL_ID },
     { provider: "anthropic", modelId: HAIKU_MODEL_ID },
 ];
 
