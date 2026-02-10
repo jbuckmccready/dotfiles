@@ -1,10 +1,9 @@
 {
-  "includeCoAuthoredBy": false,
-  "plansDirectory": "./.claude/plans",
   "env": {
     "CLAUDE_CODE_TMPDIR": "/tmp/claude",
     "TMPPREFIX": "/tmp/claude/zsh"
   },
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Bash(pwd)",
@@ -35,14 +34,6 @@
       "Read(~/.aws/**)"
     ]
   },
-  "sandbox": {
-    "enabled": false,
-    "autoAllowBashIfSandboxed": true,
-    "allowUnsandboxedCommands": false,
-    "network": {
-      "allowLocalBinding": true
-    }
-  },
   "hooks": {
     "Notification": [
       {
@@ -60,5 +51,14 @@
     "type": "command",
     "command": "~/.claude/statusline.sh"
   },
-  "promptSuggestionEnabled": false
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowLocalBinding": true
+    }
+  },
+  "promptSuggestionEnabled": false,
+  "plansDirectory": "./.claude/plans"
 }
