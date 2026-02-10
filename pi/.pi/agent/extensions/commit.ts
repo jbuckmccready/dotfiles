@@ -1,39 +1,29 @@
 /**
  * Commit Extension - autonomous git commit using session branching
  *
- * /commit [instructions]  - commit autonomously (branches use cheap model, current session keeps active model)
- * /end-commit             - return to original session and restore model
+ * /commit [instructions]  - commit autonomously
+ * /end-commit             - return to original session
  */
 
 import type {
     ExtensionAPI,
     ExtensionContext,
 } from "@mariozechner/pi-coding-agent";
-import type { Model, Api } from "@mariozechner/pi-ai";
 import { Text } from "@mariozechner/pi-tui";
-
-const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
-    { provider: "openai-codex", modelId: "gpt-5.1-codex-mini" },
-    { provider: "google-gemini-cli", modelId: "gemini-3-flash-preview" },
-    { provider: "anthropic", modelId: "claude-haiku-4-5" },
-];
 
 const COMMIT_STATE_TYPE = "commit-session";
 
 type CommitSessionState = {
     active: boolean;
     originId?: string;
-    originalModel?: { provider: string; modelId: string };
 };
 
 // Module-level state (runtime cache, restored from persisted state on lifecycle events)
 let commitOriginId: string | undefined;
-let commitOriginalModel: Model<any> | undefined;
 let commitInCurrentSession = false;
 
 function resetCommitState() {
     commitOriginId = undefined;
-    commitOriginalModel = undefined;
     commitInCurrentSession = false;
 }
 
@@ -60,14 +50,6 @@ function setCommitWidget(ctx: ExtensionContext, active: boolean) {
     );
 }
 
-function resolveModel(
-    ctx: ExtensionContext,
-    info?: { provider: string; modelId: string },
-): Model<any> | undefined {
-    if (!info) return undefined;
-    return ctx.modelRegistry.find(info.provider, info.modelId);
-}
-
 function getCommitState(ctx: ExtensionContext): CommitSessionState | undefined {
     let state: CommitSessionState | undefined;
     for (const entry of ctx.sessionManager.getBranch()) {
@@ -83,25 +65,8 @@ function applyCommitState(ctx: ExtensionContext) {
     const state = getCommitState(ctx);
     if (state?.active) {
         commitOriginId = state.originId;
-        commitOriginalModel = resolveModel(ctx, state.originalModel);
     }
     setCommitWidget(ctx, !!state?.active);
-}
-
-async function selectCommitModel(
-    ctx: ExtensionContext,
-): Promise<Model<Api> | undefined> {
-    for (const candidate of MODEL_CANDIDATES) {
-        const model = ctx.modelRegistry.find(
-            candidate.provider,
-            candidate.modelId,
-        );
-        if (model) {
-            const apiKey = await ctx.modelRegistry.getApiKey(model);
-            if (apiKey) return model;
-        }
-    }
-    return ctx.model;
 }
 
 type GitContext = {
@@ -246,7 +211,7 @@ export default function commitExtension(pi: ExtensionAPI) {
 
     pi.registerCommand("commit", {
         description:
-            "Autonomous git commit (uses fast model in branch, current model in session)",
+            "Autonomous git commit (keeps the current model in all sessions)",
         handler: async (args, ctx) => {
             if (!ctx.hasUI) {
                 ctx.ui.notify("commit requires interactive mode", "error");
@@ -316,13 +281,6 @@ export default function commitExtension(pi: ExtensionAPI) {
             }
 
             if (useFreshSession) {
-                const commitModel = await selectCommitModel(ctx);
-                if (!commitModel) {
-                    ctx.ui.notify("No model available", "error");
-                    return;
-                }
-                const originalModel = ctx.model;
-                commitOriginalModel = originalModel;
                 const originId = ctx.sessionManager.getLeafId() ?? undefined;
                 if (!originId) {
                     ctx.ui.notify("Failed to determine origin", "error");
@@ -364,14 +322,7 @@ export default function commitExtension(pi: ExtensionAPI) {
                 pi.appendEntry(COMMIT_STATE_TYPE, {
                     active: true,
                     originId: commitOriginId,
-                    originalModel: originalModel
-                        ? {
-                              provider: originalModel.provider,
-                              modelId: originalModel.id,
-                          }
-                        : undefined,
                 } satisfies CommitSessionState);
-                await pi.setModel(commitModel);
             } else {
                 commitInCurrentSession = true;
             }
@@ -402,14 +353,12 @@ export default function commitExtension(pi: ExtensionAPI) {
             // Gather state from module-level cache, falling back to persisted state.
             // Must read BEFORE navigating — persisted entries live on the commit branch.
             let originId = commitOriginId;
-            let originalModel = commitOriginalModel;
 
-            if (!originalModel || !originId) {
+            if (!originId) {
                 const state = getCommitState(ctx);
                 if (state?.active) {
-                    originId ??= state.originId;
-                    originalModel ??= resolveModel(ctx, state.originalModel);
-                } else if (!originId && !originalModel) {
+                    originId = state.originId;
+                } else {
                     ctx.ui.notify(
                         "Not in a commit session (use /commit first)",
                         "info",
@@ -444,10 +393,6 @@ export default function commitExtension(pi: ExtensionAPI) {
             pi.appendEntry(COMMIT_STATE_TYPE, {
                 active: false,
             } satisfies CommitSessionState);
-
-            if (originalModel) {
-                await pi.setModel(originalModel);
-            }
 
             ctx.ui.notify(
                 "Commit session ended. Returned to original position.",
