@@ -46,7 +46,7 @@ function pp --description "Paste files/directories from persistent clipboard"
             set -l ext (string match -r '\.[^.]+$' $basename)
             set -l i 1
             while test -e $dest
-                set dest ./{$base}_$i{$ext}
+                set dest ./{$base}_$i"$ext"
                 set i (math $i + 1)
             end
             echo "pp: '$basename' exists, saving as '$(basename $dest)'"
