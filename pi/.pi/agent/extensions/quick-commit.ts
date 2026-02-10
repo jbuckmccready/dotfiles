@@ -272,7 +272,13 @@ async function handleCommitStaged(
         return;
     }
 
-    ctx.ui.notify(commitResult.stdout.split("\n")[0] || "Committed!", "info");
+    // git commit output first line is typically: [branch hash] subject
+    const firstLine = commitResult.stdout.split("\n")[0] || "";
+    const match = firstLine.match(/^\[(\S+)\s+([a-f0-9]+)\]\s+(.*)$/);
+    const summary = match
+        ? `✓ ${match[1]} ${match[2]} — ${match[3]}`
+        : firstLine || "Committed!";
+    ctx.ui.notify(summary, "info");
 }
 
 // --- Extension entry point ---
