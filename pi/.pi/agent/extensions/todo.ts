@@ -53,6 +53,7 @@ import { Type } from "@sinclair/typebox";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import {
     Container,
@@ -161,6 +162,7 @@ type TodoMenuAction =
     | "reopen"
     | "release"
     | "delete"
+    | "edit"
     | "copyPath"
     | "copyText"
     | "view";
@@ -566,6 +568,11 @@ class TodoActionMenuComponent extends Container {
                       },
                   ]
                 : []),
+            {
+                value: "edit",
+                label: "edit",
+                description: "Open todo file in external editor",
+            },
             {
                 value: "copyPath",
                 label: "copy path",
@@ -2057,6 +2064,17 @@ export default function todosExtension(pi: ExtensionAPI) {
                     tui.requestRender();
                 };
 
+                const notifyError = (error: unknown) => {
+                    const message =
+                        error instanceof Error ? error.message : String(error);
+                    ctx.ui.notify(message, "error");
+                };
+
+                const refreshSelectorTodos = async () => {
+                    const updatedTodos = await listTodos(todosDir);
+                    selector?.setTodos(updatedTodos);
+                };
+
                 const copyTodoPathToClipboard = (todoId: string) => {
                     const filePath = getTodoPath(todosDir, todoId);
                     const absolutePath = path.resolve(filePath);
@@ -2067,11 +2085,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                             "info",
                         );
                     } catch (error) {
-                        const message =
-                            error instanceof Error
-                                ? error.message
-                                : String(error);
-                        ctx.ui.notify(message, "error");
+                        notifyError(error);
                     }
                 };
 
@@ -2083,12 +2097,71 @@ export default function todosExtension(pi: ExtensionAPI) {
                         copyToClipboard(text);
                         ctx.ui.notify("Copied todo text to clipboard", "info");
                     } catch (error) {
-                        const message =
-                            error instanceof Error
-                                ? error.message
-                                : String(error);
-                        ctx.ui.notify(message, "error");
+                        notifyError(error);
                     }
+                };
+
+                const openTodoInExternalEditor = (todoId: string): boolean => {
+                    const editorCmd = process.env.VISUAL || process.env.EDITOR;
+                    if (!editorCmd) {
+                        ctx.ui.notify(
+                            "No editor configured. Set $VISUAL or $EDITOR environment variable.",
+                            "warning",
+                        );
+                        return false;
+                    }
+
+                    const filePath = getTodoPath(todosDir, todoId);
+                    if (!existsSync(filePath)) {
+                        ctx.ui.notify(
+                            `Todo ${formatTodoId(todoId)} not found`,
+                            "error",
+                        );
+                        return false;
+                    }
+
+                    const absolutePath = path.resolve(filePath);
+                    try {
+                        tui.stop();
+                        const [editor, ...editorArgs] = editorCmd.split(" ");
+                        const result = spawnSync(
+                            editor,
+                            [...editorArgs, absolutePath],
+                            {
+                                stdio: "inherit",
+                            },
+                        );
+                        if (result.error) {
+                            throw result.error;
+                        }
+                        if (result.status !== 0) {
+                            ctx.ui.notify(
+                                `Editor exited with status ${result.status ?? "unknown"}`,
+                                "warning",
+                            );
+                            return false;
+                        }
+                        return true;
+                    } catch (error) {
+                        notifyError(error);
+                        return false;
+                    } finally {
+                        tui.start();
+                        tui.requestRender(true);
+                    }
+                };
+
+                const runTodoMutation = async (
+                    operation: () => Promise<TodoRecord | { error: string }>,
+                    successMessage: string,
+                ): Promise<void> => {
+                    const result = await operation();
+                    if ("error" in result) {
+                        ctx.ui.notify(result.error, "error");
+                        return;
+                    }
+                    await refreshSelectorTodos();
+                    ctx.ui.notify(successMessage, "info");
                 };
 
                 const resolveTodoRecord = async (
@@ -2157,63 +2230,46 @@ export default function todosExtension(pi: ExtensionAPI) {
                         copyTodoTextToClipboard(record);
                         return "stay";
                     }
+                    if (action === "edit") {
+                        const opened = openTodoInExternalEditor(record.id);
+                        if (opened) {
+                            await refreshSelectorTodos();
+                        }
+                        return "stay";
+                    }
 
                     if (action === "release") {
-                        const result = await releaseTodoAssignment(
-                            todosDir,
-                            record.id,
-                            ctx,
-                            true,
-                        );
-                        if ("error" in result) {
-                            ctx.ui.notify(result.error, "error");
-                            return "stay";
-                        }
-                        const updatedTodos = await listTodos(todosDir);
-                        selector?.setTodos(updatedTodos);
-                        ctx.ui.notify(
+                        await runTodoMutation(
+                            () =>
+                                releaseTodoAssignment(
+                                    todosDir,
+                                    record.id,
+                                    ctx,
+                                    true,
+                                ),
                             `Released todo ${formatTodoId(record.id)}`,
-                            "info",
                         );
                         return "stay";
                     }
 
                     if (action === "delete") {
-                        const result = await deleteTodo(
-                            todosDir,
-                            record.id,
-                            ctx,
-                        );
-                        if ("error" in result) {
-                            ctx.ui.notify(result.error, "error");
-                            return "stay";
-                        }
-                        const updatedTodos = await listTodos(todosDir);
-                        selector?.setTodos(updatedTodos);
-                        ctx.ui.notify(
+                        await runTodoMutation(
+                            () => deleteTodo(todosDir, record.id, ctx),
                             `Deleted todo ${formatTodoId(record.id)}`,
-                            "info",
                         );
                         return "stay";
                     }
 
                     const nextStatus = action === "close" ? "closed" : "open";
-                    const result = await updateTodoStatus(
-                        todosDir,
-                        record.id,
-                        nextStatus,
-                        ctx,
-                    );
-                    if ("error" in result) {
-                        ctx.ui.notify(result.error, "error");
-                        return "stay";
-                    }
-
-                    const updatedTodos = await listTodos(todosDir);
-                    selector?.setTodos(updatedTodos);
-                    ctx.ui.notify(
+                    await runTodoMutation(
+                        () =>
+                            updateTodoStatus(
+                                todosDir,
+                                record.id,
+                                nextStatus,
+                                ctx,
+                            ),
                         `${action === "close" ? "Closed" : "Reopened"} todo ${formatTodoId(record.id)}`,
-                        "info",
                     );
                     return "stay";
                 };
@@ -2255,9 +2311,14 @@ export default function todosExtension(pi: ExtensionAPI) {
                     }
 
                     const result = await applyTodoAction(record, action);
-                    if (result === "stay") {
-                        setActiveComponent(selector);
+                    if (result !== "stay") {
+                        return;
                     }
+                    if (action === "edit" && actionMenu) {
+                        setActiveComponent(actionMenu);
+                        return;
+                    }
+                    setActiveComponent(selector);
                 };
 
                 const showActionMenu = async (
