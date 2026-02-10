@@ -13,8 +13,8 @@ import type { Model, Api } from "@mariozechner/pi-ai";
 import { Text } from "@mariozechner/pi-tui";
 
 const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
+    { provider: "openai-codex", modelId: "gpt-5.1-codex-mini" },
     { provider: "google-gemini-cli", modelId: "gemini-3-flash-preview" },
-    { provider: "github-copilot", modelId: "gpt-5.1-codex-mini" },
     { provider: "anthropic", modelId: "claude-haiku-4-5" },
 ];
 
@@ -175,6 +175,9 @@ Guidelines:
 - For simple changes, only the subject line is sufficient
 - Add a body when changes involve multiple files or need explanation
 - Limit body to 3-5 bullet points for most commits
+- Avoid vague language
+- If a commit includes distinct substantive changes, explicitly mention each
+- Do not call out tiny incidental style/formatting/rename-only edits unless they are the primary or only change
 - No extra blank lines between bullet points
 
 ## When to Include WHY (Not Just WHAT)
@@ -188,9 +191,45 @@ Include reasoning only when:
 
 Otherwise, focus on describing WHAT changed concisely.
 
+## Examples
+
+\`\`\`
+test(api): fix flakey timeout in user session tests
+\`\`\`
+
+\`\`\`
+feat(auth): add OAuth2 authentication support
+
+- Implement OAuth2 provider integration
+- Add token refresh mechanism
+- Create middleware for protected routes
+\`\`\`
+
+\`\`\`
+fix(api): prevent null pointer in user lookup
+
+Handle case where user ID doesn't exist in database
+\`\`\`
+
+\`\`\`
+refactor(payments): extract Stripe logic into service layer
+
+- Move API calls to PaymentService
+- Simplify controller methods
+- Add error handling helpers
+\`\`\`
+
+\`\`\`
+perf(search): add caching layer for search queries
+
+Reduces average query time from 200ms to 15ms
+\`\`\`
+
 ## Steps
 
-${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<message>"\`
+If anything is unclear from the diff, review the changed files for context before committing.
+Use a single \`-m\` value containing the full message (subject and optional body). Do not use repeated \`-m\` flags.
+${mode === "uncommitted" ? "1. Stage the changes with `git add -A`\n2" : "1"}. Execute \`git commit -m "<full message>"\`
 
 Do not output any text or explanation. Only use tools.`;
 }
@@ -347,10 +386,7 @@ export default function commitExtension(pi: ExtensionAPI) {
                 mode === "staged"
                     ? "staged changes"
                     : "all uncommitted changes";
-            ctx.ui.notify(
-                `Starting commit (${modeLabel})`,
-                "info",
-            );
+            ctx.ui.notify(`Starting commit (${modeLabel})`, "info");
             pi.sendUserMessage(buildPrompt(mode, args, gitContext));
         },
     });

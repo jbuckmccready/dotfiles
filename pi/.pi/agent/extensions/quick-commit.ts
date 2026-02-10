@@ -28,8 +28,8 @@ const CODEX_MODEL_ID = "gpt-5.1-codex-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
+    { provider: "openai-codex", modelId: CODEX_MODEL_ID },
     { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
-    { provider: "github-copilot", modelId: CODEX_MODEL_ID },
     { provider: "anthropic", modelId: HAIKU_MODEL_ID },
 ];
 
@@ -50,6 +50,9 @@ Guidelines:
 - For simple changes, only the subject line is sufficient
 - Add a body when changes involve multiple files or need explanation
 - Limit body to 3-5 bullet points for most commits
+- Avoid vague language
+- If a commit includes distinct substantive changes, explicitly mention each
+- Do not call out tiny incidental style/formatting/rename-only edits unless they are the primary or only change
 - No extra blank lines between bullet points
 
 ## When to Include WHY (Not Just WHAT)
@@ -65,25 +68,38 @@ Otherwise, focus on describing WHAT changed concisely.
 
 ## Examples
 
+\`\`\`
+test(api): fix flakey timeout in user session tests
+\`\`\`
+
+\`\`\`
 feat(auth): add OAuth2 authentication support
 
 - Implement OAuth2 provider integration
 - Add token refresh mechanism
 - Create middleware for protected routes
+\`\`\`
 
+\`\`\`
 fix(api): prevent null pointer in user lookup
 
 Handle case where user ID doesn't exist in database
+\`\`\`
 
+\`\`\`
 refactor(payments): extract Stripe logic into service layer
 
 - Move API calls to PaymentService
 - Simplify controller methods
 - Add error handling helpers
+\`\`\`
 
+\`\`\`
 perf(search): add caching layer for search queries
 
-Reduces average query time from 200ms to 15ms`;
+Reduces average query time from 200ms to 15ms
+\`\`\`
+`;
 
 // --- Helpers ---
 
