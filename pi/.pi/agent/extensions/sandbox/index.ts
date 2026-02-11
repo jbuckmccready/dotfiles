@@ -8,7 +8,7 @@
  *
  * Modified in this repository:
  * - Added `commandEnv` config support for sandboxed command env overrides
- * - Added shared cache defaults under `~/.pi/sandbox-cache` (npm, bun, pnpm, pip, uv, zig, go, rust, xdg)
+ * - Added shared cache defaults under `~/.pi/sandbox-cache` (npm, bun, pnpm, pip, uv, zig, go, rust, xdg cache/data)
  * - Added per-command `CLAUDE_TMPDIR` alignment before `wrapWithSandbox()` so sandbox TMPDIR follows config (`/tmp` by default)
  * - Added command-env details to `/sandbox` output
  * - Expanded default sandbox filesystem/network settings for local development
@@ -82,6 +82,9 @@ const DEFAULT_CONFIG: SandboxConfig = {
             "registry.yarnpkg.com",
             "pypi.org",
             "*.pypi.org",
+            "files.pythonhosted.org",
+            "anthropic.com",
+            "*.anthropic.com",
             "github.com",
             "*.github.com",
             "api.github.com",
@@ -138,6 +141,7 @@ function getDefaultCacheEnv(cacheRoot: string): Record<string, string> {
     const cargoHome = join(cacheRoot, "cargo");
     const rustupHome = join(cacheRoot, "rustup");
     const xdgCache = join(cacheRoot, "xdg");
+    const xdgData = join(cacheRoot, "xdg-data");
 
     return {
         TMPDIR: "/tmp",
@@ -155,6 +159,7 @@ function getDefaultCacheEnv(cacheRoot: string): Record<string, string> {
         CARGO_HOME: cargoHome,
         RUSTUP_HOME: rustupHome,
         XDG_CACHE_HOME: xdgCache,
+        XDG_DATA_HOME: xdgData,
     };
 }
 
