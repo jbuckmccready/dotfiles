@@ -91,11 +91,11 @@ const DEFAULT_CONFIG: SandboxConfig = {
             "raw.githubusercontent.com",
         ],
         allowUnixSockets: [
-            "/private/var/run/mDNSResponder",
             ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
         ],
         // NOTE: this one is somewhat dangerous, when set to true, the domain name
         // restrictions can be bypassed by just unsetting proxy env vars (tested on MacOS)
+        // https://github.com/anthropic-experimental/sandbox-runtime/issues/88
         allowLocalBinding: false,
         deniedDomains: [],
     },
