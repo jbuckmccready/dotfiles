@@ -7,6 +7,19 @@ function pp --description "Paste files/directories from persistent clipboard"
         set use_sudo 1
     end
 
+    # Optional destination directory (default: current directory)
+    set -l target_dir .
+    if test (count $argv) -ge 1
+        set target_dir $argv[1]
+        if not test -d $target_dir
+            mkdir -p $target_dir
+            or begin
+                echo "pp: failed to create directory: $target_dir" >&2
+                return 1
+            end
+        end
+    end
+
     set -l clip_dir ~/.local/share/file-clipboard
     set -l entries_file $clip_dir/entries
     set -l mode_file $clip_dir/mode
@@ -38,7 +51,7 @@ function pp --description "Paste files/directories from persistent clipboard"
     set -l failed 0
     for src in $paths
         set -l basename (basename $src)
-        set -l dest ./$basename
+        set -l dest $target_dir/$basename
 
         # Handle name collisions
         if test -e $dest
@@ -46,7 +59,7 @@ function pp --description "Paste files/directories from persistent clipboard"
             set -l ext (string match -r '\.[^.]+$' $basename)
             set -l i 1
             while test -e $dest
-                set dest ./{$base}_$i"$ext"
+                set dest $target_dir/{$base}_$i"$ext"
                 set i (math $i + 1)
             end
             echo "pp: '$basename' exists, saving as '$(basename $dest)'"
@@ -72,7 +85,8 @@ function pp --description "Paste files/directories from persistent clipboard"
 
     set -l count (count $paths)
     set -l action (test $mode = cut && echo "Moved" || echo "Copied")
-    echo "$action $count item"(test $count -gt 1 && echo "s" || echo "")" to "(pwd)
+    set -l abs_target (realpath $target_dir)
+    echo "$action $count item"(test $count -gt 1 && echo "s" || echo "")" to $abs_target"
     for src in $paths[1..100]
         echo "  $(basename $src) from $(dirname $src)"
     end
