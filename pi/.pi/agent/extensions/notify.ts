@@ -6,10 +6,15 @@
  * - macOS: terminal-notifier (preferred), osascript fallback
  * - Linux: notify-send
  * - WSL: PowerShell balloon tip with sound
+ * If PI_NOTIFY_BRIDGE is set and inside Docker, writes a JSON signal file to
+ * ~/.pi/notifications/ for a host-side watcher. Otherwise uses native notification tools.
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { execFile, execFileSync } from "node:child_process";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 function commandExists(cmd: string): boolean {
     try {
@@ -21,6 +26,18 @@ function commandExists(cmd: string): boolean {
 }
 
 function notify(title: string, body: string): void {
+    if (existsSync("/.dockerenv") && process.env.PI_NOTIFY_BRIDGE) {
+        const dir = join(homedir(), ".pi", "notifications");
+        mkdirSync(dir, { recursive: true });
+        const ts = Date.now();
+        const filename = `${ts}-${Math.random().toString(36).slice(2, 8)}.json`;
+        writeFileSync(
+            join(dir, filename),
+            JSON.stringify({ title, body, ts }) + "\n",
+        );
+        return;
+    }
+
     if (process.env.WSL_DISTRO_NAME) {
         // WSL: PowerShell balloon tip with sound
         const safeTitle = title.replace(/'/g, "\\'");
