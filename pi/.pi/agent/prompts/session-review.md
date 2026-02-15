@@ -11,6 +11,7 @@ Example points of confusion/distraction:
 
 For each point of confusion or distraction, use this format:
 
+```md
 ### Issue: <one-line summary>
 
 - **Category:** project docs/config | agent behavior | environment/tooling
@@ -18,3 +19,4 @@ For each point of confusion or distraction, use this format:
 - **What happened:** <brief description>
 - **Impact:** <how it affected the session>
 - **Fix:** <suggestion for how to prevent this in future sessions>
+```
