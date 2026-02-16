@@ -23,36 +23,44 @@ return {
         {
             "<leader>as",
             function()
-                require("sidekick.cli").send({ msg = "{this}" })
-            end,
-            mode = { "x", "n" },
-            desc = "Send This",
-        },
-        {
-            "<leader>ag",
-            function()
-                require("sidekick.cli").send({ msg = "{selection}" })
-            end,
-            mode = { "x" },
-            desc = "Send Visual Selection",
-        },
-        {
-            "<leader>am",
-            function()
                 local cli = require("sidekick.cli")
                 local _, text = cli.render("{this}")
                 if not text or #text == 0 then
                     return
                 end
                 vim.ui.input({ prompt = "Message: " }, function(input)
-                    if input and input ~= "" then
-                        text[#text + 1] = { { " " .. input } }
-                        cli.send({ text = text, submit = true })
+                    if not input then
+                        return
                     end
+                    if input ~= "" then
+                        text[#text + 1] = { { "\n" .. input } }
+                    end
+                    cli.send({ text = text, submit = true })
                 end)
             end,
             mode = { "x", "n" },
             desc = "Send This with Message",
+        },
+        {
+            "<leader>ag",
+            function()
+                local cli = require("sidekick.cli")
+                local _, text = cli.render("{selection}")
+                if not text or #text == 0 then
+                    return
+                end
+                vim.ui.input({ prompt = "Message: " }, function(input)
+                    if not input then
+                        return
+                    end
+                    if input ~= "" then
+                        text[#text + 1] = { { "\n" .. input } }
+                    end
+                    cli.send({ text = text, submit = true })
+                end)
+            end,
+            mode = { "x" },
+            desc = "Send Selection with Message",
         },
         {
             "<leader>af",
