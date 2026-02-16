@@ -37,6 +37,24 @@ return {
             desc = "Send Visual Selection",
         },
         {
+            "<leader>am",
+            function()
+                local cli = require("sidekick.cli")
+                local _, text = cli.render("{this}")
+                if not text or #text == 0 then
+                    return
+                end
+                vim.ui.input({ prompt = "Message: " }, function(input)
+                    if input and input ~= "" then
+                        text[#text + 1] = { { " " .. input } }
+                        cli.send({ text = text, submit = true })
+                    end
+                end)
+            end,
+            mode = { "x", "n" },
+            desc = "Send This with Message",
+        },
+        {
             "<leader>af",
             function()
                 require("sidekick.cli").send({ msg = "{file}" })
@@ -68,9 +86,9 @@ return {
         {
             "<leader>aa",
             function()
-                require("sidekick.cli").toggle({ name = "opencode", focus = true })
+                require("sidekick.cli").toggle({ name = "agent-sandbox", focus = true })
             end,
-            desc = "Toggle OpenCode CLI",
+            desc = "Toggle Agent Sandbox CLI",
             mode = { "n", "v" },
         },
         {
@@ -127,10 +145,14 @@ return {
                     is_proc = "\\<pi\\>",
                     url = "https://github.com/badlogic/pi-mono",
                 },
+                ["agent-sandbox"] = {
+                    cmd = { "true" },
+                    is_proc = "agent-sandbox",
+                },
             },
             mux = {
                 backend = "tmux",
-                enabled = false,
+                enabled = true,
                 create = "split",
                 split = {
                     vertical = true,
