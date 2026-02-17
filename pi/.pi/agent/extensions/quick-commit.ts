@@ -10,7 +10,7 @@
  */
 
 import {
-    complete,
+    completeSimple,
     type Model,
     type Api,
     type UserMessage,
@@ -232,13 +232,13 @@ async function handleCommitStaged(
                     timestamp: Date.now(),
                 };
 
-                const response = await complete(
+                const response = await completeSimple(
                     model,
                     {
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
-                    { apiKey, signal: loader.signal },
+                    { apiKey, signal: loader.signal, reasoning: "medium" },
                 );
 
                 if (response.stopReason === "aborted") return null;
