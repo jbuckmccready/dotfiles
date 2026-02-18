@@ -91,7 +91,7 @@ const CODEX_MODEL_ID = "gpt-5.1-codex-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 /**
- * Prefer Gemini Flash for extraction when available, otherwise fallback to Codex mini, haiku, or the current model.
+ * Prefer Codex mini for extraction, then haiku, then Gemini Flash, otherwise fallback to the current model.
  */
 async function selectExtractionModel(
     currentModel: Model<Api>,
@@ -100,33 +100,21 @@ async function selectExtractionModel(
         getApiKey: (model: Model<Api>) => Promise<string | undefined>;
     },
 ): Promise<Model<Api>> {
-    const geminiModel = modelRegistry.find("google-gemini-cli", GEMINI_MODEL_ID);
-    if (geminiModel) {
-        const apiKey = await modelRegistry.getApiKey(geminiModel);
-        if (apiKey) {
-            return geminiModel;
+    const candidates: Array<{ provider: string; modelId: string }> = [
+        { provider: "github-copilot", modelId: CODEX_MODEL_ID },
+        { provider: "anthropic", modelId: HAIKU_MODEL_ID },
+        { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
+    ];
+
+    for (const candidate of candidates) {
+        const model = modelRegistry.find(candidate.provider, candidate.modelId);
+        if (model) {
+            const apiKey = await modelRegistry.getApiKey(model);
+            if (apiKey) return model;
         }
     }
 
-    const codexModel = modelRegistry.find("github-copilot", CODEX_MODEL_ID);
-    if (codexModel) {
-        const apiKey = await modelRegistry.getApiKey(codexModel);
-        if (apiKey) {
-            return codexModel;
-        }
-    }
-
-    const haikuModel = modelRegistry.find("anthropic", HAIKU_MODEL_ID);
-    if (!haikuModel) {
-        return currentModel;
-    }
-
-    const apiKey = await modelRegistry.getApiKey(haikuModel);
-    if (!apiKey) {
-        return currentModel;
-    }
-
-    return haikuModel;
+    return currentModel;
 }
 
 /**
@@ -535,7 +523,7 @@ export default function (pi: ExtensionAPI) {
             return;
         }
 
-        // Select the best model for extraction (prefer Gemini Flash, then Codex mini, then haiku)
+        // Select the best model for extraction (prefer Codex mini, then haiku, then Gemini Flash)
         const extractionModel = await selectExtractionModel(
             ctx.model,
             ctx.modelRegistry,
