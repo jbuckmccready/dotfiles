@@ -1,0 +1,7 @@
+{
+	"enabled": true,
+	"container": "agent-sandbox",
+	"mounts": {
+		"~/Documents/code/sig_sandbox/workspace": "/workspace"
+	}
+}
