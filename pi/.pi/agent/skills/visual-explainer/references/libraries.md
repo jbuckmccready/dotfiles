@@ -196,6 +196,49 @@ State diagram transition labels have a strict parser. Avoid:
 
 If you need multi-line labels or special characters, use a `flowchart` instead of `stateDiagram-v2`. Flowcharts support quoted labels (`|"label with: special chars"|`) and `<br/>` for line breaks.
 
+### Writing Valid Mermaid
+
+Most Mermaid failures come from a few recurring issues. Follow these rules to avoid invalid diagrams:
+
+**Quote labels with special characters.** Parentheses, colons, commas, brackets, and ampersands break the parser when unquoted. Wrap any label containing special characters in double quotes:
+
+```
+A["handleRequest(ctx)"] --> B["DB: query users"]
+A[handleRequest] --> B[query users]
+```
+
+**Keep IDs simple.** Node IDs should be alphanumeric with no spaces or punctuation. Put the readable name in the label, not the ID:
+
+```
+userSvc["User Service"] --> authSvc["Auth Service"]
+```
+
+**Max 15-20 nodes per diagram.** Beyond that, readability collapses even with ELK layout. Use `subgraph` blocks to group related nodes, or split into multiple diagrams:
+
+```
+subgraph Auth
+  login --> validate --> token
+end
+subgraph API
+  gateway --> router --> handler
+end
+Auth --> API
+```
+
+**Arrow styles for semantic meaning:**
+
+| Arrow | Meaning | Use for |
+|-------|---------|---------|
+| `-->` | Solid | Primary flow |
+| `-.->` | Dotted | Optional, async, or fallback paths |
+| `==>` | Thick | Critical or highlighted path |
+| `--x` | Cross | Rejected or blocked |
+| `-->\|label\|` | Labeled | Decision branches, data descriptions |
+
+**Escape pipes in labels.** If a label contains a literal `|`, use `#124;` (HTML entity) or rephrase to avoid it — pipes delimit edge labels in flowcharts.
+
+**Don't mix diagram syntax.** Each diagram type has its own syntax. `-->` works in flowcharts but not in sequence diagrams (`->>` instead). `:::className` works in flowcharts but not in ER diagrams. When in doubt, check the examples below for correct syntax per type.
+
 ### Diagram Type Examples
 
 **Flowchart with decisions:**

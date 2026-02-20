@@ -143,6 +143,9 @@ Replace `var(--accent)` with your page's primary accent color variable (e.g., `v
   }
 
   .main { padding-top: 20px; }
+  
+  /* Offset scroll target so headings clear the sticky bar */
+  .sec-head { scroll-margin-top: 52px; }
 }
 ```
 
