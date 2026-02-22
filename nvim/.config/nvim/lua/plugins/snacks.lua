@@ -72,8 +72,32 @@ return {
                         end,
                     })
                 end,
-                sidekick_send = function(...)
-                    return require("sidekick.cli.picker.snacks").send(...)
+                sidekick_send = function(picker)
+                    local items = picker:selected({ fallback = true })
+                    picker:close()
+                    -- Inline _send_cb to avoid trailing space after the last
+                    -- file.  tmux paste-buffer sends chars individually (no
+                    -- bracketed paste), so @ triggers the CLI's autocomplete.
+                    -- A trailing space before \n causes autocomplete to switch
+                    -- to a CWD directory listing, and \n accepts the top item.
+                    -- NOTE: this fix was needed for Pi agent CLI.
+                    local Loc = require("sidekick.cli.context.location")
+                    local ret = {}
+                    for _, item in ipairs(items) do
+                        local name = require("snacks.picker.util").path(item)
+                        if name then
+                            local file = Loc.get({ cwd = item.cwd, name = name }, { kind = "file" })[1]
+                            if file then
+                                if #ret > 0 then
+                                    ret[#ret + 1] = { " " }
+                                end
+                                vim.list_extend(ret, file)
+                            end
+                        end
+                    end
+                    vim.schedule(function()
+                        require("sidekick.cli").send({ text = { ret } })
+                    end)
                 end,
             },
         },
