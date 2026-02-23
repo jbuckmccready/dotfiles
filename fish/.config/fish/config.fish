@@ -49,6 +49,9 @@ abbr -a fzfs 'sesh connect $(sesh list | fzf)'
 # fzf open to edit in neovim
 abbr -a fzfe "fzf --multi --bind 'enter:become(nvim {+})'"
 
+# fzf open with system open command
+abbr -a fzfo "fzf --multi --bind 'enter:become(open {+})'"
+
 # Launch lazygit with default config
 abbr -a lg "lazygit"
 # Launch lazygit with config setup to use difftastic
