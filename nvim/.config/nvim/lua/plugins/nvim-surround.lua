@@ -2,30 +2,18 @@
 return {
     {
         "kylechui/nvim-surround",
+        init = function()
+            -- Disable all default keymaps; we remap s -> z (using s for flash)
+            vim.g.nvim_surround_no_mappings = true
+        end,
         keys = {
-            -- lazy load only when keys are used
-            { "yz", mode = { "n" }, desc = "Surround" },
-            { "yzz", mode = { "n" }, desc = "Surround (cur)" },
-            { "yZ", mode = { "n" }, desc = "Surround (line)" },
-            { "yZZ", mode = { "n" }, desc = "Surround (cur line)" },
-            { "Z", mode = { "v" }, desc = "Surround (visual)" },
-            { "dz", mode = { "n" }, desc = "Delete surround" },
-            { "cz", mode = { "n" }, desc = "Change surround" },
-        },
-        opts = {
-            keymaps = {
-                insert = false,
-                insert_line = false,
-                visual_line = false,
-                -- remap s -> z, using s for flash and I don't use z for editing folds
-                normal = "yz",
-                normal_cur = "yzz",
-                normal_line = "yZ",
-                normal_cur_line = "yZZ",
-                visual = "Z",
-                delete = "dz",
-                change = "cz",
-            },
+            { "yz", "<Plug>(nvim-surround-normal)", mode = "n", desc = "Surround" },
+            { "yzz", "<Plug>(nvim-surround-normal-cur)", mode = "n", desc = "Surround (cur)" },
+            { "yZ", "<Plug>(nvim-surround-normal-line)", mode = "n", desc = "Surround (line)" },
+            { "yZZ", "<Plug>(nvim-surround-normal-cur-line)", mode = "n", desc = "Surround (cur line)" },
+            { "Z", "<Plug>(nvim-surround-visual)", mode = "v", desc = "Surround (visual)" },
+            { "dz", "<Plug>(nvim-surround-delete)", mode = "n", desc = "Delete surround" },
+            { "cz", "<Plug>(nvim-surround-change)", mode = "n", desc = "Change surround" },
         },
     },
 }
