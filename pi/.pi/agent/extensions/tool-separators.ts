@@ -1,11 +1,12 @@
 /**
- * Add separator lines to read, grep, write, find, and ls tools.
+ * Add separator lines to read, grep, write, find, and ls tools
+ * (bash covered by sandbox extension).
  *
  * Overrides these built-in tools to add Catppuccin-style separator lines
- * (borderMuted colored ─── lines) above the tool title and below the result,
- * matching the style used in edit-diff-lines.ts.
+ * above and below tool results, matching edit-diff-lines.ts.
  *
- * bash is handled separately in sandbox/index.ts (which already overrides it).
+ * Tool titles intentionally render without a separator above them to keep
+ * vertical spacing tighter.
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -69,9 +70,8 @@ export default function (pi: ExtensionAPI) {
         },
 
         renderCall(args, theme) {
-            const rawPath = ((args as Record<string, unknown>)?.file_path ?? args?.path) as
-                | string
-                | undefined;
+            const rawPath = ((args as Record<string, unknown>)?.file_path ??
+                args?.path) as string | undefined;
             lastReadPath = rawPath;
             const path = rawPath
                 ? shortenPath(rawPath.replace(/^@/, ""))
@@ -265,12 +265,14 @@ export default function (pi: ExtensionAPI) {
     let lastWriteContent: string | undefined;
 
     // Incremental highlight cache for write tool streaming
-    let writeHlCache: {
-        rawPath: string;
-        lang: string;
-        rawContent: string;
-        highlightedLines: string[];
-    } | undefined;
+    let writeHlCache:
+        | {
+              rawPath: string;
+              lang: string;
+              rawContent: string;
+              highlightedLines: string[];
+          }
+        | undefined;
 
     function getWriteHighlighted(
         rawPath: string | undefined,
@@ -311,7 +313,8 @@ export default function (pi: ExtensionAPI) {
             // Re-highlight the last line (it got extended)
             const allNorm = replaceTabs(content);
             const allLines = allNorm.split("\n");
-            const singleHl = (line: string) => highlightCode(line, lang)[0] ?? line;
+            const singleHl = (line: string) =>
+                highlightCode(line, lang)[0] ?? line;
 
             cache.highlightedLines[lastIdx] = singleHl(allLines[lastIdx]);
             for (let s = 1; s < segments.length; s++) {
@@ -324,7 +327,12 @@ export default function (pi: ExtensionAPI) {
         // Cache miss: full re-highlight
         const normalized = replaceTabs(content);
         const highlighted = highlightCode(normalized, lang);
-        writeHlCache = { rawPath: rawPath!, lang, rawContent: content, highlightedLines: highlighted };
+        writeHlCache = {
+            rawPath: rawPath!,
+            lang,
+            rawContent: content,
+            highlightedLines: highlighted,
+        };
         return highlighted;
     }
 
@@ -344,9 +352,8 @@ export default function (pi: ExtensionAPI) {
         },
 
         renderCall(args, theme) {
-            const rawPath = ((args as Record<string, unknown>)?.file_path ?? args?.path) as
-                | string
-                | undefined;
+            const rawPath = ((args as Record<string, unknown>)?.file_path ??
+                args?.path) as string | undefined;
             lastWritePath = rawPath;
             const fileContent = (args?.content as string) || "";
             lastWriteContent = fileContent;
@@ -361,7 +368,11 @@ export default function (pi: ExtensionAPI) {
             const title = `${theme.fg("toolTitle", theme.bold("write"))} ${pathDisplay}`;
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
-            const contentLines = getWriteHighlighted(rawPath, fileContent, theme);
+            const contentLines = getWriteHighlighted(
+                rawPath,
+                fileContent,
+                theme,
+            );
 
             return component((width) => {
                 const lines = [...wrapTextWithAnsi(title, width)];
