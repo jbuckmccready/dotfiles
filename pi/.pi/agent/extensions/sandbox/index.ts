@@ -369,8 +369,10 @@ export default function (pi: ExtensionAPI) {
     });
 
     const localCwd = process.cwd();
+    type ExpandState = "expanded" | "collapsed";
+    type CompCache = Partial<Record<ExpandState, any>>;
     const localBash = createBashTool(localCwd);
-    const bashCache = new WeakMap<object, ReturnType<typeof component>>();
+    const bashCache = new WeakMap<object, CompCache>();
 
     let sandboxEnabled = false;
     let sandboxInitialized = false;
@@ -411,8 +413,9 @@ export default function (pi: ExtensionAPI) {
             }
 
             const details = result.details;
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
             if (details) {
-                const cached = bashCache.get(details);
+                const cached = bashCache.get(details)?.[key];
                 if (cached) return cached;
             }
 
@@ -463,7 +466,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) bashCache.set(details, comp);
+            if (details) {
+                const pair = bashCache.get(details) || {};
+                pair[key] = comp;
+                bashCache.set(details, pair);
+            }
             return comp;
         },
     });

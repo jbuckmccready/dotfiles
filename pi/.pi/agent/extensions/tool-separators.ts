@@ -55,6 +55,9 @@ function component(renderFn: (width: number) => string[]) {
     } as any;
 }
 
+type ExpandState = "expanded" | "collapsed";
+type CompCache = Partial<Record<ExpandState, any>>;
+
 export default function (pi: ExtensionAPI) {
     // ── read ─────────────────────────────────────────────────────────
 
@@ -63,7 +66,7 @@ export default function (pi: ExtensionAPI) {
     // Shared between renderCall and renderResult within a single
     // synchronous updateDisplay() cycle.
     let lastReadPath: string | undefined;
-    const readCache = new WeakMap<object, ReturnType<typeof component>>();
+    const readCache = new WeakMap<object, CompCache>();
 
     pi.registerTool({
         name: "read",
@@ -113,8 +116,9 @@ export default function (pi: ExtensionAPI) {
             }
 
             const details = (result as any).details;
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
             if (details) {
-                const cached = readCache.get(details);
+                const cached = readCache.get(details)?.[key];
                 if (cached) return cached;
             }
 
@@ -175,7 +179,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) readCache.set(details, comp);
+            if (details) {
+                const pair = readCache.get(details) || {};
+                pair[key] = comp;
+                readCache.set(details, pair);
+            }
             return comp;
         },
     });
@@ -183,7 +191,7 @@ export default function (pi: ExtensionAPI) {
     // ── grep ─────────────────────────────────────────────────────────
 
     const builtinGrep = createGrepTool(process.cwd());
-    const grepCache = new WeakMap<object, ReturnType<typeof component>>();
+    const grepCache = new WeakMap<object, CompCache>();
     pi.registerTool({
         name: "grep",
         label: builtinGrep.label,
@@ -229,8 +237,9 @@ export default function (pi: ExtensionAPI) {
             }
 
             const details = (result as any).details;
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
             if (details) {
-                const cached = grepCache.get(details);
+                const cached = grepCache.get(details)?.[key];
                 if (cached) return cached;
             }
 
@@ -276,7 +285,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) grepCache.set(details, comp);
+            if (details) {
+                const pair = grepCache.get(details) || {};
+                pair[key] = comp;
+                grepCache.set(details, pair);
+            }
             return comp;
         },
     });
@@ -289,7 +302,7 @@ export default function (pi: ExtensionAPI) {
     // synchronous updateDisplay() cycle.
     let lastWritePath: string | undefined;
     let lastWriteContent: string | undefined;
-    const writeResultCache = new WeakMap<object, ReturnType<typeof component>>();
+    const writeCache = new WeakMap<object, CompCache>();
 
     // Incremental highlight cache for write tool streaming
     let writeHlCache:
@@ -393,11 +406,6 @@ export default function (pi: ExtensionAPI) {
             const details = (result as any).details;
             const isError = details !== undefined;
 
-            if (!isError && details) {
-                const cached = writeResultCache.get(details);
-                if (cached) return cached;
-            }
-
             const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
@@ -411,6 +419,12 @@ export default function (pi: ExtensionAPI) {
                     theme.fg("error", output),
                     makeSep(borderAnsi, width),
                 ]);
+            }
+
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
+            if (details) {
+                const cached = writeCache.get(details)?.[key];
+                if (cached) return cached;
             }
 
             // Final full re-highlight for expand support
@@ -437,7 +451,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) writeResultCache.set(details, comp);
+            if (details) {
+                const pair = writeCache.get(details) || {};
+                pair[key] = comp;
+                writeCache.set(details, pair);
+            }
             return comp;
         },
     });
@@ -445,7 +463,7 @@ export default function (pi: ExtensionAPI) {
     // ── find ─────────────────────────────────────────────────────────
 
     const builtinFind = createFindTool(process.cwd());
-    const findCache = new WeakMap<object, ReturnType<typeof component>>();
+    const findCache = new WeakMap<object, CompCache>();
     pi.registerTool({
         name: "find",
         label: builtinFind.label,
@@ -487,8 +505,9 @@ export default function (pi: ExtensionAPI) {
             }
 
             const details = (result as any).details;
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
             if (details) {
-                const cached = findCache.get(details);
+                const cached = findCache.get(details)?.[key];
                 if (cached) return cached;
             }
 
@@ -531,7 +550,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) findCache.set(details, comp);
+            if (details) {
+                const pair = findCache.get(details) || {};
+                pair[key] = comp;
+                findCache.set(details, pair);
+            }
             return comp;
         },
     });
@@ -539,7 +562,7 @@ export default function (pi: ExtensionAPI) {
     // ── ls ────────────────────────────────────────────────────────────
 
     const builtinLs = createLsTool(process.cwd());
-    const lsCache = new WeakMap<object, ReturnType<typeof component>>();
+    const lsCache = new WeakMap<object, CompCache>();
     pi.registerTool({
         name: "ls",
         label: builtinLs.label,
@@ -577,8 +600,9 @@ export default function (pi: ExtensionAPI) {
             }
 
             const details = (result as any).details;
+            const key: ExpandState = expanded ? "expanded" : "collapsed";
             if (details) {
-                const cached = lsCache.get(details);
+                const cached = lsCache.get(details)?.[key];
                 if (cached) return cached;
             }
 
@@ -621,7 +645,11 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) lsCache.set(details, comp);
+            if (details) {
+                const pair = lsCache.get(details) || {};
+                pair[key] = comp;
+                lsCache.set(details, pair);
+            }
             return comp;
         },
     });
