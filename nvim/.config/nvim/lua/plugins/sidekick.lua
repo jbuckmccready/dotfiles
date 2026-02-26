@@ -46,20 +46,22 @@ return {
             function()
                 local cli = require("sidekick.cli")
                 local _, text = cli.render("{selection}")
-                if not text or #text == 0 then
-                    return
-                end
+                local has_selection = text and #text > 0
                 vim.ui.input({ prompt = "Message: " }, function(input)
                     if not input then
                         return
                     end
-                    if input ~= "" then
-                        text[#text + 1] = { { "\n" .. input } }
+                    if has_selection then
+                        if input ~= "" then
+                            text[#text + 1] = { { "\n" .. input } }
+                        end
+                        cli.send({ text = text, submit = true })
+                    elseif input ~= "" then
+                        cli.send({ msg = input, submit = true })
                     end
-                    cli.send({ text = text, submit = true })
                 end)
             end,
-            mode = { "x" },
+            mode = { "x", "n" },
             desc = "Send Selection with Message",
         },
         {
