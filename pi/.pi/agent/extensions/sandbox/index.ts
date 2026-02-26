@@ -67,6 +67,29 @@ import {
 import { Text, truncateToWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import { getSanitizedTextOutput } from "../../extensions_lib/tool-output";
 
+function makeSep(borderAnsi: string, width: number): string {
+    return borderAnsi + "─".repeat(width) + "\x1b[39m";
+}
+
+function component(renderFn: (width: number) => string[]) {
+    let cachedWidth: number | undefined;
+    let cachedLines: string[] | undefined;
+    return {
+        invalidate() {
+            cachedWidth = undefined;
+            cachedLines = undefined;
+        },
+        render(width: number) {
+            if (cachedLines && cachedWidth === width) return cachedLines;
+            cachedLines = renderFn(width).map((l) =>
+                truncateToWidth(l, width),
+            );
+            cachedWidth = width;
+            return cachedLines;
+        },
+    } as any;
+}
+
 interface SandboxConfig extends SandboxRuntimeConfig {
     enabled?: boolean;
     // Extra environment variables injected into sandboxed bash commands.
@@ -347,6 +370,7 @@ export default function (pi: ExtensionAPI) {
 
     const localCwd = process.cwd();
     const localBash = createBashTool(localCwd);
+    const bashCache = new WeakMap<object, ReturnType<typeof component>>();
 
     let sandboxEnabled = false;
     let sandboxInitialized = false;
@@ -378,12 +402,7 @@ export default function (pi: ExtensionAPI) {
             const title =
                 theme.fg("toolTitle", theme.bold(`$ ${commandDisplay}`)) +
                 timeoutSuffix;
-            return {
-                invalidate() {},
-                render(width: number) {
-                    return wrapTextWithAnsi(title, width);
-                },
-            } as any;
+            return component((width) => wrapTextWithAnsi(title, width));
         },
 
         renderResult(result: any, { expanded, isPartial }: any, theme: any) {
@@ -391,8 +410,13 @@ export default function (pi: ExtensionAPI) {
                 return new Text(theme.fg("warning", "Running..."), 0, 0);
             }
 
-            const output = getSanitizedTextOutput(result).trim();
             const details = result.details;
+            if (details) {
+                const cached = bashCache.get(details);
+                if (cached) return cached;
+            }
+
+            const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
             const outputLines = output
@@ -422,34 +446,25 @@ export default function (pi: ExtensionAPI) {
                     ? theme.fg("warning", `[${warnings.join(". ")}]`)
                     : null;
 
-            return {
-                invalidate() {},
-                render(width: number) {
-                    const lines: string[] = [];
-                    if (outputLines.length > 0) {
-                        const maxLines = expanded ? outputLines.length : 5;
-                        const display = outputLines.slice(0, maxLines);
-                        const remaining = outputLines.length - maxLines;
+            const comp = component((width) => {
+                const lines: string[] = [];
+                if (outputLines.length > 0) {
+                    const maxLines = expanded ? outputLines.length : 5;
+                    const display = outputLines.slice(0, maxLines);
+                    const remaining = outputLines.length - maxLines;
+                    lines.push(makeSep(borderAnsi, width), ...display);
+                    if (remaining > 0) {
                         lines.push(
-                            borderAnsi + "─".repeat(width) + "\x1b[39m",
-                            ...display.map((l: string) => truncateToWidth(l, width)),
+                            theme.fg("muted", `... (${remaining} more lines)`),
                         );
-                        if (remaining > 0) {
-                            lines.push(
-                                truncateToWidth(theme.fg(
-                                    "muted",
-                                    `... (${remaining} more lines)`,
-                                ), width),
-                            );
-                        }
                     }
-                    if (warningLine) lines.push("", truncateToWidth(warningLine, width));
-                    lines.push(
-                        borderAnsi + "─".repeat(width) + "\x1b[39m",
-                    );
-                    return lines;
-                },
-            } as any;
+                }
+                if (warningLine) lines.push("", warningLine);
+                lines.push(makeSep(borderAnsi, width));
+                return lines;
+            });
+            if (details) bashCache.set(details, comp);
+            return comp;
         },
     });
 

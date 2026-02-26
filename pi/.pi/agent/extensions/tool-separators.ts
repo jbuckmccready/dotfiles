@@ -37,10 +37,20 @@ function makeSep(borderAnsi: string, width: number): string {
 }
 
 function component(renderFn: (width: number) => string[]) {
+    let cachedWidth: number | undefined;
+    let cachedLines: string[] | undefined;
     return {
-        invalidate() {},
+        invalidate() {
+            cachedWidth = undefined;
+            cachedLines = undefined;
+        },
         render(width: number) {
-            return renderFn(width).map((l) => truncateToWidth(l, width));
+            if (cachedLines && cachedWidth === width) return cachedLines;
+            cachedLines = renderFn(width).map((l) =>
+                truncateToWidth(l, width),
+            );
+            cachedWidth = width;
+            return cachedLines;
         },
     } as any;
 }
@@ -53,6 +63,7 @@ export default function (pi: ExtensionAPI) {
     // Shared between renderCall and renderResult within a single
     // synchronous updateDisplay() cycle.
     let lastReadPath: string | undefined;
+    const readCache = new WeakMap<object, ReturnType<typeof component>>();
 
     pi.registerTool({
         name: "read",
@@ -101,8 +112,13 @@ export default function (pi: ExtensionAPI) {
                 return new Text(theme.fg("warning", "Reading..."), 0, 0);
             }
 
-            const output = getSanitizedTextOutput(result);
             const details = (result as any).details;
+            if (details) {
+                const cached = readCache.get(details);
+                if (cached) return cached;
+            }
+
+            const output = getSanitizedTextOutput(result);
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
             // Capture path from renderCall (called synchronously just before)
@@ -142,7 +158,7 @@ export default function (pi: ExtensionAPI) {
                 }
             }
 
-            return component((width) => {
+            const comp = component((width) => {
                 const lines: string[] = [];
                 if (highlighted.length > 0) {
                     const maxLines = expanded ? highlighted.length : 10;
@@ -159,12 +175,15 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
+            if (details) readCache.set(details, comp);
+            return comp;
         },
     });
 
     // ── grep ─────────────────────────────────────────────────────────
 
     const builtinGrep = createGrepTool(process.cwd());
+    const grepCache = new WeakMap<object, ReturnType<typeof component>>();
     pi.registerTool({
         name: "grep",
         label: builtinGrep.label,
@@ -209,8 +228,13 @@ export default function (pi: ExtensionAPI) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
-            const output = getSanitizedTextOutput(result).trim();
             const details = (result as any).details;
+            if (details) {
+                const cached = grepCache.get(details);
+                if (cached) return cached;
+            }
+
+            const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
             const outputLines = output
@@ -235,7 +259,7 @@ export default function (pi: ExtensionAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            return component((width) => {
+            const comp = component((width) => {
                 const lines: string[] = [];
                 if (outputLines.length > 0) {
                     const maxLines = expanded ? outputLines.length : 15;
@@ -252,6 +276,8 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
+            if (details) grepCache.set(details, comp);
+            return comp;
         },
     });
 
@@ -263,6 +289,7 @@ export default function (pi: ExtensionAPI) {
     // synchronous updateDisplay() cycle.
     let lastWritePath: string | undefined;
     let lastWriteContent: string | undefined;
+    const writeResultCache = new WeakMap<object, ReturnType<typeof component>>();
 
     // Incremental highlight cache for write tool streaming
     let writeHlCache:
@@ -299,27 +326,12 @@ export default function (pi: ExtensionAPI) {
             content.startsWith(writeHlCache.rawContent) &&
             content.length > writeHlCache.rawContent.length
         ) {
-            const delta = content.slice(writeHlCache.rawContent.length);
-            const deltaNorm = replaceTabs(delta);
-            const segments = deltaNorm.split("\n");
             const cache = writeHlCache;
             cache.rawContent = content;
 
-            // Append delta to last line + new lines
-            if (cache.highlightedLines.length === 0) {
-                cache.highlightedLines.push("");
-            }
-            const lastIdx = cache.highlightedLines.length - 1;
-            // Re-highlight the last line (it got extended)
-            const allNorm = replaceTabs(content);
-            const allLines = allNorm.split("\n");
-            const singleHl = (line: string) =>
-                highlightCode(line, lang)[0] ?? line;
-
-            cache.highlightedLines[lastIdx] = singleHl(allLines[lastIdx]);
-            for (let s = 1; s < segments.length; s++) {
-                cache.highlightedLines.push(singleHl(allLines[lastIdx + s]));
-            }
+            // Re-highlight the full content in one call
+            const normalized = replaceTabs(content);
+            cache.highlightedLines = highlightCode(normalized, lang);
 
             return cache.highlightedLines;
         }
@@ -402,7 +414,14 @@ export default function (pi: ExtensionAPI) {
             // renderResult() does not include an isError flag.
             // For write, success has details === undefined, while agent-loop
             // populates details = {} when execution throws.
-            const isError = (result as any).details !== undefined;
+            const details = (result as any).details;
+            const isError = details !== undefined;
+
+            if (!isError && details) {
+                const cached = writeResultCache.get(details);
+                if (cached) return cached;
+            }
+
             const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
@@ -423,7 +442,7 @@ export default function (pi: ExtensionAPI) {
                 ? getWriteHighlighted(rawPath, fileContent, theme)
                 : [];
 
-            return component((width) => {
+            const comp = component((width) => {
                 const lines: string[] = [];
                 if (contentLines.length > 0) {
                     const maxLines = expanded ? contentLines.length : 10;
@@ -442,12 +461,15 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
+            if (details) writeResultCache.set(details, comp);
+            return comp;
         },
     });
 
     // ── find ─────────────────────────────────────────────────────────
 
     const builtinFind = createFindTool(process.cwd());
+    const findCache = new WeakMap<object, ReturnType<typeof component>>();
     pi.registerTool({
         name: "find",
         label: builtinFind.label,
@@ -488,8 +510,13 @@ export default function (pi: ExtensionAPI) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
-            const output = getSanitizedTextOutput(result).trim();
             const details = (result as any).details;
+            if (details) {
+                const cached = findCache.get(details);
+                if (cached) return cached;
+            }
+
+            const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
             const outputLines = output
@@ -511,7 +538,7 @@ export default function (pi: ExtensionAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            return component((width) => {
+            const comp = component((width) => {
                 const lines: string[] = [];
                 if (outputLines.length > 0) {
                     const maxLines = expanded ? outputLines.length : 20;
@@ -528,12 +555,15 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
+            if (details) findCache.set(details, comp);
+            return comp;
         },
     });
 
     // ── ls ────────────────────────────────────────────────────────────
 
     const builtinLs = createLsTool(process.cwd());
+    const lsCache = new WeakMap<object, ReturnType<typeof component>>();
     pi.registerTool({
         name: "ls",
         label: builtinLs.label,
@@ -570,8 +600,13 @@ export default function (pi: ExtensionAPI) {
                 return new Text(theme.fg("warning", "Listing..."), 0, 0);
             }
 
-            const output = getSanitizedTextOutput(result).trim();
             const details = (result as any).details;
+            if (details) {
+                const cached = lsCache.get(details);
+                if (cached) return cached;
+            }
+
+            const output = getSanitizedTextOutput(result).trim();
             const borderAnsi = theme.getFgAnsi("borderMuted");
 
             const outputLines = output
@@ -593,7 +628,7 @@ export default function (pi: ExtensionAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            return component((width) => {
+            const comp = component((width) => {
                 const lines: string[] = [];
                 if (outputLines.length > 0) {
                     const maxLines = expanded ? outputLines.length : 20;
@@ -610,6 +645,8 @@ export default function (pi: ExtensionAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
+            if (details) lsCache.set(details, comp);
+            return comp;
         },
     });
 }

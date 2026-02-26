@@ -4,7 +4,9 @@
  * Overrides the built-in edit tool renderer to apply Catppuccin-style
  * line backgrounds: darkened green for added, darkened red for removed.
  * Intra-line word highlights use subtle tinted backgrounds instead of inverse.
- * Syntax highlighting is applied to diff output using the file's language.
+ * Syntax highlighting is applied to diff output using the file's language
+ * via a single batched highlightCode call per diff, cached with a WeakMap
+ * keyed on the result details object for O(1) identity-based lookups.
  * Matches Catppuccin nvim's DiffAdd/DiffDelete/DiffText highlighting.
  */
 
@@ -91,17 +93,6 @@ function applyBgToRange(
     }
     if (inRange) result += restoreBg;
     return result;
-}
-
-/**
- * Highlight a single line of code. Each line gets a fresh tokenizer state,
- * which avoids issues with partial code fragments confusing the highlighter.
- * Only runs once per edit (result is cached by DiffText).
- */
-function highlightLine(content: string, lang?: string): string {
-    if (!lang) return content;
-    const lines = highlightCode(content, lang);
-    return lines[0] ?? content;
 }
 
 /**
@@ -205,7 +196,23 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
     const lines = diffText.split("\n");
     const tabs = (s: string) => s.replace(/\t/g, "   ");
 
-    const hl = (plain: string) => highlightLine(plain, lang);
+    // Batch-highlight: collect all content lines, call highlightCode once
+    // instead of per-line (amortizes grammar/tokenizer initialization).
+    const allPlain: string[] = [];
+    for (const line of lines) {
+        const p = parseDiffLine(line);
+        if (p) allPlain.push(tabs(p.content));
+    }
+    const allHl =
+        lang && allPlain.length > 0
+            ? highlightCode(allPlain.join("\n"), lang)
+            : allPlain;
+    let hlIdx = 0;
+    const hl = () => {
+        const j = hlIdx++;
+        return allHl[j] ?? allPlain[j] ?? "";
+    };
+
     const result: string[] = [];
     let i = 0;
     while (i < lines.length) {
@@ -225,11 +232,13 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
                     a = add.collected[0];
                 const rPlain = tabs(r.content),
                     aPlain = tabs(a.content);
+                const rHl = hl(),
+                    aHl = hl();
                 const { removedLine, addedLine } = renderIntraLineDiff(
                     rPlain,
                     aPlain,
-                    hl(rPlain),
-                    hl(aPlain),
+                    rHl,
+                    aHl,
                     REMOVED_WORD_BG,
                     ADDED_WORD_BG,
                     REMOVED_LINE_BG,
@@ -255,7 +264,7 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
                             "toolDiffRemoved",
                             "-",
                             r.lineNum,
-                            hl(tabs(r.content)),
+                            hl(),
                         ),
                     );
                 for (const a of add.collected)
@@ -265,7 +274,7 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
                             "toolDiffAdded",
                             "+",
                             a.lineNum,
-                            hl(tabs(a.content)),
+                            hl(),
                         ),
                     );
             }
@@ -276,7 +285,7 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
                     "toolDiffAdded",
                     "+",
                     parsed.lineNum,
-                    hl(tabs(parsed.content)),
+                    hl(),
                 ),
             );
             i++;
@@ -287,7 +296,7 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
                     "toolDiffContext",
                     " ",
                     parsed.lineNum,
-                    hl(tabs(parsed.content)),
+                    hl(),
                 ),
             );
             i++;
@@ -346,6 +355,11 @@ export default function (pi: ExtensionAPI) {
     // synchronous updateDisplay() cycle.
     let lastEditPath: string | undefined;
 
+    // Cache rendered DiffText objects keyed on the details object reference.
+    // O(1) identity-based lookup — no string hashing. Entries are GC'd
+    // when the framework discards old results.
+    const diffTextCache = new WeakMap<object, DiffText>();
+
     pi.registerTool({
         name: "edit",
         label: builtinEdit.label,
@@ -394,6 +408,9 @@ export default function (pi: ExtensionAPI) {
                 return new Text(isError ? theme.fg("error", text) : text, 0, 0);
             }
 
+            const cached = diffTextCache.get(details);
+            if (cached) return cached;
+
             const lang = lastEditPath
                 ? getLanguageFromPath(lastEditPath.replace(/^@/, ""))
                 : undefined;
@@ -401,7 +418,9 @@ export default function (pi: ExtensionAPI) {
             const rendered = renderDiff(details.diff, theme, lang);
             const boxBg = theme.getBgAnsi("toolSuccessBg");
             const borderAnsi = theme.getFgAnsi("borderMuted");
-            return new DiffText(rendered, boxBg, borderAnsi) as any;
+            const dt = new DiffText(rendered, boxBg, borderAnsi);
+            diffTextCache.set(details, dt);
+            return dt as any;
         },
     });
 }
