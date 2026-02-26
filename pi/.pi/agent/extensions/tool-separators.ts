@@ -378,32 +378,8 @@ export default function (pi: ExtensionAPI) {
                 : theme.fg("toolOutput", "...");
 
             const title = `${theme.fg("toolTitle", theme.bold("write"))} ${pathDisplay}`;
-            const borderAnsi = theme.getFgAnsi("borderMuted");
 
-            const contentLines = getWriteHighlighted(
-                rawPath,
-                fileContent,
-                theme,
-            );
-
-            return component((width) => {
-                const lines = [...wrapTextWithAnsi(title, width)];
-                if (contentLines.length > 0) {
-                    const maxLines = 10;
-                    const display = contentLines.slice(0, maxLines);
-                    const remaining = contentLines.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
-                    if (remaining > 0) {
-                        lines.push(
-                            theme.fg(
-                                "muted",
-                                `... (${remaining} more lines, ${contentLines.length} total)`,
-                            ),
-                        );
-                    }
-                }
-                return lines;
-            });
+            return component((width) => wrapTextWithAnsi(title, width));
         },
 
         renderResult(result, { expanded, isPartial }, theme) {
