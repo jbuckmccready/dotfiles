@@ -1,4 +1,6 @@
 import stripAnsi from "strip-ansi";
+import { truncateToWidth } from "@mariozechner/pi-tui";
+import { homedir } from "os";
 
 /**
  * Sanitize binary output for display/storage.
@@ -31,4 +33,36 @@ export function getSanitizedTextOutput(result: any): string {
     return textBlocks
         .map((c: any) => sanitizeToolText(c.text || ""))
         .join("\n");
+}
+
+export function makeSep(borderAnsi: string, width: number): string {
+    return borderAnsi + "─".repeat(width) + "\x1b[39m";
+}
+
+export function component(renderFn: (width: number) => string[]) {
+    let cachedWidth: number | undefined;
+    let cachedLines: string[] | undefined;
+    return {
+        invalidate() {
+            cachedWidth = undefined;
+            cachedLines = undefined;
+        },
+        render(width: number) {
+            if (cachedLines && cachedWidth === width) return cachedLines;
+            cachedLines = renderFn(width).map((l) =>
+                truncateToWidth(l, width),
+            );
+            cachedWidth = width;
+            return cachedLines;
+        },
+    } as any;
+}
+
+export function shortenPath(path: string): string {
+    const home = homedir();
+    return path.startsWith(home) ? `~${path.slice(home.length)}` : path;
+}
+
+export function replaceTabs(text: string): string {
+    return text.replace(/\t/g, "   ");
 }

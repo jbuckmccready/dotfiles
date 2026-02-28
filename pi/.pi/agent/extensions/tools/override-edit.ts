@@ -1,19 +1,4 @@
-/**
- * Per-line background highlighting for edit tool diffs.
- *
- * Overrides the built-in edit tool renderer to apply Catppuccin-style
- * line backgrounds: darkened green for added, darkened red for removed.
- * Intra-line word highlights use subtle tinted backgrounds instead of inverse.
- * Syntax highlighting is applied to diff output using the file's language
- * via a single batched highlightCode call per diff, cached with a WeakMap
- * keyed on the result details object for O(1) identity-based lookups.
- * Matches Catppuccin nvim's DiffAdd/DiffDelete/DiffText highlighting.
- */
-
-import type {
-    ExtensionAPI,
-    EditToolDetails,
-} from "@mariozechner/pi-coding-agent";
+import type { EditToolDetails } from "@mariozechner/pi-coding-agent";
 import {
     createEditTool,
     highlightCode,
@@ -22,7 +7,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Text, visibleWidth, truncateToWidth } from "@mariozechner/pi-tui";
 import * as Diff from "diff";
-import { homedir } from "os";
+import { shortenPath } from "./shared";
 
 // darken(color, factor, base) where base = #1e1e2e
 const ADDED_LINE_BG = "\x1b[48;2;48;66;52m"; // darken(#a6e3a1, 0.18)
@@ -343,35 +328,17 @@ class DiffText {
     }
 }
 
-function shortenPath(path: string): string {
-    const home = homedir();
-    return path.startsWith(home) ? `~${path.slice(home.length)}` : path;
-}
-
-export default function (pi: ExtensionAPI) {
-    const builtinEdit = createEditTool(process.cwd());
-
-    // Shared between renderCall and renderResult within a single
-    // synchronous updateDisplay() cycle.
+export function createEditOverride() {
     let lastEditPath: string | undefined;
-
-    // Cache rendered DiffText objects keyed on the details object reference.
-    // O(1) identity-based lookup — no string hashing. Entries are GC'd
-    // when the framework discards old results.
     const diffTextCache = new WeakMap<object, DiffText>();
 
-    pi.registerTool({
-        name: "edit",
-        label: builtinEdit.label,
-        description: builtinEdit.description,
-        parameters: builtinEdit.parameters,
-
-        execute(toolCallId, params, signal, onUpdate, ctx) {
+    return {
+        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
             const tool = createEditTool(ctx.cwd);
             return tool.execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args, theme) {
+        renderCall(args: any, theme: any) {
             const rawPath = args?.path as string | undefined;
             lastEditPath = rawPath;
             const path = rawPath
@@ -389,7 +356,7 @@ export default function (pi: ExtensionAPI) {
             } as any;
         },
 
-        renderResult(result, { isPartial }, theme) {
+        renderResult(result: any, { isPartial }: any, theme: any) {
             const { details, isError } = result as {
                 details?: EditToolDetails;
                 isError?: boolean;
@@ -422,5 +389,5 @@ export default function (pi: ExtensionAPI) {
             diffTextCache.set(details, dt);
             return dt as any;
         },
-    });
+    };
 }

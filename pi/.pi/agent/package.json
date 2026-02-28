@@ -8,8 +8,7 @@
     "dependencies": {
         "@mariozechner/pi-coding-agent": "*",
         "@mariozechner/pi-tui": "*",
-        "@sinclair/typebox": "*",
-        "strip-ansi": "^7.1.2"
+        "@sinclair/typebox": "*"
     },
     "devDependencies": {
         "@types/node": "^25.2.0",

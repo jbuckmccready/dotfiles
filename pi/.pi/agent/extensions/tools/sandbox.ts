@@ -1,56 +1,3 @@
-/**
- * Sandbox Extension - OS-level sandboxing for bash commands
- *
- * Originally based on the official Pi sandbox extension example:
- * https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/examples/extensions/sandbox/index.ts
- *
- * Original implementation: Pi maintainers (@mariozechner and contributors).
- *
- * Modified in this repository:
- * - Added `commandEnv` config support for sandboxed command env overrides
- * - Added shared cache defaults under `~/.pi/sandbox-cache` (npm, bun, pnpm, pip, uv, zig, go, rust, xdg cache/data)
- * - Added per-command `CLAUDE_TMPDIR` alignment before `wrapWithSandbox()` so sandbox TMPDIR follows config (`/tmp` by default)
- * - Added command-env details to `/sandbox` output
- * - Expanded default sandbox filesystem/network settings for local development
- *
- * Uses @anthropic-ai/sandbox-runtime to enforce filesystem and network
- * restrictions on bash commands at the OS level (sandbox-exec on macOS,
- * bubblewrap on Linux).
- *
- * Config files (merged, project takes precedence):
- * - ~/.pi/agent/sandbox.json (global)
- * - <cwd>/.pi/sandbox.json (project-local)
- *
- * Example .pi/sandbox.json:
- * ```json
- * {
- *   "enabled": true,
- *   "network": {
- *     "allowedDomains": ["github.com", "*.github.com"],
- *     "deniedDomains": []
- *   },
- *   "filesystem": {
- *     "denyRead": ["~/.ssh", "~/.aws"],
- *     "allowWrite": [".", "/tmp"],
- *     "denyWrite": [".env"]
- *   },
- *   "commandEnv": {
- *     "BUN_INSTALL_CACHE_DIR": "~/.pi/sandbox-cache/bun"
- *   }
- * }
- * ```
- *
- * Usage:
- * - `pi -e ./sandbox` - sandbox enabled with default/config settings
- * - `pi -e ./sandbox --no-sandbox` - disable sandboxing
- * - `/sandbox` - show current sandbox configuration
- *
- * Setup:
- * Run `npm install` in this directory
- *
- * Linux also requires: bubblewrap, socat, ripgrep
- */
-
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -60,40 +7,11 @@ import {
     type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import {
-    type BashOperations,
-    createBashTool,
-} from "@mariozechner/pi-coding-agent";
-import { Text, truncateToWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import { getSanitizedTextOutput } from "../../extensions_lib/tool-output";
-
-function makeSep(borderAnsi: string, width: number): string {
-    return borderAnsi + "─".repeat(width) + "\x1b[39m";
-}
-
-function component(renderFn: (width: number) => string[]) {
-    let cachedWidth: number | undefined;
-    let cachedLines: string[] | undefined;
-    return {
-        invalidate() {
-            cachedWidth = undefined;
-            cachedLines = undefined;
-        },
-        render(width: number) {
-            if (cachedLines && cachedWidth === width) return cachedLines;
-            cachedLines = renderFn(width).map((l) =>
-                truncateToWidth(l, width),
-            );
-            cachedWidth = width;
-            return cachedLines;
-        },
-    } as any;
-}
+import type { BashOperations } from "@mariozechner/pi-coding-agent";
+import type { SandboxAPI } from "./override-bash";
 
 interface SandboxConfig extends SandboxRuntimeConfig {
     enabled?: boolean;
-    // Extra environment variables injected into sandboxed bash commands.
-    // Can be used to override default cache variables.
     commandEnv?: Record<string, string>;
 }
 
@@ -118,25 +36,15 @@ const DEFAULT_CONFIG: SandboxConfig = {
         allowUnixSockets: [
             ...(process.env.SSH_AUTH_SOCK ? [process.env.SSH_AUTH_SOCK] : []),
         ],
-        // NOTE: this one is somewhat dangerous, when set to true, the domain name
-        // restrictions can be bypassed by just unsetting proxy env vars (tested on MacOS)
-        // https://github.com/anthropic-experimental/sandbox-runtime/issues/88
         allowLocalBinding: false,
         deniedDomains: [],
     },
     filesystem: {
         denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-        // NOTE: Global user caches are excluded to prevent the agent from
-        // poisoning caches used outside the sandbox. Sandboxed bash commands
-        // are automatically configured to use ~/.pi/sandbox-cache for package
-        // manager/build caches, while TMPDIR uses /tmp.
         allowWrite: [
             ".",
             "/tmp",
-            // Required for MacOS as /tmp is symlink to /private/tmp
             "/private/tmp",
-            // Shared global cache directory for sandbox to use without risking poisoning
-            // caches used outside the sandbox
             "~/.pi/sandbox-cache",
         ],
         denyWrite: [
@@ -144,7 +52,6 @@ const DEFAULT_CONFIG: SandboxConfig = {
             ".env.*",
             "*.pem",
             "*.key",
-            // Prevent pi from tampering with its own sandbox config
             ".pi/sandbox.json",
         ],
     },
@@ -290,8 +197,6 @@ function createSandboxedBashOps(config: SandboxConfig): BashOperations {
                 throw new Error(`Working directory does not exist: ${cwd}`);
             }
 
-            // sandbox-runtime injects TMPDIR based on CLAUDE_TMPDIR.
-            // Keep it aligned with our configured TMPDIR.
             process.env.CLAUDE_TMPDIR = sandboxTmpDir;
 
             const wrappedCommand =
@@ -361,118 +266,15 @@ function createSandboxedBashOps(config: SandboxConfig): BashOperations {
     };
 }
 
-export default function (pi: ExtensionAPI) {
-    pi.registerFlag("no-sandbox", {
-        description: "Disable OS-level sandboxing for bash commands",
-        type: "boolean",
-        default: false,
-    });
-
-    const localCwd = process.cwd();
-    type ExpandState = "expanded" | "collapsed";
-    type CompCache = Partial<Record<ExpandState, any>>;
-    const localBash = createBashTool(localCwd);
-    const bashCache = new WeakMap<object, CompCache>();
-
+export function initSandbox(pi: ExtensionAPI): SandboxAPI {
     let sandboxEnabled = false;
     let sandboxInitialized = false;
     let activeConfig: SandboxConfig = DEFAULT_CONFIG;
 
-    pi.registerTool({
-        ...localBash,
-        label: "bash (sandboxed)",
-        async execute(id, params, signal, onUpdate, _ctx) {
-            if (!sandboxEnabled || !sandboxInitialized) {
-                return localBash.execute(id, params, signal, onUpdate);
-            }
-
-            const sandboxedBash = createBashTool(localCwd, {
-                operations: createSandboxedBashOps(activeConfig),
-            });
-            return sandboxedBash.execute(id, params, signal, onUpdate);
-        },
-
-        renderCall(args: any, theme: any) {
-            const command = args?.command as string | undefined;
-            const timeout = args?.timeout as number | undefined;
-            const timeoutSuffix = timeout
-                ? theme.fg("muted", ` (timeout ${timeout}s)`)
-                : "";
-            const commandDisplay = command
-                ? command
-                : theme.fg("toolOutput", "...");
-            const title =
-                theme.fg("toolTitle", theme.bold(`$ ${commandDisplay}`)) +
-                timeoutSuffix;
-            return component((width) => wrapTextWithAnsi(title, width));
-        },
-
-        renderResult(result: any, { expanded, isPartial }: any, theme: any) {
-            if (isPartial) {
-                return new Text(theme.fg("warning", "Running..."), 0, 0);
-            }
-
-            const details = result.details;
-            const key: ExpandState = expanded ? "expanded" : "collapsed";
-            if (details) {
-                const cached = bashCache.get(details)?.[key];
-                if (cached) return cached;
-            }
-
-            const output = getSanitizedTextOutput(result).trim();
-            const borderAnsi = theme.getFgAnsi("borderMuted");
-
-            const outputLines = output
-                ? output
-                      .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", l))
-                : [];
-
-            const warnings: string[] = [];
-            if (details?.fullOutputPath) {
-                warnings.push(`Full output: ${details.fullOutputPath}`);
-            }
-            if (details?.truncation?.truncated) {
-                const t = details.truncation;
-                if (t.truncatedBy === "lines") {
-                    warnings.push(
-                        `Truncated: showing ${t.outputLines} of ${t.totalLines} lines`,
-                    );
-                } else {
-                    warnings.push(
-                        `Truncated: ${t.outputLines} lines shown`,
-                    );
-                }
-            }
-            const warningLine =
-                warnings.length > 0
-                    ? theme.fg("warning", `[${warnings.join(". ")}]`)
-                    : null;
-
-            const comp = component((width) => {
-                const lines: string[] = [];
-                if (outputLines.length > 0) {
-                    const maxLines = expanded ? outputLines.length : 5;
-                    const display = outputLines.slice(0, maxLines);
-                    const remaining = outputLines.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
-                    if (remaining > 0) {
-                        lines.push(
-                            theme.fg("muted", `... (${remaining} more lines)`),
-                        );
-                    }
-                }
-                if (warningLine) lines.push("", warningLine);
-                lines.push(makeSep(borderAnsi, width));
-                return lines;
-            });
-            if (details) {
-                const pair = bashCache.get(details) || {};
-                pair[key] = comp;
-                bashCache.set(details, pair);
-            }
-            return comp;
-        },
+    pi.registerFlag("no-sandbox", {
+        description: "Disable OS-level sandboxing for bash commands",
+        type: "boolean",
+        default: false,
     });
 
     pi.on("user_bash", () => {
@@ -581,4 +383,13 @@ export default function (pi: ExtensionAPI) {
             ctx.ui.notify(lines.join("\n"), "info");
         },
     });
+
+    return {
+        isActive() {
+            return sandboxEnabled && sandboxInitialized;
+        },
+        createBashOps() {
+            return createSandboxedBashOps(activeConfig);
+        },
+    };
 }
