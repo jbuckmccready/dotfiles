@@ -64,3 +64,46 @@ export function shortenPath(path: string): string {
 export function replaceTabs(text: string): string {
     return text.replace(/\t/g, "   ");
 }
+
+/**
+ * Detect image MIME type from the first bytes of a file using magic byte signatures.
+ * Needs at least 12 bytes for full detection (WebP). Returns null if not a recognized image.
+ */
+export function detectImageMimeFromBytes(buf: Buffer): string | null {
+    if (buf.length < 3) return null;
+    // JPEG: FF D8 FF
+    if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)
+        return "image/jpeg";
+    // PNG: 89 50 4E 47
+    if (
+        buf.length >= 4 &&
+        buf[0] === 0x89 &&
+        buf[1] === 0x50 &&
+        buf[2] === 0x4e &&
+        buf[3] === 0x47
+    )
+        return "image/png";
+    // GIF: 47 49 46 38 ("GIF8")
+    if (
+        buf.length >= 4 &&
+        buf[0] === 0x47 &&
+        buf[1] === 0x49 &&
+        buf[2] === 0x46 &&
+        buf[3] === 0x38
+    )
+        return "image/gif";
+    // WebP: RIFF....WEBP
+    if (
+        buf.length >= 12 &&
+        buf[0] === 0x52 &&
+        buf[1] === 0x49 &&
+        buf[2] === 0x46 &&
+        buf[3] === 0x46 &&
+        buf[8] === 0x57 &&
+        buf[9] === 0x45 &&
+        buf[10] === 0x42 &&
+        buf[11] === 0x50
+    )
+        return "image/webp";
+    return null;
+}

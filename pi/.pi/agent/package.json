@@ -3,7 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "check": "tsc --noEmit -p tsconfig.json"
+        "check": "tsc --noEmit -p tsconfig.json",
+        "test": "node --import tsx --test $(find . -name '*.test.ts' -not -path '*/node_modules/*')"
     },
     "dependencies": {
         "@mariozechner/pi-coding-agent": "*",
@@ -12,6 +13,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.2.0",
+        "tsx": "^4.21.0",
         "typescript": "^5.9.3"
     }
 }

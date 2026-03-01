@@ -47,10 +47,7 @@ import { homedir } from "node:os";
 import { join, basename } from "node:path";
 import { globSync } from "glob";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
-import type {
-    ExtensionAPI,
-    ExtensionUIContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -65,6 +62,7 @@ import type {
     SandboxProvider,
     SandboxOps,
 } from "./sandbox-shared";
+import { detectImageMimeFromBytes } from "./shared";
 
 const SANDBOX_CACHE_ROOT = join(homedir(), ".pi", "sandbox-cache");
 
@@ -261,19 +259,14 @@ function createReadOps(denyReadResolved: string[]): ReadOperations {
         ): Promise<string | null | undefined> {
             assertReadAllowed(absolutePath, denyReadResolved);
             try {
-                const { stdout, exitCode } = await execSandboxed(
-                    `file --mime-type -b -- ${shellQuote(absolutePath)}`,
-                );
-                if (exitCode !== 0) return null;
-                const mime = stdout.trim();
-                return [
-                    "image/jpeg",
-                    "image/png",
-                    "image/gif",
-                    "image/webp",
-                ].includes(mime)
-                    ? mime
-                    : null;
+                const fh = await fs.open(absolutePath, "r");
+                try {
+                    const buf = Buffer.alloc(16);
+                    await fh.read(buf, 0, 16, 0);
+                    return detectImageMimeFromBytes(buf);
+                } finally {
+                    await fh.close();
+                }
             } catch {
                 return null;
             }
@@ -526,10 +519,10 @@ function createSandboxedBashOps(osConfig: OsSandboxConfig): BashOperations {
 export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
     let initialized = false;
     let ops: SandboxOps = {};
+    let savedConfig: OsSandboxConfig | null = null;
 
     return {
         async init(
-            _pi: ExtensionAPI,
             cwd: string,
             ui: ExtensionUIContext,
             config: OsSandboxConfig,
@@ -577,6 +570,7 @@ export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
             };
 
             initialized = true;
+            savedConfig = config;
 
             const networkCount = config.network?.allowedDomains?.length ?? 0;
             const writeCount = config.filesystem?.allowWrite?.length ?? 0;
@@ -608,6 +602,25 @@ export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
         getOps(): SandboxOps {
             if (!initialized) throw new Error("Sandbox not initialized");
             return ops;
+        },
+
+        describe() {
+            const c = savedConfig;
+            return [
+                "Sandbox: os",
+                "",
+                "Network:",
+                `  Allowed: ${c?.network?.allowedDomains?.join(", ") || "(none)"}`,
+                `  Denied: ${c?.network?.deniedDomains?.join(", ") || "(none)"}`,
+                "",
+                "Filesystem:",
+                `  Deny Read: ${c?.filesystem?.denyRead?.join(", ") || "(none)"}`,
+                `  Allow Write: ${c?.filesystem?.allowWrite?.join(", ") || "(none)"}`,
+                `  Deny Write: ${c?.filesystem?.denyWrite?.join(", ") || "(none)"}`,
+            ];
+        },
+        patchSystemPrompt(systemPrompt: string) {
+            return systemPrompt;
         },
     };
 }

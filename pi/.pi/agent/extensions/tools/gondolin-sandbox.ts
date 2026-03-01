@@ -36,14 +36,10 @@
  *                   and substitutes on outbound HTTP requests to allowed hosts.
  *   excludePaths  — workspace-relative paths hidden from the guest via ShadowProvider
  */
-import { constants, existsSync, realpathSync } from "node:fs";
+import { constants, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { globSync } from "glob";
-import type {
-    ExtensionAPI,
-    ExtensionUIContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -65,6 +61,12 @@ import type {
     SandboxProvider,
     SandboxOps,
 } from "./sandbox-shared";
+import {
+    type StreamingExec,
+    createSandboxedGrepExecute,
+    sandboxedFdGlob,
+} from "./sandbox-tools";
+import { detectImageMimeFromBytes } from "./shared";
 
 const GUEST_WORKSPACE = "/workspace";
 const GUEST_HOME = "/root";
@@ -128,19 +130,14 @@ function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
             try {
                 const r = await vm.exec([
                     "/bin/sh",
-                    "-lc",
-                    `file --mime-type -b ${shQuote(guestPath)}`,
+                    "-c",
+                    `head -c 16 ${shQuote(guestPath)} | base64`,
                 ]);
+
                 if (!r.ok) return null;
-                const m = r.stdout.trim();
-                return [
-                    "image/jpeg",
-                    "image/png",
-                    "image/gif",
-                    "image/webp",
-                ].includes(m)
-                    ? m
-                    : null;
+                return detectImageMimeFromBytes(
+                    Buffer.from(r.stdout.trim(), "base64"),
+                );
             } catch {
                 return null;
             }
@@ -213,212 +210,34 @@ function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
     };
 }
 
-function createGondolinGrepExecute(vm: VM): SandboxOps["grepExecute"] {
-    const MAX_LINE_LENGTH = 500;
-    const MAX_BYTES = 50 * 1024;
-    const DEFAULT_LIMIT = 100;
-
-    function truncateLine(line: string): {
-        text: string;
-        wasTruncated: boolean;
-    } {
-        if (line.length <= MAX_LINE_LENGTH)
-            return { text: line, wasTruncated: false };
-        return {
-            text: line.slice(0, MAX_LINE_LENGTH) + "... [truncated]",
-            wasTruncated: true,
-        };
-    }
-
-    return async (params: any, signal?: AbortSignal) => {
-        if (signal?.aborted) throw new Error("Operation aborted");
-
-        const userPath = params.path || ".";
-        const searchPath = path.posix.isAbsolute(userPath)
-            ? userPath
-            : path.posix.join(GUEST_WORKSPACE, userPath);
-        const effectiveLimit = Math.max(1, params.limit ?? DEFAULT_LIMIT);
-        const contextValue =
-            params.context && params.context > 0 ? params.context : 0;
-
-        // Build rg args
-        const args: string[] = [
-            "--json",
-            "--line-number",
-            "--color=never",
-            "--hidden",
-        ];
-        if (params.ignoreCase) args.push("--ignore-case");
-        if (params.literal) args.push("--fixed-strings");
-        if (params.glob) args.push("--glob", params.glob);
-        if (contextValue > 0) args.push("-C", String(contextValue));
-        args.push(params.pattern, searchPath);
-
-        const cmd = ["rg", ...args.map((a) => shQuote(a))].join(" ");
-
-        // Stream rg output line-by-line so we can abort once the match limit
-        // is reached instead of buffering the entire result.
-        const ac = new AbortController();
-        const onAbort = () => ac.abort();
-        signal?.addEventListener("abort", onAbort, { once: true });
-
-        const outputLines: string[] = [];
-        let matchCount = 0;
-        let matchLimitReached = false;
-        let linesTruncated = false;
-        let stderr = "";
-        let killedDueToLimit = false;
-        let stdoutRemainder = "";
-
-        try {
-            const proc = vm.exec(["/bin/sh", "-lc", cmd], {
-                signal: ac.signal,
-                stdout: "pipe",
-                stderr: "pipe",
-            });
-
-            for await (const chunk of proc.output()) {
-                if (chunk.stream === "stderr") {
-                    stderr += chunk.text;
-                    continue;
-                }
-
-                // Buffer partial lines across chunks
-                const text = stdoutRemainder + chunk.text;
-                const lines = text.split("\n");
-                stdoutRemainder = lines.pop() ?? "";
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-
-                    let event: any;
-                    try {
-                        event = JSON.parse(line);
-                    } catch {
-                        continue;
-                    }
-
-                    if (event.type === "match") {
-                        matchCount++;
-                        if (matchCount > effectiveLimit) {
-                            matchLimitReached = true;
-                            killedDueToLimit = true;
-                            ac.abort();
-                            break;
-                        }
-                    }
-
-                    if (event.type === "match" || event.type === "context") {
-                        const filePath: string | undefined =
-                            event.data?.path?.text;
-                        const lineNumber: number | undefined =
-                            event.data?.line_number;
-                        const lineText: string = (event.data?.lines?.text ?? "")
-                            .replace(/\n$/, "")
-                            .replace(/\r/g, "");
-
-                        if (!filePath || typeof lineNumber !== "number")
-                            continue;
-
-                        const rel = path.posix.relative(searchPath, filePath);
-                        const displayPath =
-                            rel && !rel.startsWith("..")
-                                ? rel
-                                : path.posix.basename(filePath);
-
-                        const { text: truncatedText, wasTruncated } =
-                            truncateLine(lineText);
-                        if (wasTruncated) linesTruncated = true;
-
-                        const sep = event.type === "match" ? ":" : "-";
-                        outputLines.push(
-                            `${displayPath}${sep}${lineNumber}${sep} ${truncatedText}`,
-                        );
-                    }
-                }
-                if (killedDueToLimit) break;
-            }
-
-            const result = await proc;
-            // rg exit code: 0 = matches, 1 = no matches, other = error
-            if (
-                !killedDueToLimit &&
-                result.exitCode !== 0 &&
-                result.exitCode !== 1
-            ) {
-                throw new Error(
-                    stderr.trim() ||
-                        `ripgrep exited with code ${result.exitCode}`,
-                );
-            }
-        } catch (err) {
-            if (signal?.aborted) throw new Error("Operation aborted");
-            if (!killedDueToLimit) throw err;
-        } finally {
-            signal?.removeEventListener("abort", onAbort);
+function createGondolinExec(vm: VM): StreamingExec {
+    return async (cmd, { signal, onStdout, onStderr }) => {
+        const proc = vm.exec(["/bin/sh", "-lc", cmd], {
+            signal,
+            stdout: "pipe",
+            stderr: "pipe",
+        });
+        for await (const chunk of proc.output()) {
+            if (chunk.stream === "stderr") onStderr(chunk.text);
+            else onStdout(chunk.text);
         }
-
-        if (matchCount === 0) {
-            return {
-                content: [{ type: "text" as const, text: "No matches found" }],
-                details: undefined,
-            };
-        }
-
-        let output = outputLines.join("\n");
-
-        // Byte truncation — accumulate complete lines up to limit
-        const details: Record<string, any> = {};
-        let truncated = false;
-        const totalBytes = Buffer.byteLength(output, "utf-8");
-        if (totalBytes > MAX_BYTES) {
-            const lines = output.split("\n");
-            const kept: string[] = [];
-            let byteCount = 0;
-            for (const line of lines) {
-                const lineBytes =
-                    Buffer.byteLength(line, "utf-8") +
-                    (kept.length > 0 ? 1 : 0);
-                if (byteCount + lineBytes > MAX_BYTES) break;
-                kept.push(line);
-                byteCount += lineBytes;
-            }
-            output = kept.join("\n");
-            truncated = true;
-            details.truncation = {
-                truncated: true,
-                originalSize: totalBytes,
-            };
-        }
-
-        // Build notices
-        const notices: string[] = [];
-        if (matchLimitReached) {
-            notices.push(
-                `${effectiveLimit} matches limit reached. Use limit=${effectiveLimit * 2} for more, or refine pattern`,
-            );
-            details.matchLimitReached = effectiveLimit;
-        }
-        if (truncated) {
-            notices.push("50KB limit reached");
-        }
-        if (linesTruncated) {
-            notices.push(
-                `Some lines truncated to ${MAX_LINE_LENGTH} chars. Use read tool to see full lines`,
-            );
-            details.linesTruncated = true;
-        }
-        if (notices.length > 0) {
-            output += `\n\n[${notices.join(". ")}]`;
-        }
-
-        return {
-            content: [{ type: "text" as const, text: output }],
-            details: Object.keys(details).length > 0 ? details : undefined,
-        };
+        const result = await proc;
+        return { exitCode: result.exitCode };
     };
 }
 
+function createGondolinGrepExecute(vm: VM): SandboxOps["grepExecute"] {
+    return createSandboxedGrepExecute({
+        resolveSearchPath: (userPath) =>
+            path.posix.isAbsolute(userPath)
+                ? userPath
+                : path.posix.join(GUEST_WORKSPACE, userPath),
+        exec: createGondolinExec(vm),
+    });
+}
+
 function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
+    const exec = createGondolinExec(vm);
     return {
         async exists(p) {
             const guestPath = toGuestPath(localCwd, p);
@@ -431,73 +250,13 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
         },
         async glob(pattern, cwd, options) {
             const guestCwd = toGuestPath(localCwd, cwd);
-            const args = [
-                "fd",
-                "--glob",
-                "--color=never",
-                "--hidden",
-                "--max-results",
-                String(options.limit),
-            ];
-
-            const gitignoreFiles = new Set<string>();
-            const rootGitignore = path.join(cwd, ".gitignore");
-            if (existsSync(rootGitignore)) {
-                gitignoreFiles.add(toGuestPath(localCwd, rootGitignore));
-            }
-
-            try {
-                const nestedGitignores = globSync("**/.gitignore", {
-                    cwd,
-                    dot: true,
-                    absolute: true,
-                    ignore: options.ignore,
-                });
-                for (const file of nestedGitignores) {
-                    gitignoreFiles.add(toGuestPath(localCwd, file));
-                }
-            } catch {
-                // Ignore glob errors
-            }
-
-            for (const gitignorePath of gitignoreFiles) {
-                args.push("--ignore-file", shQuote(gitignorePath));
-            }
-
-            args.push(shQuote(pattern), shQuote(guestCwd));
-
-            const r = await vm.exec(["/bin/sh", "-lc", args.join(" ")]);
-            if (!r.ok) {
-                const msg = r.stderr.trim();
-                throw new Error(
-                    msg
-                        ? `find failed (${r.exitCode}): ${msg}`
-                        : `find failed (${r.exitCode})`,
-                );
-            }
-
-            if (!r.stdout.trim()) return [];
-            return r.stdout
-                .trim()
-                .split("\n")
-                .map((line) => line.replace(/\r$/, ""))
-                .filter(Boolean)
-                .map((line) => {
-                    const normalized = line.replace(/\\/g, "/");
-                    if (normalized.startsWith(guestCwd)) {
-                        const suffix = normalized.slice(guestCwd.length);
-                        const relative = suffix.replace(/^\//, "");
-                        return path.join(
-                            cwd,
-                            ...relative.split("/").filter(Boolean),
-                        );
-                    }
-                    const relative = normalized.replace(/^\.\//, "");
-                    return path.join(
-                        cwd,
-                        ...relative.split("/").filter(Boolean),
-                    );
-                });
+            return sandboxedFdGlob({
+                pattern,
+                guestCwd,
+                searchPath: cwd,
+                limit: options.limit,
+                exec,
+            });
         },
     };
 }
@@ -538,27 +297,18 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
     let vm: VM | null = null;
     let localCwd = "";
     let ops: SandboxOps = {};
-    let pi: ExtensionAPI | null = null;
     let ui: ExtensionUIContext | null = null;
+    let savedConfig: GondolinSandboxConfig | null = null;
+    let savedHostSkillsDir = "";
 
     return {
-        async init(
-            extensionApi: ExtensionAPI,
-            cwd: string,
-            uiCtx,
-            config: GondolinSandboxConfig,
-        ) {
-            pi = extensionApi;
+        async init(cwd: string, uiCtx, config: GondolinSandboxConfig) {
+            savedConfig = config;
             ui = uiCtx;
             localCwd = cwd;
 
-            const hostSkillsDir = path.join(
-                homedir(),
-                ".pi",
-                "agent",
-                "skills",
-            );
-            const realSkillsDir = realpathSync(hostSkillsDir);
+            savedHostSkillsDir = path.join(homedir(), ".pi", "agent", "skills");
+            const realSkillsDir = realpathSync(savedHostSkillsDir);
 
             let guestDir = config.guestDir;
             if (guestDir?.startsWith("~/")) {
@@ -647,16 +397,6 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 find: createGondolinFindOps(vm, localCwd),
                 ls: createGondolinLsOps(vm, localCwd),
             };
-
-            // Patch system prompt to show /workspace as CWD and guest skill mount paths.
-            pi.on("before_agent_start", async (event) => {
-                let modified = event.systemPrompt.replace(
-                    `Current working directory: ${localCwd}`,
-                    `Current working directory: ${GUEST_WORKSPACE} (Gondolin VM, mounted from host: ${localCwd})`,
-                );
-                modified = modified.split(hostSkillsDir).join(GUEST_SKILLS_DIR);
-                return { systemPrompt: modified };
-            });
         },
 
         async shutdown() {
@@ -680,6 +420,28 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
         getOps(): SandboxOps {
             if (!vm) throw new Error("Gondolin sandbox not initialized");
             return ops;
+        },
+
+        describe() {
+            return [
+                "Sandbox: gondolin",
+                `  Guest Dir: ${savedConfig?.guestDir || "(default)"}`,
+                `  Allowed Hosts: ${savedConfig?.allowedHosts?.join(", ") || "(none)"}`,
+                `  Secrets: ${Object.keys(savedConfig?.secrets ?? {}).join(", ") || "(none)"}`,
+                `  Exclude Paths: ${savedConfig?.excludePaths?.join(", ") || "(none)"}`,
+            ];
+        },
+
+        patchSystemPrompt(systemPrompt: string) {
+            if (!vm) return systemPrompt;
+            let modified = systemPrompt.replace(
+                `Current working directory: ${localCwd}`,
+                `Current working directory: ${GUEST_WORKSPACE} (Gondolin VM, mounted from host: ${localCwd})`,
+            );
+            modified = modified
+                .split(savedHostSkillsDir)
+                .join(GUEST_SKILLS_DIR);
+            return modified;
         },
     };
 }

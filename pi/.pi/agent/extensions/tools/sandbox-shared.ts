@@ -1,10 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type {
-    ExtensionAPI,
-    ExtensionUIContext,
-} from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -40,6 +37,12 @@ export interface GondolinSandboxConfig {
     excludePaths?: string[];
 }
 
+export interface DockerSandboxConfig {
+    type: "docker";
+    enabled?: boolean;
+    container?: string;
+}
+
 export interface DisabledSandboxConfig {
     type: "disabled";
     enabled?: boolean;
@@ -48,6 +51,7 @@ export interface DisabledSandboxConfig {
 export type SandboxConfig =
     | OsSandboxConfig
     | GondolinSandboxConfig
+    | DockerSandboxConfig
     | DisabledSandboxConfig;
 
 export const DEFAULT_OS_CONFIG: OsSandboxConfig = {
@@ -161,6 +165,14 @@ export function loadConfig(cwd: string): SandboxConfig {
         };
     }
 
+    if (type === "docker") {
+        return {
+            type: "docker",
+            enabled: merged.enabled as boolean | undefined,
+            container: merged.container as string | undefined,
+        };
+    }
+
     // Default: OS sandbox. Merge with defaults.
     return mergeOsConfig(DEFAULT_OS_CONFIG, merged as Partial<OsSandboxConfig>);
 }
@@ -188,15 +200,14 @@ export interface SandboxOps {
 }
 
 export interface SandboxProvider<TConfig = SandboxConfig> {
-    init(
-        pi: ExtensionAPI,
-        cwd: string,
-        ui: ExtensionUIContext,
-        config: TConfig,
-    ): Promise<void>;
+    init(cwd: string, ui: ExtensionUIContext, config: TConfig): Promise<void>;
     shutdown(): Promise<void>;
     isActive(): boolean;
     getOps(): SandboxOps;
+    /** Return lines describing the current sandbox state for `/sandbox`. */
+    describe(): string[];
+    /** Sandbox provider can patch/modify the system prompt (useful for rewriting paths). */
+    patchSystemPrompt(systemPrompt: string): string;
 }
 
 export interface SandboxAPI {
