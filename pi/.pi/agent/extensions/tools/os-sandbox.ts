@@ -45,6 +45,7 @@ import { existsSync, realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, basename } from "node:path";
+import { globSync } from "glob";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type {
     ExtensionAPI,
@@ -378,22 +379,41 @@ function createFindOps(denyReadResolved: string[]): FindOperations {
             // so fd emits its native denial behavior for glob searches.
             const args = [
                 "fd",
-                "--type",
-                "f",
                 "--glob",
-                shellQuote(pattern),
-                "--color",
-                "never",
-                ...options.ignore.flatMap((ig) => [
-                    "--exclude",
-                    shellQuote(ig),
-                ]),
+                "--color=never",
+                "--hidden",
                 "--max-results",
                 String(options.limit),
             ];
+
+            const gitignoreFiles = new Set<string>();
+            const rootGitignore = join(cwd, ".gitignore");
+            if (existsSync(rootGitignore)) {
+                gitignoreFiles.add(rootGitignore);
+            }
+
+            try {
+                const nestedGitignores = globSync("**/.gitignore", {
+                    cwd,
+                    dot: true,
+                    absolute: true,
+                    ignore: options.ignore,
+                });
+                for (const file of nestedGitignores) {
+                    gitignoreFiles.add(file);
+                }
+            } catch {
+                // Ignore glob errors
+            }
+
+            for (const gitignorePath of gitignoreFiles) {
+                args.push("--ignore-file", shellQuote(gitignorePath));
+            }
+
+            args.push(shellQuote(pattern), shellQuote(cwd));
+
             const { stdout, stderr, exitCode } = await execSandboxed(
                 args.join(" "),
-                cwd,
             );
             if (exitCode !== 0) {
                 const message = stderr.trim();

@@ -36,9 +36,10 @@
  *                   and substitutes on outbound HTTP requests to allowed hosts.
  *   excludePaths  — workspace-relative paths hidden from the guest via ShadowProvider
  */
-import { constants, realpathSync } from "node:fs";
+import { constants, existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import { globSync } from "glob";
 import type {
     ExtensionAPI,
     ExtensionUIContext,
@@ -430,24 +431,42 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
         },
         async glob(pattern, cwd, options) {
             const guestCwd = toGuestPath(localCwd, cwd);
-            const cmd = [
+            const args = [
                 "fd",
-                "--type",
-                "f",
                 "--glob",
-                shQuote(pattern),
-                "--color",
-                "never",
-                ...options.ignore.flatMap((ig) => ["--exclude", shQuote(ig)]),
+                "--color=never",
+                "--hidden",
                 "--max-results",
                 String(options.limit),
-            ].join(" ");
+            ];
 
-            const r = await vm.exec([
-                "/bin/sh",
-                "-lc",
-                `cd ${shQuote(guestCwd)} && ${cmd}`,
-            ]);
+            const gitignoreFiles = new Set<string>();
+            const rootGitignore = path.join(cwd, ".gitignore");
+            if (existsSync(rootGitignore)) {
+                gitignoreFiles.add(toGuestPath(localCwd, rootGitignore));
+            }
+
+            try {
+                const nestedGitignores = globSync("**/.gitignore", {
+                    cwd,
+                    dot: true,
+                    absolute: true,
+                    ignore: options.ignore,
+                });
+                for (const file of nestedGitignores) {
+                    gitignoreFiles.add(toGuestPath(localCwd, file));
+                }
+            } catch {
+                // Ignore glob errors
+            }
+
+            for (const gitignorePath of gitignoreFiles) {
+                args.push("--ignore-file", shQuote(gitignorePath));
+            }
+
+            args.push(shQuote(pattern), shQuote(guestCwd));
+
+            const r = await vm.exec(["/bin/sh", "-lc", args.join(" ")]);
             if (!r.ok) {
                 const msg = r.stderr.trim();
                 throw new Error(
@@ -461,9 +480,24 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
             return r.stdout
                 .trim()
                 .split("\n")
-                .map((line) => line.replace(/\r$/, "").replace(/^\.\//, ""))
+                .map((line) => line.replace(/\r$/, ""))
                 .filter(Boolean)
-                .map((line) => path.join(cwd, ...line.split("/")));
+                .map((line) => {
+                    const normalized = line.replace(/\\/g, "/");
+                    if (normalized.startsWith(guestCwd)) {
+                        const suffix = normalized.slice(guestCwd.length);
+                        const relative = suffix.replace(/^\//, "");
+                        return path.join(
+                            cwd,
+                            ...relative.split("/").filter(Boolean),
+                        );
+                    }
+                    const relative = normalized.replace(/^\.\//, "");
+                    return path.join(
+                        cwd,
+                        ...relative.split("/").filter(Boolean),
+                    );
+                });
         },
     };
 }
@@ -620,9 +654,7 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                     `Current working directory: ${localCwd}`,
                     `Current working directory: ${GUEST_WORKSPACE} (Gondolin VM, mounted from host: ${localCwd})`,
                 );
-                modified = modified
-                    .split(hostSkillsDir)
-                    .join(GUEST_SKILLS_DIR);
+                modified = modified.split(hostSkillsDir).join(GUEST_SKILLS_DIR);
                 return { systemPrompt: modified };
             });
         },
