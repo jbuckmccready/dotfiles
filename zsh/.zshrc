@@ -38,6 +38,8 @@ export PATH="/opt/homebrew/opt/go@1.24/libexec/bin:$PATH"
 
 export PATH="/opt/homebrew/bin:$PATH"
 
+export PATH="/opt/homebrew/opt/e2fsprogs/sbin:$PATH"
+
 . "$HOME/.local/bin/env"
 
 # Execute fish if it's not the parent process.

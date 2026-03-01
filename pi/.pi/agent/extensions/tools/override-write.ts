@@ -11,11 +11,12 @@ import {
     replaceTabs,
     getSanitizedTextOutput,
 } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createWriteOverride() {
+export function createWriteOverride(sandbox: SandboxAPI) {
     let lastWritePath: string | undefined;
     let lastWriteContent: string | undefined;
     const writeCache = new WeakMap<object, CompCache>();
@@ -74,13 +75,16 @@ export function createWriteOverride() {
     }
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            return createWriteTool(ctx.cwd).execute(
-                toolCallId,
-                params,
-                signal,
-                onUpdate,
-            );
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            return createWriteTool(ctx.cwd, {
+                operations: sandbox.getOps().write,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

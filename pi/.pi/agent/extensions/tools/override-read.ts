@@ -11,22 +11,26 @@ import {
     replaceTabs,
     getSanitizedTextOutput,
 } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createReadOverride() {
+export function createReadOverride(sandbox: SandboxAPI) {
     let lastReadPath: string | undefined;
     const readCache = new WeakMap<object, CompCache>();
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            return createReadTool(ctx.cwd).execute(
-                toolCallId,
-                params,
-                signal,
-                onUpdate,
-            );
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            return createReadTool(ctx.cwd, {
+                operations: sandbox.getOps().read,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

@@ -8,6 +8,7 @@ import {
 import { Text, visibleWidth, truncateToWidth } from "@mariozechner/pi-tui";
 import * as Diff from "diff";
 import { shortenPath } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 // darken(color, factor, base) where base = #1e1e2e
 const ADDED_LINE_BG = "\x1b[48;2;48;66;52m"; // darken(#a6e3a1, 0.18)
@@ -244,45 +245,21 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
             } else {
                 for (const r of rem.collected)
                     result.push(
-                        fmtLine(
-                            theme,
-                            "toolDiffRemoved",
-                            "-",
-                            r.lineNum,
-                            hl(),
-                        ),
+                        fmtLine(theme, "toolDiffRemoved", "-", r.lineNum, hl()),
                     );
                 for (const a of add.collected)
                     result.push(
-                        fmtLine(
-                            theme,
-                            "toolDiffAdded",
-                            "+",
-                            a.lineNum,
-                            hl(),
-                        ),
+                        fmtLine(theme, "toolDiffAdded", "+", a.lineNum, hl()),
                     );
             }
         } else if (parsed.prefix === "+") {
             result.push(
-                fmtLine(
-                    theme,
-                    "toolDiffAdded",
-                    "+",
-                    parsed.lineNum,
-                    hl(),
-                ),
+                fmtLine(theme, "toolDiffAdded", "+", parsed.lineNum, hl()),
             );
             i++;
         } else {
             result.push(
-                fmtLine(
-                    theme,
-                    "toolDiffContext",
-                    " ",
-                    parsed.lineNum,
-                    hl(),
-                ),
+                fmtLine(theme, "toolDiffContext", " ", parsed.lineNum, hl()),
             );
             i++;
         }
@@ -328,14 +305,21 @@ class DiffText {
     }
 }
 
-export function createEditOverride() {
+export function createEditOverride(sandbox: SandboxAPI) {
     let lastEditPath: string | undefined;
     const diffTextCache = new WeakMap<object, DiffText>();
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            const tool = createEditTool(ctx.cwd);
-            return tool.execute(toolCallId, params, signal, onUpdate);
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            return createEditTool(ctx.cwd, {
+                operations: sandbox.getOps().edit,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

@@ -1,32 +1,26 @@
-import {
-    type BashOperations,
-    createBashTool,
-} from "@mariozechner/pi-coding-agent";
+import { createBashTool } from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import { makeSep, component, getSanitizedTextOutput } from "./shared";
-
-export interface SandboxAPI {
-    isActive(): boolean;
-    createBashOps(): BashOperations;
-}
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createBashOverride(sandboxAPI: SandboxAPI) {
+export function createBashOverride(sandbox: SandboxAPI) {
     const bashCache = new WeakMap<object, CompCache>();
 
     return {
-        async execute(id: any, params: any, signal: any, onUpdate: any, _ctx: any) {
+        async execute(
+            id: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            _ctx: any,
+        ) {
             const localCwd = process.cwd();
-            if (!sandboxAPI.isActive()) {
-                return createBashTool(localCwd).execute(id, params, signal, onUpdate);
-            }
-
-            const sandboxedBash = createBashTool(localCwd, {
-                operations: sandboxAPI.createBashOps(),
-            });
-            return sandboxedBash.execute(id, params, signal, onUpdate);
+            return createBashTool(localCwd, {
+                operations: sandbox.getOps().bash,
+            }).execute(id, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {
@@ -76,9 +70,7 @@ export function createBashOverride(sandboxAPI: SandboxAPI) {
                         `Truncated: showing ${t.outputLines} of ${t.totalLines} lines`,
                     );
                 } else {
-                    warnings.push(
-                        `Truncated: ${t.outputLines} lines shown`,
-                    );
+                    warnings.push(`Truncated: ${t.outputLines} lines shown`);
                 }
             }
             const warningLine =

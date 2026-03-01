@@ -1,6 +1,6 @@
 **Important sandbox context:**
 
-You are running in a sandboxed environment that only allows writes to the current directory `.` and `/tmp`. Upon encountering any permission errors do not attempt a workaround, instead inform the user of the problem and what you are attempting to do.
+You are running in a sandboxed environment that has restrictions. You may encounter permission errors or enable to find files that you expect to be there. If you encounter such issues, report them clearly and ask for guidance on how to proceed.
 
 **Coding guidelines:**
 
@@ -15,6 +15,7 @@ You are running in a sandboxed environment that only allows writes to the curren
     - No abstractions for single-use code.
     - No "flexibility" or "configurability" that wasn't requested.
     - No error handling for impossible scenarios.
+    - You are working on a greenfield project, do not implement things to avoid breaking API changes, focus on code quality and simplicity.
     - If you write 200 lines and it could be 50, rewrite it.
     - Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 - Keep your changes surgical and focused on the task at hand:

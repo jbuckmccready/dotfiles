@@ -1,0 +1,11 @@
+{
+    "type": "gondolin",
+    "guestDir": "~/.gondolin/rust-assets",
+    "allowedHosts": ["*"],
+    "secrets": {
+        "GH_TOKEN": {
+            "hosts": ["api.github.com", "github.com"],
+            "fromEnv": "GH_TOKEN_READONLY"
+        }
+    }
+}

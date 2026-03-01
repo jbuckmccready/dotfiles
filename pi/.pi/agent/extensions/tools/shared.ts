@@ -49,9 +49,7 @@ export function component(renderFn: (width: number) => string[]) {
         },
         render(width: number) {
             if (cachedLines && cachedWidth === width) return cachedLines;
-            cachedLines = renderFn(width).map((l) =>
-                truncateToWidth(l, width),
-            );
+            cachedLines = renderFn(width).map((l) => truncateToWidth(l, width));
             cachedWidth = width;
             return cachedLines;
         },

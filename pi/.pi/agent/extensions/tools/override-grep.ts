@@ -6,21 +6,29 @@ import {
     shortenPath,
     getSanitizedTextOutput,
 } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createGrepOverride() {
+export function createGrepOverride(sandbox: SandboxAPI) {
     const grepCache = new WeakMap<object, CompCache>();
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            return createGrepTool(ctx.cwd).execute(
-                toolCallId,
-                params,
-                signal,
-                onUpdate,
-            );
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            const ops = sandbox.getOps();
+            if (ops.grepExecute) {
+                return ops.grepExecute(params, signal);
+            }
+            return createGrepTool(ctx.cwd, {
+                operations: ops.grep,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

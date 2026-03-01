@@ -6,21 +6,25 @@ import {
     shortenPath,
     getSanitizedTextOutput,
 } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createFindOverride() {
+export function createFindOverride(sandbox: SandboxAPI) {
     const findCache = new WeakMap<object, CompCache>();
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            return createFindTool(ctx.cwd).execute(
-                toolCallId,
-                params,
-                signal,
-                onUpdate,
-            );
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            return createFindTool(ctx.cwd, {
+                operations: sandbox.getOps().find,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

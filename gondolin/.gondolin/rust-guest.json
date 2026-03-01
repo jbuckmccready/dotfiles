@@ -1,0 +1,36 @@
+{
+  "arch": "aarch64",
+  "distro": "alpine",
+  "alpine": {
+    "version": "3.23.0",
+    "kernelPackage": "linux-virt",
+    "kernelImage": "vmlinuz-virt",
+    "rootfsPackages": [
+      "linux-virt",
+      "rng-tools",
+      "bash",
+      "ca-certificates",
+      "curl",
+      "ripgrep",
+      "fd",
+      "git",
+      "openssh",
+      "rust",
+      "cargo",
+      "gcc",
+      "musl-dev",
+      "pkgconf",
+      "openssl-dev",
+      "file",
+      "github-cli"
+    ],
+    "initramfsPackages": []
+  },
+  "rootfs": {
+    "label": "gondolin-root",
+    "sizeMb": 2048
+  },
+  "postBuild": {
+    "commands": ["printf '[safe]\\n\\tdirectory = *\\n' > /etc/gitconfig"]
+  }
+}

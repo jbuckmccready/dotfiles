@@ -6,21 +6,25 @@ import {
     shortenPath,
     getSanitizedTextOutput,
 } from "./shared";
+import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
-export function createLsOverride() {
+export function createLsOverride(sandbox: SandboxAPI) {
     const lsCache = new WeakMap<object, CompCache>();
 
     return {
-        execute(toolCallId: any, params: any, signal: any, onUpdate: any, ctx: any) {
-            return createLsTool(ctx.cwd).execute(
-                toolCallId,
-                params,
-                signal,
-                onUpdate,
-            );
+        execute(
+            toolCallId: any,
+            params: any,
+            signal: any,
+            onUpdate: any,
+            ctx: any,
+        ) {
+            return createLsTool(ctx.cwd, {
+                operations: sandbox.getOps().ls,
+            }).execute(toolCallId, params, signal, onUpdate);
         },
 
         renderCall(args: any, theme: any) {

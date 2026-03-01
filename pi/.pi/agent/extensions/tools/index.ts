@@ -21,7 +21,7 @@ export default function (pi: ExtensionAPI) {
     const sandbox = initSandbox(pi);
     const cwd = process.cwd();
 
-    const read = createReadOverride();
+    const read = createReadOverride(sandbox);
     const builtinRead = createReadTool(cwd);
     pi.registerTool({
         name: "read",
@@ -31,7 +31,7 @@ export default function (pi: ExtensionAPI) {
         ...read,
     });
 
-    const grep = createGrepOverride();
+    const grep = createGrepOverride(sandbox);
     const builtinGrep = createGrepTool(cwd);
     pi.registerTool({
         name: "grep",
@@ -41,7 +41,7 @@ export default function (pi: ExtensionAPI) {
         ...grep,
     });
 
-    const write = createWriteOverride();
+    const write = createWriteOverride(sandbox);
     const builtinWrite = createWriteTool(cwd);
     pi.registerTool({
         name: "write",
@@ -51,7 +51,7 @@ export default function (pi: ExtensionAPI) {
         ...write,
     });
 
-    const find = createFindOverride();
+    const find = createFindOverride(sandbox);
     const builtinFind = createFindTool(cwd);
     pi.registerTool({
         name: "find",
@@ -61,7 +61,7 @@ export default function (pi: ExtensionAPI) {
         ...find,
     });
 
-    const ls = createLsOverride();
+    const ls = createLsOverride(sandbox);
     const builtinLs = createLsTool(cwd);
     pi.registerTool({
         name: "ls",
@@ -71,7 +71,7 @@ export default function (pi: ExtensionAPI) {
         ...ls,
     });
 
-    const edit = createEditOverride();
+    const edit = createEditOverride(sandbox);
     const builtinEdit = createEditTool(cwd);
     pi.registerTool({
         name: "edit",
@@ -85,7 +85,7 @@ export default function (pi: ExtensionAPI) {
     const builtinBash = createBashTool(cwd);
     pi.registerTool({
         name: "bash",
-        label: "bash (sandboxed)",
+        label: builtinBash.label,
         description: builtinBash.description,
         parameters: builtinBash.parameters,
         ...bash,
