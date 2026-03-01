@@ -43,7 +43,6 @@ import {
     DynamicBorder,
     copyToClipboard,
     getMarkdownTheme,
-    keyHint,
     type ExtensionAPI,
     type ExtensionContext,
     type Theme,
@@ -1472,10 +1471,6 @@ function renderTodoDetail(
     return lines.join("\n");
 }
 
-function appendExpandHint(theme: Theme, text: string): string {
-    return `${text}\n${theme.fg("dim", `(${keyHint("expandTools", "to expand")})`)}`;
-}
-
 async function ensureTodoExists(
     filePath: string,
     id: string,
@@ -1959,14 +1954,6 @@ export default function todosExtension(pi: ExtensionAPI) {
                     expanded,
                     details.currentSessionId,
                 );
-                if (!expanded) {
-                    const { closedTodos } = splitTodosByAssignment(
-                        details.todos,
-                    );
-                    if (closedTodos.length) {
-                        text = appendExpandHint(theme, text);
-                    }
-                }
                 return new Text(text, 0, 0);
             }
 
@@ -1992,9 +1979,6 @@ export default function todosExtension(pi: ExtensionAPI) {
                     theme.fg("muted", `${actionLabel} `) +
                     lines[0];
                 text = lines.join("\n");
-            }
-            if (!expanded) {
-                text = appendExpandHint(theme, text);
             }
             return new Text(text, 0, 0);
         },
