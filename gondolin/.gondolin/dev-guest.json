@@ -17,6 +17,8 @@
       "openssh",
       "rust",
       "cargo",
+      "zig",
+      "npm",
       "gcc",
       "musl-dev",
       "pkgconf",

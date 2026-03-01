@@ -1,6 +1,6 @@
 {
     "type": "gondolin",
-    "guestDir": "~/.gondolin/rust-assets",
+    "guestDir": "~/.gondolin/dev-assets",
     "allowedHosts": ["*"],
     "secrets": {
         "GH_TOKEN": {
