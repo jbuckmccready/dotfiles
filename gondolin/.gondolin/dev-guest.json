@@ -17,7 +17,6 @@
       "openssh",
       "rust",
       "cargo",
-      "zig",
       "npm",
       "gcc",
       "musl-dev",
@@ -33,6 +32,9 @@
     "sizeMb": 2048
   },
   "postBuild": {
-    "commands": ["printf '[safe]\\n\\tdirectory = *\\n' > /etc/gitconfig"]
+    "commands": [
+      "printf '[safe]\\n\\tdirectory = *\\n' > /etc/gitconfig",
+      "ZIG_ARCH=$(uname -m) && curl -fsSL -o /tmp/zig.tar.xz \"https://ziglang.org/download/0.15.2/zig-${ZIG_ARCH}-linux-0.15.2.tar.xz\" && tar -xJf /tmp/zig.tar.xz -C /usr/local && ln -s /usr/local/zig-${ZIG_ARCH}-linux-0.15.2/zig /usr/local/bin/zig && rm /tmp/zig.tar.xz"
+    ]
   }
 }
