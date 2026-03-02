@@ -5,6 +5,7 @@ import {
     component,
     shortenPath,
     getSanitizedTextOutput,
+    replaceTabs,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 
@@ -73,7 +74,7 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", l))
+                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
                 : [];
 
             const warnings: string[] = [];

@@ -1,6 +1,6 @@
 import { createBashTool } from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import { makeSep, component, getSanitizedTextOutput } from "./shared";
+import { makeSep, component, getSanitizedTextOutput, replaceTabs } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 
 type ExpandState = "expanded" | "collapsed";
@@ -56,7 +56,7 @@ export function createBashOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", l))
+                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
                 : [];
 
             const warnings: string[] = [];
