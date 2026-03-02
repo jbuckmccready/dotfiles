@@ -280,7 +280,7 @@ function createGondolinLsOps(vm: VM, localCwd: string): LsOperations {
                 const message =
                     err instanceof Error ? err.message.toLowerCase() : "";
                 if (message.includes("enoent") || message.includes("no such")) {
-                    throw new Error(`Path not found: ${p}`);
+                    throw new Error(`Path not found: ${guestPath}`);
                 }
                 throw err;
             }

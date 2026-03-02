@@ -502,7 +502,7 @@ function createDockerReadOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`base64 < ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(r.stdout.trim() || `Failed to read: ${p}`);
+                throw new Error(r.stdout.trim() || `Failed to read: ${guestPath}`);
             }
             return Buffer.from(r.stdout, "base64");
         },
@@ -511,7 +511,7 @@ function createDockerReadOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`test -r ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(`ENOENT: no such file or directory: ${p}`);
+                throw new Error(`ENOENT: no such file or directory: ${guestPath}`);
             }
         },
 
@@ -549,7 +549,7 @@ function createDockerWriteOps(
             const r = await shell.exec(cmd);
             if (r.exitCode !== 0) {
                 throw new Error(
-                    `Failed to write: ${p}${r.stdout ? "\n" + r.stdout.trim() : ""}`,
+                    `Failed to write: ${guestPath}${r.stdout ? "\n" + r.stdout.trim() : ""}`,
                 );
             }
         },
@@ -559,7 +559,7 @@ function createDockerWriteOps(
             const r = await shell.exec(`mkdir -p ${shQuote(guestDir)}`);
             if (r.exitCode !== 0) {
                 throw new Error(
-                    `Failed to mkdir: ${dir}${r.stdout ? "\n" + r.stdout.trim() : ""}`,
+                    `Failed to mkdir: ${guestDir}${r.stdout ? "\n" + r.stdout.trim() : ""}`,
                 );
             }
         },
@@ -631,7 +631,7 @@ function createDockerLsOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`stat -c '%F' ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(`Path not found: ${p}`);
+                throw new Error(`Path not found: ${guestPath}`);
             }
             const fileType = r.stdout.trim();
             return {
@@ -647,7 +647,7 @@ function createDockerLsOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`ls -1A ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(`Path not found: ${p}`);
+                throw new Error(`Path not found: ${guestPath}`);
             }
             return r.stdout.trim().split("\n").filter(Boolean).sort();
         },
