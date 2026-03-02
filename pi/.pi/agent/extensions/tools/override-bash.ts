@@ -1,7 +1,18 @@
-import { createBashTool } from "@mariozechner/pi-coding-agent";
+import {
+    createBashTool,
+    truncateToVisualLines,
+    keyHint,
+} from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import { makeSep, component, getSanitizedTextOutput, replaceTabs } from "./shared";
+import {
+    makeSep,
+    component,
+    getSanitizedTextOutput,
+    replaceTabs,
+} from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+
+const BASH_PREVIEW_LINES = 5;
 
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
@@ -56,7 +67,9 @@ export function createBashOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
+                      .map((l: string) =>
+                          theme.fg("toolOutput", replaceTabs(l)),
+                      )
                 : [];
 
             const warnings: string[] = [];
@@ -78,17 +91,37 @@ export function createBashOverride(sandbox: SandboxAPI) {
                     ? theme.fg("warning", `[${warnings.join(". ")}]`)
                     : null;
 
+            const styledOutput =
+                outputLines.length > 0 ? outputLines.join("\n") : "";
+
             const comp = component((width) => {
                 const lines: string[] = [];
-                if (outputLines.length > 0) {
-                    const maxLines = expanded ? outputLines.length : 5;
-                    const display = outputLines.slice(0, maxLines);
-                    const remaining = outputLines.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
-                    if (remaining > 0) {
-                        lines.push(
-                            theme.fg("muted", `... (${remaining} more lines)`),
+                if (styledOutput) {
+                    if (expanded) {
+                        lines.push(makeSep(borderAnsi, width), ...outputLines);
+                    } else {
+                        const result = truncateToVisualLines(
+                            styledOutput,
+                            BASH_PREVIEW_LINES,
+                            width,
                         );
+                        if (result.skippedCount > 0) {
+                            const hint =
+                                theme.fg(
+                                    "muted",
+                                    `... (${result.skippedCount} earlier lines,`,
+                                ) + ` ${keyHint("expandTools", "to expand")})`;
+                            lines.push(
+                                makeSep(borderAnsi, width),
+                                hint,
+                                ...result.visualLines,
+                            );
+                        } else {
+                            lines.push(
+                                makeSep(borderAnsi, width),
+                                ...result.visualLines,
+                            );
+                        }
                     }
                 }
                 if (warningLine) lines.push("", warningLine);
