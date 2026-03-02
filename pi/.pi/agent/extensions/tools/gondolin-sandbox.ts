@@ -28,6 +28,8 @@
  *
  * Config fields:
  *   guestDir      — path to custom guest image assets (built via `gondolin build`)
+ *   memory        — VM memory size in QEMU syntax (e.g. "2G", "512M"). Default: "1G"
+ *   cpus          — VM vCPU count. Default: 2
  *   allowedHosts  — HTTP egress allowlist, passed to gondolin's createHttpHooks.
  *                   Omit or set to [] to block all network. Use ["*"] for open network.
  *   secrets       — keys map to env var names, read from host env at init time.
@@ -350,6 +352,8 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
 
             const vmPromise = VM.create({
                 ...(guestDir ? { sandbox: { imagePath: guestDir } } : {}),
+                ...(config.memory ? { memory: config.memory } : {}),
+                ...(config.cpus ? { cpus: config.cpus } : {}),
                 httpHooks,
                 env: { HOME: GUEST_HOME, ...env },
                 vfs: {
@@ -426,6 +430,8 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             return [
                 "Sandbox: gondolin",
                 `  Guest Dir: ${savedConfig?.guestDir || "(default)"}`,
+                `  Memory: ${savedConfig?.memory || "(default: 1G)"}`,
+                `  CPUs: ${savedConfig?.cpus || "(default: 2)"}`,
                 `  Allowed Hosts: ${savedConfig?.allowedHosts?.join(", ") || "(none)"}`,
                 `  Secrets: ${Object.keys(savedConfig?.secrets ?? {}).join(", ") || "(none)"}`,
                 `  Exclude Paths: ${savedConfig?.excludePaths?.join(", ") || "(none)"}`,

@@ -1,5 +1,7 @@
 {
     "type": "gondolin",
+    "memory": "1G",
+    "cpus": 2,
     "guestDir": "~/.gondolin/dev-assets",
     "allowedHosts": ["*"],
     "secrets": {

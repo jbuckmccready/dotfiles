@@ -32,6 +32,8 @@ export interface GondolinSandboxConfig {
     type: "gondolin";
     enabled?: boolean;
     guestDir?: string;
+    memory?: string;
+    cpus?: number;
     allowedHosts?: string[];
     secrets?: Record<string, GondolinSecretConfig>;
     excludePaths?: string[];
@@ -157,6 +159,8 @@ export function loadConfig(cwd: string): SandboxConfig {
             type: "gondolin",
             enabled: merged.enabled as boolean | undefined,
             guestDir: merged.guestDir as string | undefined,
+            memory: merged.memory as string | undefined,
+            cpus: merged.cpus as number | undefined,
             allowedHosts: merged.allowedHosts as string[] | undefined,
             secrets: merged.secrets as
                 | Record<string, GondolinSecretConfig>
