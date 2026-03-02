@@ -44,6 +44,12 @@ Requires `tree-sitter` CLI to be installed:
 cargo install --locked tree-sitter-cli
 ```
 
+**snacks.nvim**:
+Image preview in the file picker requires ImageMagick (`magick`/`identify`):
+```sh
+brew install imagemagick
+```
+
 
 ### Fish
 
