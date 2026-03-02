@@ -3,7 +3,7 @@ import {
     truncateToVisualLines,
     keyHint,
 } from "@mariozechner/pi-coding-agent";
-import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import { wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
     makeSep,
     component,
@@ -50,13 +50,9 @@ export function createBashOverride(sandbox: SandboxAPI) {
         },
 
         renderResult(result: any, { expanded, isPartial }: any, theme: any) {
-            if (isPartial) {
-                return new Text(theme.fg("warning", "Running..."), 0, 0);
-            }
-
             const details = result.details;
             const key: ExpandState = expanded ? "expanded" : "collapsed";
-            if (details) {
+            if (!isPartial && details) {
                 const cached = bashCache.get(details)?.[key];
                 if (cached) return cached;
             }
@@ -128,7 +124,7 @@ export function createBashOverride(sandbox: SandboxAPI) {
                 lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
-            if (details) {
+            if (!isPartial && details) {
                 const pair = bashCache.get(details) || {};
                 pair[key] = comp;
                 bashCache.set(details, pair);
