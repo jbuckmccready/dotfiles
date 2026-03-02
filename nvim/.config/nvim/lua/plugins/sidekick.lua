@@ -96,9 +96,9 @@ return {
         {
             "<leader>aa",
             function()
-                require("sidekick.cli").toggle({ name = "agent-sandbox", focus = true })
+                require("sidekick.cli").toggle({ name = "pi", focus = true })
             end,
-            desc = "Toggle Agent Sandbox CLI",
+            desc = "Toggle Pi CLI",
             mode = { "n", "v" },
         },
         {
@@ -107,14 +107,6 @@ return {
                 require("sidekick.cli").toggle({ name = "claude", focus = true })
             end,
             desc = "Toggle Claude CLI",
-            mode = { "n", "v" },
-        },
-        {
-            "<leader>ai",
-            function()
-                require("sidekick.cli").toggle({ name = "pi", focus = true })
-            end,
-            desc = "Toggle Pi CLI",
             mode = { "n", "v" },
         },
         {
