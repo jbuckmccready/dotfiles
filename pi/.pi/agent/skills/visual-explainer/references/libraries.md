@@ -44,63 +44,31 @@ Always use `theme: 'base'` — it's the only theme where all `themeVariables` ar
     theme: 'base',
     look: 'classic',
     themeVariables: {
-      // Background and surfaces
-      primaryColor: isDark ? '#2d1b69' : '#ede9fe',
-      primaryBorderColor: isDark ? '#7c3aed' : '#8b5cf6',
-      primaryTextColor: isDark ? '#e6edf3' : '#1a1a2e',
-      secondaryColor: isDark ? '#1c2333' : '#f0fdf4',
+      // Background and surfaces — teal/slate palette (not violet/indigo!)
+      primaryColor: isDark ? '#134e4a' : '#ccfbf1',
+      primaryBorderColor: isDark ? '#14b8a6' : '#0d9488',
+      primaryTextColor: isDark ? '#f0fdfa' : '#134e4a',
+      secondaryColor: isDark ? '#1e293b' : '#f0fdf4',
       secondaryBorderColor: isDark ? '#059669' : '#16a34a',
-      secondaryTextColor: isDark ? '#e6edf3' : '#1a1a2e',
+      secondaryTextColor: isDark ? '#f1f5f9' : '#1e293b',
       tertiaryColor: isDark ? '#27201a' : '#fef3c7',
       tertiaryBorderColor: isDark ? '#d97706' : '#f59e0b',
-      tertiaryTextColor: isDark ? '#e6edf3' : '#1a1a2e',
+      tertiaryTextColor: isDark ? '#fef3c7' : '#27201a',
       // Lines and edges
-      lineColor: isDark ? '#6b7280' : '#9ca3af',
+      lineColor: isDark ? '#64748b' : '#94a3b8',
       // Text
-      // Global default — CSS overrides on .nodeLabel/.edgeLabel win when present
       fontSize: '16px',
       fontFamily: 'var(--font-body)',
       // Notes and labels
-      noteBkgColor: isDark ? '#1c2333' : '#fefce8',
-      noteTextColor: isDark ? '#e6edf3' : '#1a1a2e',
+      noteBkgColor: isDark ? '#1e293b' : '#fefce8',
+      noteTextColor: isDark ? '#f1f5f9' : '#1e293b',
       noteBorderColor: isDark ? '#fbbf24' : '#d97706',
     }
   });
 </script>
 ```
 
-### Hand-Drawn Mode
-
-Add `look: 'handDrawn'` for a sketchy, whiteboard-style aesthetic. Combines well with the `elk` layout engine for better positioning (requires the ELK import — see CDN section above):
-
-```html
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
-
-  mermaid.registerLayoutLoaders(elkLayouts);
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: 'base',
-    look: 'handDrawn',
-    layout: 'elk',
-    themeVariables: { /* same as above */ }
-  });
-</script>
-```
-
-Or set it per-diagram via frontmatter:
-```
----
-config:
-  look: handDrawn
-  layout: elk
----
-graph TD
-  A[User Request] --> B{Auth Check}
-  B -->|Valid| C[Process]
-  B -->|Invalid| D[Reject]
-```
+**FORBIDDEN in Mermaid themeVariables:** `#8b5cf6`, `#7c3aed`, `#a78bfa` (indigo/violet), `#d946ef` (fuchsia). Use teal, slate, amber, emerald, or colors from your page's palette.
 
 ### CSS Overrides on Mermaid SVG
 
@@ -172,17 +140,52 @@ Mermaid renders SVG. Override its classes for pixel-perfect control that `themeV
 }
 ```
 
-### classDef Gotchas
+### classDef and style Gotchas
 
-`classDef` values are static text inside `<pre>` — they can't use CSS variables or JS ternaries. Two rules:
+`classDef` values and per-node `style` directives are static text inside `<pre>` — they can't use CSS variables or JS ternaries. Two rules:
 
-1. **Never set `color:` in classDef.** It hardcodes a text color that breaks in the opposite color scheme. Let the CSS overrides above handle text color via `var(--text)`.
+1. **Never set `color:` in classDef or per-node `style` directives.** It hardcodes a text color that breaks in the opposite color scheme. This applies to both `classDef highlight fill:...,color:#2c2a25` and `style I fill:...,color:#2c2a25`. Let the CSS overrides above handle text color via `var(--text)`.
 
 2. **Use semi-transparent fills (8-digit hex) for node backgrounds.** They layer over whatever Mermaid's base theme background is, producing a tint that works in both light and dark modes. Use `20`–`44` alpha for subtle, `55`–`77` for prominent:
 
 ```
 classDef highlight fill:#b5761433,stroke:#b57614,stroke-width:2px
 classDef muted fill:#7c6f6411,stroke:#7c6f6444,stroke-width:1px
+```
+
+### Node Label Special Characters
+
+Mermaid uses certain characters for shape syntax. Node labels containing these characters cause syntax errors unless quoted.
+
+**Shape characters to watch:**
+- `[/text/]` — parallelogram
+- `[\text\]` — trapezoid (alt)
+- `[/text\]` — trapezoid
+- `[\text/]` — trapezoid (alt)
+- `[(text)]` — cylindrical
+- `[[text]]` — subroutine
+- `((text))` — circle
+- `{{text}}` — hexagon
+
+**If your node label starts with `/`, `\`, `(`, or `{`, wrap it in quotes:**
+
+```
+%% WRONG — syntax error (/ starts parallelogram shape)
+CMD[/gallery command] --> SRV[server]
+
+%% RIGHT — quotes escape the special character
+CMD["/gallery command"] --> SRV[server]
+```
+
+**Edge labels with special characters also need quotes:**
+
+```
+%% WRONG — quotes inside edge label
+UI -->|"Use as Reference"| RET
+
+%% RIGHT — use single quotes or escape
+UI -->|'Use as Reference'| RET
+UI -->|Use as Reference| RET
 ```
 
 Avoid opaque light fills like `fill:#fefce8` — they render as bright boxes in dark mode.
@@ -213,7 +216,7 @@ A[handleRequest] --> B[query users]
 userSvc["User Service"] --> authSvc["Auth Service"]
 ```
 
-**Max 15-20 nodes per diagram.** Beyond that, readability collapses even with ELK layout. Use `subgraph` blocks to group related nodes, or split into multiple diagrams:
+**Max 10-12 nodes per Mermaid diagram.** Beyond that, readability collapses even with zoom controls and increased fontSize. For complex architectures (15+ elements), use the **hybrid pattern**: a simple 5-8 node Mermaid overview showing module relationships, followed by CSS Grid cards with detailed function lists. Never cram everything into one diagram. Use `subgraph` blocks to group related nodes when under the limit:
 
 ```
 subgraph Auth
@@ -237,7 +240,46 @@ Auth --> API
 
 **Escape pipes in labels.** If a label contains a literal `|`, use `#124;` (HTML entity) or rephrase to avoid it — pipes delimit edge labels in flowcharts.
 
+**Sequence diagram messages must be plain text.** Unlike flowchart labels, sequence diagram messages (the text after `:`) cannot be quoted or escaped. Curly braces `{}`, square brackets `[]`, angle brackets `<>`, and `&` will silently break the parser and the entire diagram renders as raw text. Write human-readable descriptions, not code:
+
+```
+%% WRONG — parser chokes on braces, brackets, ampersand
+A->>B: web_search({ queries: [...] })
+B->>B: User removes query 2, keeps 1 & 3
+B->>S: POST /submit { selected: [0, 2] }
+
+%% RIGHT — plain English, no special characters
+A->>B: Call web_search with queries
+B->>B: User removes query 2, keeps 1 and 3
+B->>S: POST /submit with selected indices
+```
+
 **Don't mix diagram syntax.** Each diagram type has its own syntax. `-->` works in flowcharts but not in sequence diagrams (`->>` instead). `:::className` works in flowcharts but not in ER diagrams. When in doubt, check the examples below for correct syntax per type.
+
+### Layout Direction: TD vs LR
+
+`flowchart LR` (left-to-right) spreads horizontally. With many nodes, Mermaid scales everything down to fit the width, making text unreadable. `flowchart TD` (top-down) is almost always better.
+
+**When to use each:**
+
+| Direction | Use when | Avoid when |
+|-----------|----------|------------|
+| `TD` (top-down) | Complex diagrams, 5+ nodes, hierarchies, architecture | Simple A→B→C linear flows |
+| `LR` (left-to-right) | Simple linear flows, 3-4 nodes, pipelines | Complex graphs, many branches |
+
+**Rule of thumb:** If the diagram has more than one row of nodes or any branching, use `TD`. The extra vertical space makes labels readable.
+
+```
+%% WRONG — LR with many nodes produces wide, short, unreadable diagram
+flowchart LR
+  A --> B --> C --> D --> E
+  A --> F --> G --> H
+  
+%% RIGHT — TD uses vertical space, labels stay readable
+flowchart TD
+  A --> B --> C --> D --> E
+  A --> F --> G --> H
+```
 
 ### Diagram Type Examples
 
@@ -403,7 +445,7 @@ Use when a diagram has 10+ elements and you want a choreographed entrance sequen
 
   if (!prefersReduced) {
     anime({
-      targets: '.node',
+      targets: '.ve-card',
       opacity: [0, 1],
       translateY: [20, 0],
       delay: anime.stagger(80, { start: 200 }),
@@ -436,16 +478,22 @@ Use when a diagram has 10+ elements and you want a choreographed entrance sequen
 
 When using anime.js, set initial opacity to 0 in CSS so elements don't flash before the animation:
 ```css
-.node { opacity: 0; }
+.ve-card { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .node { opacity: 1 !important; }
+  .ve-card { opacity: 1 !important; }
 }
 ```
 
 ## Google Fonts — Typography
 
 Always load with `display=swap` for fast rendering. Pick a distinctive pairing — body + mono at minimum, optionally a display font for the title.
+
+**FORBIDDEN as `--font-body` (AI slop signals):**
+- Inter — the single most overused AI default font
+- Roboto — generic Android/Google default
+- Arial, Helvetica — system defaults with no character
+- system-ui alone without a named font — signals zero design intent
 
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -461,22 +509,35 @@ Define as CSS variables for easy reference:
 }
 ```
 
-**Font suggestions** (rotate — never use the same pairing twice in a row):
+**Font pairings** (rotate — never use the same pairing twice in a row):
 
-| Body / Headings | Mono / Labels | Feel |
-|---|---|---|
-| Outfit | Space Mono | Clean geometric, modern |
-| Instrument Serif | JetBrains Mono | Editorial, refined |
-| Sora | IBM Plex Mono | Technical, precise |
-| DM Sans | Fira Code | Friendly, developer |
-| Fraunces | Source Code Pro | Warm, distinctive |
-| Libre Franklin | Inconsolata | Classic, reliable |
-| Manrope | Martian Mono | Soft, contemporary |
-| Playfair Display | Roboto Mono | Elegant contrast |
-| Bricolage Grotesque | Fragment Mono | Bold, characterful |
-| Geist | Geist Mono | Vercel-inspired, sharp |
-| Crimson Pro | Noto Sans Mono | Scholarly, serious |
-| Red Hat Display | Red Hat Mono | Cohesive family |
-| Plus Jakarta Sans | Azeret Mono | Rounded, approachable |
+| Body / Headings | Mono / Labels | Feel | Use for |
+|---|---|---|---|
+| DM Sans | Fira Code | Friendly, developer | Blueprint, technical docs |
+| Instrument Serif | JetBrains Mono | Editorial, refined | Plan reviews, decision logs |
+| IBM Plex Sans | IBM Plex Mono | Reliable, readable | Architecture diagrams |
+| Bricolage Grotesque | Fragment Mono | Bold, characterful | Data tables, dashboards |
+| Plus Jakarta Sans | Azeret Mono | Rounded, approachable | Status reports, audits |
+| Outfit | Space Mono | Clean geometric, modern | Flowcharts, pipelines |
+| Sora | IBM Plex Mono | Technical, precise | ER diagrams, schemas |
+| Crimson Pro | Noto Sans Mono | Scholarly, serious | RFC reviews, specs |
+| Fraunces | Source Code Pro | Warm, distinctive | Project recaps |
+| Geist | Geist Mono | Vercel-inspired, sharp | Modern API docs |
+| Red Hat Display | Red Hat Mono | Cohesive family | System overviews |
+| Libre Franklin | Inconsolata | Classic, reliable | Data-dense tables |
+| Playfair Display | Roboto Mono | Elegant contrast | Executive summaries |
 
-Never default to Inter, Roboto, Arial, or system-ui as the primary choice.
+The first 5 pairings are recommended for most use cases. Vary across consecutive diagrams.
+
+### Typography by Content Voice
+
+For prose-heavy pages (documentation, articles, essays), match typography to the content's voice:
+
+| Voice | Fonts | Best For |
+|-------|-------|----------|
+| **Literary / Thoughtful** | Literata, Lora, Newsreader, Merriweather | Essays, personal posts, long-form articles |
+| **Technical / Precise** | IBM Plex Sans + Mono, Geist + Geist Mono, Source family | Documentation, READMEs, API references |
+| **Bold / Contemporary** | Bricolage Grotesque, Space Grotesk, DM Sans | Product pages, feature announcements |
+| **Minimal / Focused** | Source Serif 4 + Source Sans 3, Karla + Inconsolata | Tutorials, how-tos, focused reading |
+
+**Literata** deserves special mention — it has optical sizing designed specifically for screen reading. Google's answer to Georgia, but modernized.

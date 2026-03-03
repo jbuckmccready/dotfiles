@@ -15,7 +15,7 @@
   - ESM import of Mermaid + @mermaid-js/layout-elk
   - Mermaid theme: 'base' + full themeVariables, fontSize: 16px
   - CSS overrides: .nodeLabel 16px, .edgeLabel 13px
-  - look: 'handDrawn' for sketchy aesthetic (toggle to 'classic')
+  - look: 'classic' for clean lines
   - layout: 'elk' for better node positioning
   - Zoom controls with scroll-to-zoom and drag-to-pan
   - Both light and dark themes via prefers-color-scheme
@@ -40,8 +40,8 @@
 
     --primary: #0d9488;
     --primary-dim: rgba(13, 148, 136, 0.08);
-    --secondary: #7c3aed;
-    --secondary-dim: rgba(124, 58, 237, 0.08);
+    --secondary: #0369a1;
+    --secondary-dim: rgba(3, 105, 161, 0.08);
     --tertiary: #d97706;
     --tertiary-dim: rgba(217, 119, 6, 0.08);
     --danger: #dc2626;
@@ -60,8 +60,8 @@
 
       --primary: #2dd4bf;
       --primary-dim: rgba(45, 212, 191, 0.14);
-      --secondary: #c4b5fd;
-      --secondary-dim: rgba(196, 181, 253, 0.12);
+      --secondary: #38bdf8;
+      --secondary-dim: rgba(56, 189, 248, 0.12);
       --tertiary: #fbbf24;
       --tertiary-dim: rgba(251, 191, 36, 0.12);
       --danger: #f87171;
@@ -331,11 +331,9 @@
   </div>
 
   <div class="callout animate" style="--i:5">
-    <strong>Hand-drawn mode.</strong> This template uses <code>look: 'handDrawn'</code> for a sketchy aesthetic.
-    Switch to <code>look: 'classic'</code> in the Mermaid config for clean, precise lines.
-    The <code>layout: 'elk'</code> engine provides better node positioning for complex graphs —
-    it requires the separate <code>@mermaid-js/layout-elk</code> package (imported above). Without it,
-    Mermaid silently falls back to dagre.
+    <strong>ELK layout.</strong> The <code>layout: 'elk'</code> engine provides better node positioning
+    for complex graphs — it requires the separate <code>@mermaid-js/layout-elk</code> package (imported above).
+    Without it, Mermaid silently falls back to dagre.
   </div>
 
 </div>
@@ -350,14 +348,14 @@
   mermaid.initialize({
     startOnLoad: true,
     theme: 'base',
-    look: 'handDrawn',
+    look: 'classic',
     layout: 'elk',
     themeVariables: {
       primaryColor: isDark ? '#115e59' : '#ccfbf1',
       primaryBorderColor: isDark ? '#2dd4bf' : '#0d9488',
       primaryTextColor: isDark ? '#ccfbf1' : '#134e4a',
-      secondaryColor: isDark ? '#1e1b4b' : '#ede9fe',
-      secondaryBorderColor: isDark ? '#c4b5fd' : '#7c3aed',
+      secondaryColor: isDark ? '#0c4a6e' : '#e0f2fe',
+      secondaryBorderColor: isDark ? '#38bdf8' : '#0369a1',
       secondaryTextColor: isDark ? '#ccfbf1' : '#134e4a',
       tertiaryColor: isDark ? '#2e2618' : '#fffbeb',
       tertiaryBorderColor: isDark ? '#fbbf24' : '#d97706',
