@@ -82,7 +82,7 @@ export function createWriteOverride(sandbox: SandboxAPI) {
             onUpdate: any,
             ctx: any,
         ) {
-            return createWriteTool(ctx.cwd, {
+            return createWriteTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().write,
             }).execute(toolCallId, params, signal, onUpdate);
         },

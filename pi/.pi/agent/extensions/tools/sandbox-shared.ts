@@ -212,9 +212,13 @@ export interface SandboxProvider<TConfig = SandboxConfig> {
     describe(): string[];
     /** Sandbox provider can patch/modify the system prompt (useful for rewriting paths). */
     patchSystemPrompt(systemPrompt: string): string;
+    /** Translate a host-absolute path to its guest equivalent. Identity when not applicable. */
+    translatePath(hostPath: string): string;
 }
 
 export interface SandboxAPI {
     isActive(): boolean;
     getOps(): SandboxOps;
+    /** Translate a host-absolute path to its guest equivalent. Identity when not applicable. */
+    translatePath(hostPath: string): string;
 }

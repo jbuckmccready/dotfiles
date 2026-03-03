@@ -120,5 +120,8 @@ export function initSandbox(pi: ExtensionAPI): SandboxAPI {
         getOps() {
             return provider.getOps();
         },
+        translatePath(hostPath: string) {
+            return provider.translatePath(hostPath);
+        },
     };
 }

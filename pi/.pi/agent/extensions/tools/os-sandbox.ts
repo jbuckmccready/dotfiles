@@ -622,5 +622,9 @@ export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
         patchSystemPrompt(systemPrompt: string) {
             return systemPrompt;
         },
+
+        translatePath(hostPath: string) {
+            return hostPath;
+        },
     };
 }

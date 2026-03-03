@@ -28,7 +28,7 @@ export function createReadOverride(sandbox: SandboxAPI) {
             onUpdate: any,
             ctx: any,
         ) {
-            return createReadTool(ctx.cwd, {
+            return createReadTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().read,
             }).execute(toolCallId, params, signal, onUpdate);
         },

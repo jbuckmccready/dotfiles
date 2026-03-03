@@ -502,7 +502,9 @@ function createDockerReadOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`base64 < ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(r.stdout.trim() || `Failed to read: ${guestPath}`);
+                throw new Error(
+                    r.stdout.trim() || `Failed to read: ${guestPath}`,
+                );
             }
             return Buffer.from(r.stdout, "base64");
         },
@@ -511,7 +513,9 @@ function createDockerReadOps(
             const guestPath = hostToGuestPath(p, mounts);
             const r = await shell.exec(`test -r ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
-                throw new Error(`ENOENT: no such file or directory: ${guestPath}`);
+                throw new Error(
+                    `ENOENT: no such file or directory: ${guestPath}`,
+                );
             }
         },
 
@@ -785,6 +789,10 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
                 .split(savedHostSkillsDir)
                 .join(savedGuestSkillsDir);
             return modified;
+        },
+
+        translatePath(hostPath: string) {
+            return hostToGuestPath(hostPath, savedMounts);
         },
     };
 }

@@ -31,5 +31,9 @@ export function createDisabledSandbox(): SandboxProvider<SandboxConfig> {
         patchSystemPrompt(systemPrompt: string) {
             return systemPrompt;
         },
+
+        translatePath(hostPath: string) {
+            return hostPath;
+        },
     };
 }

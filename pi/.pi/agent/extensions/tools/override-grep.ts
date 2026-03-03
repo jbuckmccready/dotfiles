@@ -27,7 +27,7 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             if (ops.grepExecute) {
                 return ops.grepExecute(params, signal);
             }
-            return createGrepTool(ctx.cwd, {
+            return createGrepTool(sandbox.translatePath(ctx.cwd), {
                 operations: ops.grep,
             }).execute(toolCallId, params, signal, onUpdate);
         },
@@ -74,7 +74,9 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
+                      .map((l: string) =>
+                          theme.fg("toolOutput", replaceTabs(l)),
+                      )
                 : [];
 
             const warnings: string[] = [];

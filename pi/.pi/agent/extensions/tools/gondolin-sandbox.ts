@@ -79,7 +79,7 @@ function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
 }
 
-export function toGuestPath(localCwd: string, localPath: string): string {
+export function hostToGuestPath(localCwd: string, localPath: string): string {
     if (localPath === "~") return GUEST_HOME;
     if (localPath.startsWith("~/")) {
         return path.posix.join(GUEST_HOME, localPath.slice(2));
@@ -120,15 +120,15 @@ export function toGuestPath(localCwd: string, localPath: string): string {
 function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
     return {
         async readFile(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             return vm.fs.readFile(guestPath);
         },
         async access(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             await vm.fs.access(guestPath, { mode: constants.R_OK });
         },
         async detectImageMimeType(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             try {
                 const r = await vm.exec([
                     "/bin/sh",
@@ -150,13 +150,13 @@ function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
 function createGondolinWriteOps(vm: VM, localCwd: string): WriteOperations {
     return {
         async writeFile(p, content) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             const dir = path.posix.dirname(guestPath);
             await vm.fs.mkdir(dir, { recursive: true });
             await vm.fs.writeFile(guestPath, content);
         },
         async mkdir(dir) {
-            const guestDir = toGuestPath(localCwd, dir);
+            const guestDir = hostToGuestPath(localCwd, dir);
             await vm.fs.mkdir(guestDir, { recursive: true });
         },
     };
@@ -171,7 +171,7 @@ function createGondolinEditOps(vm: VM, localCwd: string): EditOperations {
 function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {
     return {
         async exec(command, cwd, { onData, signal, timeout }) {
-            const guestCwd = toGuestPath(localCwd, cwd);
+            const guestCwd = hostToGuestPath(localCwd, cwd);
             const ac = new AbortController();
             const onAbort = () => ac.abort();
             signal?.addEventListener("abort", onAbort, { once: true });
@@ -242,7 +242,7 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
     const exec = createGondolinExec(vm);
     return {
         async exists(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             try {
                 await vm.fs.access(guestPath);
                 return true;
@@ -251,7 +251,7 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
             }
         },
         async glob(pattern, cwd, options) {
-            const guestCwd = toGuestPath(localCwd, cwd);
+            const guestCwd = hostToGuestPath(localCwd, cwd);
             return sandboxedFdGlob({
                 pattern,
                 guestCwd,
@@ -266,7 +266,7 @@ function createGondolinFindOps(vm: VM, localCwd: string): FindOperations {
 function createGondolinLsOps(vm: VM, localCwd: string): LsOperations {
     return {
         async exists(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             try {
                 await vm.fs.access(guestPath);
                 return true;
@@ -275,7 +275,7 @@ function createGondolinLsOps(vm: VM, localCwd: string): LsOperations {
             }
         },
         async stat(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             try {
                 return await vm.fs.stat(guestPath);
             } catch (err) {
@@ -288,7 +288,7 @@ function createGondolinLsOps(vm: VM, localCwd: string): LsOperations {
             }
         },
         async readdir(p) {
-            const guestPath = toGuestPath(localCwd, p);
+            const guestPath = hostToGuestPath(localCwd, p);
             const entries = await vm.fs.listDir(guestPath);
             return entries.sort();
         },
@@ -448,6 +448,10 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 .split(savedHostSkillsDir)
                 .join(GUEST_SKILLS_DIR);
             return modified;
+        },
+
+        translatePath(hostPath: string) {
+            return hostToGuestPath(localCwd, hostPath);
         },
     };
 }

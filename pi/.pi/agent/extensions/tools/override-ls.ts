@@ -23,7 +23,7 @@ export function createLsOverride(sandbox: SandboxAPI) {
             onUpdate: any,
             ctx: any,
         ) {
-            return createLsTool(ctx.cwd, {
+            return createLsTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().ls,
             }).execute(toolCallId, params, signal, onUpdate);
         },
@@ -62,7 +62,9 @@ export function createLsOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
+                      .map((l: string) =>
+                          theme.fg("toolOutput", replaceTabs(l)),
+                      )
                 : [];
 
             const warnings: string[] = [];

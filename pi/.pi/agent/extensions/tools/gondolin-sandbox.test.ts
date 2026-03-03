@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { homedir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { toGuestPath } from "./gondolin-sandbox.ts";
+import { hostToGuestPath } from "./gondolin-sandbox.ts";
 
 const hostHome = homedir();
 
@@ -59,6 +59,6 @@ const cases = [
 
 for (const c of cases) {
     test(c.name, () => {
-        assert.equal(toGuestPath(c.localCwd, c.localPath), c.expected);
+        assert.equal(hostToGuestPath(c.localCwd, c.localPath), c.expected);
     });
 }

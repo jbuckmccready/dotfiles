@@ -23,7 +23,7 @@ export function createFindOverride(sandbox: SandboxAPI) {
             onUpdate: any,
             ctx: any,
         ) {
-            return createFindTool(ctx.cwd, {
+            return createFindTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().find,
             }).execute(toolCallId, params, signal, onUpdate);
         },
@@ -66,7 +66,9 @@ export function createFindOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) => theme.fg("toolOutput", replaceTabs(l)))
+                      .map((l: string) =>
+                          theme.fg("toolOutput", replaceTabs(l)),
+                      )
                 : [];
 
             const warnings: string[] = [];

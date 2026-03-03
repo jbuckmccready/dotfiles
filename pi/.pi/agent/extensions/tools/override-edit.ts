@@ -317,7 +317,7 @@ export function createEditOverride(sandbox: SandboxAPI) {
             onUpdate: any,
             ctx: any,
         ) {
-            return createEditTool(ctx.cwd, {
+            return createEditTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().edit,
             }).execute(toolCallId, params, signal, onUpdate);
         },
