@@ -10,7 +10,7 @@
  *
  *   {
  *     "type": "gondolin",
- *     "guestDir": "~/dotfiles/gondolin/rust-assets",
+ *     "imagePath": "~/dotfiles/gondolin/rust-assets",
  *     "allowedHosts": [
  *       "github.com",
  *       "*.github.com",
@@ -27,7 +27,9 @@
  *   }
  *
  * Config fields:
- *   guestDir      — path to custom guest image assets (built via `gondolin build`)
+ *   imagePath     — path to custom guest image assets (built via `gondolin build`)
+ *   checkpointPath — path to a .qcow2 checkpoint to resume from instead of
+ *                    booting a fresh VM
  *   memory        — VM memory size in QEMU syntax (e.g. "2G", "512M"). Default: "1G"
  *   cpus          — VM vCPU count. Default: 2
  *   allowedHosts  — HTTP egress allowlist, passed to gondolin's createHttpHooks.
@@ -52,6 +54,7 @@ import type {
 } from "@mariozechner/pi-coding-agent";
 import {
     VM,
+    VmCheckpoint,
     RealFSProvider,
     ReadonlyProvider,
     ShadowProvider,
@@ -328,9 +331,9 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             savedHostSkillsDir = path.join(homedir(), ".pi", "agent", "skills");
             const realSkillsDir = realpathSync(savedHostSkillsDir);
 
-            let guestDir = config.guestDir;
-            if (guestDir?.startsWith("~/")) {
-                guestDir = path.join(homedir(), guestDir.slice(2));
+            let imagePath = config.imagePath;
+            if (imagePath?.startsWith("~/")) {
+                imagePath = path.join(homedir(), imagePath.slice(2));
             }
 
             const excludePaths = config.excludePaths ?? [];
@@ -366,8 +369,13 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                       isIpAllowed: async () => false,
                   });
 
-            const vmPromise = VM.create({
-                ...(guestDir ? { sandbox: { imagePath: guestDir } } : {}),
+            let checkpointPath = config.checkpointPath;
+            if (checkpointPath?.startsWith("~/")) {
+                checkpointPath = path.join(homedir(), checkpointPath.slice(2));
+            }
+
+            const vmOptions = {
+                ...(imagePath ? { sandbox: { imagePath } } : {}),
                 ...(config.memory ? { memory: config.memory } : {}),
                 ...(config.cpus ? { cpus: config.cpus } : {}),
                 httpHooks,
@@ -389,15 +397,16 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                             : {}),
                     },
                 },
-            });
+            };
 
-            ui.setStatus(
-                "sandbox",
-                ui.theme.fg(
-                    "accent",
-                    `🏰 Gondolin sandbox: starting (${localCwd} → ${GUEST_WORKSPACE})`,
-                ),
-            );
+            const vmPromise = checkpointPath
+                ? VmCheckpoint.load(checkpointPath).resume<VM>(vmOptions)
+                : VM.create(vmOptions);
+
+            const startLabel = checkpointPath
+                ? `🏰 Gondolin sandbox: resuming ${checkpointPath} (${localCwd} → ${GUEST_WORKSPACE})`
+                : `🏰 Gondolin sandbox: starting (${localCwd} → ${GUEST_WORKSPACE})`;
+            ui.setStatus("sandbox", ui.theme.fg("accent", startLabel));
 
             vm = await vmPromise;
 
@@ -454,7 +463,8 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
         describe() {
             return [
                 "Sandbox: gondolin",
-                `  Guest Dir: ${savedConfig?.guestDir || "(default)"}`,
+                `  Image Path: ${savedConfig?.imagePath || "(default)"}`,
+                `  Checkpoint Path: ${savedConfig?.checkpointPath || "(none)"}`,
                 `  Memory: ${savedConfig?.memory || "(default: 1G)"}`,
                 `  CPUs: ${savedConfig?.cpus || "(default: 2)"}`,
                 `  Allowed Hosts: ${savedConfig?.allowedHosts?.join(", ") || "(none)"}`,

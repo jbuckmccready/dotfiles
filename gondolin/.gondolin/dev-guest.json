@@ -19,7 +19,6 @@
       "cargo",
       "npm",
       "gcc",
-      "musl-dev",
       "pkgconf",
       "openssl-dev",
       "file",
@@ -29,10 +28,11 @@
   },
   "rootfs": {
     "label": "gondolin-root",
-    "sizeMb": 2048
+    "sizeMb": 4096
   },
   "postBuild": {
     "commands": [
+      "apk add --no-cache musl-dev linux-headers",
       "printf '[safe]\\n\\tdirectory = *\\n' > /etc/gitconfig",
       "ZIG_ARCH=$(uname -m) && curl -fsSL -o /tmp/zig.tar.xz \"https://ziglang.org/download/0.15.2/zig-${ZIG_ARCH}-linux-0.15.2.tar.xz\" && tar -xJf /tmp/zig.tar.xz -C /usr/local && ln -s /usr/local/zig-${ZIG_ARCH}-linux-0.15.2/zig /usr/local/bin/zig && rm /tmp/zig.tar.xz"
     ]

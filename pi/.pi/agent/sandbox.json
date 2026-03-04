@@ -1,8 +1,8 @@
 {
     "type": "gondolin",
-    "memory": "1G",
-    "cpus": 2,
-    "guestDir": "~/.gondolin/dev-assets",
+    "memory": "6G",
+    "cpus": 10,
+    "imagePath": "~/.gondolin/dev-assets",
     "allowedHosts": ["*"],
     "secrets": {
         "GH_TOKEN": {
