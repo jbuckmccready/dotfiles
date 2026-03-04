@@ -6,6 +6,7 @@
  *
  * Modified:
  * - Minor changes to fix typescript lsp errors
+ * - Minor prompt adjustments
  *
  * Provides a `/review` command that prompts the agent to review code changes.
  * Supports multiple review modes:
@@ -2029,7 +2030,8 @@ For EACH finding, include:
 
 Preserve exact file paths, function names, and error messages where available.`;
 
-    const REVIEW_FIX_FINDINGS_PROMPT = `Use the latest review summary in this session and implement the review findings now.
+    const REVIEW_FIX_FINDINGS_PROMPT = `Use the latest review summary that was just produced in this conversation and implement the review findings now.
+Do NOT read session files; use only the summary message already in context.
 
 Instructions:
 1. Treat the summary's Findings/Fix Queue as a checklist.
