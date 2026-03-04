@@ -39,7 +39,7 @@
  *   excludePaths  — workspace-relative paths hidden from the guest via ShadowProvider
  */
 import { constants, realpathSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type {
@@ -74,6 +74,8 @@ const GUEST_WORKSPACE = "/workspace";
 const GUEST_HOME = "/root";
 const GUEST_SKILLS_DIR = `${GUEST_HOME}/.pi/agent/skills`;
 const HOST_HOME = homedir();
+const HOST_TMPDIR = tmpdir();
+const GUEST_TMPDIR = "/tmp/pi-host-tmp";
 
 function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
@@ -111,6 +113,20 @@ export function hostToGuestPath(localCwd: string, localPath: string): string {
     if (localPath.startsWith(hostHomePrefix)) {
         const homeRel = localPath.slice(hostHomePrefix.length);
         return path.posix.join(GUEST_HOME, ...homeRel.split(path.sep));
+    }
+
+    // Absolute path under host tmpdir should map to guest tmpdir
+    // (skip if they're the same path — no translation needed).
+    if (
+        HOST_TMPDIR !== GUEST_TMPDIR &&
+        !HOST_TMPDIR.startsWith(GUEST_TMPDIR + "/")
+    ) {
+        if (localPath === HOST_TMPDIR) return GUEST_TMPDIR;
+        const hostTmpPrefix = HOST_TMPDIR + path.sep;
+        if (localPath.startsWith(hostTmpPrefix)) {
+            const tmpRel = localPath.slice(hostTmpPrefix.length);
+            return path.posix.join(GUEST_TMPDIR, ...tmpRel.split(path.sep));
+        }
     }
 
     // Absolute path outside workspace — pass through as-is
@@ -362,6 +378,15 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                         [GUEST_SKILLS_DIR]: new ReadonlyProvider(
                             new RealFSProvider(realSkillsDir),
                         ),
+                        // Only mount host tmpdir if it won't shadow the guest mount point
+                        ...(HOST_TMPDIR !== GUEST_TMPDIR &&
+                        !HOST_TMPDIR.startsWith(GUEST_TMPDIR + "/")
+                            ? {
+                                  [GUEST_TMPDIR]: new ReadonlyProvider(
+                                      new RealFSProvider(HOST_TMPDIR),
+                                  ),
+                              }
+                            : {}),
                     },
                 },
             });

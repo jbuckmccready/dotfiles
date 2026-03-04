@@ -129,7 +129,9 @@ function autoDetectMounts(container: string): Record<string, string> {
         const result: Record<string, string> = {};
         for (const m of mountList) {
             if (m.Type === "bind") {
-                result[m.Source] = m.Destination;
+                // Strip trailing slashes to normalise paths like /var/folders/.../T/
+                const src = m.Source.replace(/\/+$/, "") || "/";
+                result[src] = m.Destination;
             }
         }
         return result;
