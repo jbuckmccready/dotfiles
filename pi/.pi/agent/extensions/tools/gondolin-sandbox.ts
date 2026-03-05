@@ -43,7 +43,11 @@
  *                   Real values never enter the VM — gondolin injects placeholders
  *                   and substitutes on outbound HTTP requests to allowed hosts.
  *   excludePaths  — workspace-relative paths hidden from the guest via ShadowProvider
- *   env           — key-value pairs set as environment variables inside the VM
+ *   env           — key-value pairs set as environment variables inside the VM.
+ *                   By default, GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL,
+ *                   GIT_COMMITTER_NAME, and GIT_COMMITTER_EMAIL are set to
+ *                   "Pi Agent (Gondolin)" / "pi-agent-gondolin@noreply".
+ *                   Override any of these via env to customize.
  */
 import { constants, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -385,7 +389,15 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 ...(config.cpus ? { cpus: config.cpus } : {}),
                 sessionLabel: `pi: ${localCwd}`,
                 httpHooks,
-                env: { HOME: GUEST_HOME, ...env, ...(config.env ?? {}) },
+                env: {
+                    HOME: GUEST_HOME,
+                    GIT_AUTHOR_NAME: "Pi Agent (Gondolin)",
+                    GIT_AUTHOR_EMAIL: "pi-agent-gondolin@noreply",
+                    GIT_COMMITTER_NAME: "Pi Agent (Gondolin)",
+                    GIT_COMMITTER_EMAIL: "pi-agent-gondolin@noreply",
+                    ...env,
+                    ...(config.env ?? {}),
+                },
                 vfs: {
                     mounts: {
                         [GUEST_WORKSPACE]: workspaceProvider,
