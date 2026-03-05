@@ -38,6 +38,7 @@ export interface GondolinSandboxConfig {
     allowedHosts?: string[];
     secrets?: Record<string, GondolinSecretConfig>;
     excludePaths?: string[];
+    env?: Record<string, string>;
 }
 
 export interface DockerSandboxConfig {
@@ -168,6 +169,7 @@ export function loadConfig(cwd: string): SandboxConfig {
                 | Record<string, GondolinSecretConfig>
                 | undefined,
             excludePaths: merged.excludePaths as string[] | undefined,
+            env: merged.env as Record<string, string> | undefined,
         };
     }
 

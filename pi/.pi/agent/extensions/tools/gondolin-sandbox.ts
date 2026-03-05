@@ -23,7 +23,11 @@
  *         "fromEnv": "GH_TOKEN_READONLY"
  *       }
  *     },
- *     "excludePaths": [".env", ".envrc"]
+ *     "excludePaths": [".env", ".envrc"],
+ *     "env": {
+ *       "RUST_LOG": "debug",
+ *       "MY_VAR": "value"
+ *     }
  *   }
  *
  * Config fields:
@@ -39,6 +43,7 @@
  *                   Real values never enter the VM — gondolin injects placeholders
  *                   and substitutes on outbound HTTP requests to allowed hosts.
  *   excludePaths  — workspace-relative paths hidden from the guest via ShadowProvider
+ *   env           — key-value pairs set as environment variables inside the VM
  */
 import { constants, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -378,8 +383,9 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 ...(imagePath ? { sandbox: { imagePath } } : {}),
                 ...(config.memory ? { memory: config.memory } : {}),
                 ...(config.cpus ? { cpus: config.cpus } : {}),
+                sessionLabel: `pi: ${localCwd}`,
                 httpHooks,
-                env: { HOME: GUEST_HOME, ...env },
+                env: { HOME: GUEST_HOME, ...env, ...(config.env ?? {}) },
                 vfs: {
                     mounts: {
                         [GUEST_WORKSPACE]: workspaceProvider,
@@ -470,6 +476,7 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 `  Allowed Hosts: ${savedConfig?.allowedHosts?.join(", ") || "(none)"}`,
                 `  Secrets: ${Object.keys(savedConfig?.secrets ?? {}).join(", ") || "(none)"}`,
                 `  Exclude Paths: ${savedConfig?.excludePaths?.join(", ") || "(none)"}`,
+                `  Env: ${Object.keys(savedConfig?.env ?? {}).join(", ") || "(none)"}`,
             ];
         },
 
