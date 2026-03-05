@@ -17,6 +17,7 @@
       "openssh",
       "rust",
       "cargo",
+      "python3",
       "npm",
       "gcc",
       "pkgconf",
