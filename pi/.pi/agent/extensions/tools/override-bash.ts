@@ -17,8 +17,20 @@ const BASH_PREVIEW_LINES = 5;
 type ExpandState = "expanded" | "collapsed";
 type CompCache = Partial<Record<ExpandState, any>>;
 
+function formatDuration(ms: number): string {
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    const rs = s % 60;
+    return `${m}m ${rs}s`;
+}
+
 export function createBashOverride(sandbox: SandboxAPI) {
     const bashCache = new WeakMap<object, CompCache>();
+    // Frozen durations keyed by args object reference (stable per ToolExecutionComponent)
+    const frozenDurations = new WeakMap<object, number>();
+    // Tracks the currently executing bash (only one at a time)
+    let timer: { start: number; end?: number } | null = null;
 
     return {
         async execute(
@@ -29,14 +41,52 @@ export function createBashOverride(sandbox: SandboxAPI) {
             _ctx: any,
         ) {
             const localCwd = process.cwd();
-            return createBashTool(localCwd, {
-                operations: sandbox.getOps().bash,
-            }).execute(id, params, signal, onUpdate);
+            const startTime = Date.now();
+            timer = { start: startTime };
+
+            let latestPartial: any = { content: [] };
+            const wrappedOnUpdate = (partial: any) => {
+                if (partial) latestPartial = partial;
+                onUpdate?.(partial);
+            };
+            const heartbeat = setInterval(() => {
+                onUpdate?.(latestPartial);
+            }, 1000);
+
+            try {
+                const result = await createBashTool(localCwd, {
+                    operations: sandbox.getOps().bash,
+                }).execute(id, params, signal, wrappedOnUpdate);
+                return result;
+            } finally {
+                clearInterval(heartbeat);
+                timer = { start: startTime, end: Date.now() };
+            }
         },
 
         renderCall(args: any, theme: any) {
             const command = args?.command as string | undefined;
             const timeout = args?.timeout as number | undefined;
+
+            let timerSuffix = "";
+            const frozen = args ? frozenDurations.get(args) : undefined;
+            if (frozen !== undefined) {
+                if (frozen >= 1000)
+                    timerSuffix = " " + theme.fg("muted", formatDuration(frozen));
+            } else if (timer?.end != null && args) {
+                const duration = timer.end - timer.start;
+                frozenDurations.set(args, duration);
+                timer = null;
+                if (duration >= 1000)
+                    timerSuffix = " " + theme.fg("muted", formatDuration(duration));
+            } else if (timer) {
+                const elapsed = Date.now() - timer.start;
+                if (elapsed >= 1000)
+                    timerSuffix =
+                        " " +
+                        theme.fg("muted", formatDuration(elapsed));
+            }
+
             const timeoutSuffix = timeout
                 ? theme.fg("muted", ` (timeout ${timeout}s)`)
                 : "";
@@ -45,7 +95,8 @@ export function createBashOverride(sandbox: SandboxAPI) {
                 : theme.fg("toolOutput", "...");
             const title =
                 theme.fg("toolTitle", theme.bold(`$ ${commandDisplay}`)) +
-                timeoutSuffix;
+                timeoutSuffix +
+                timerSuffix;
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
