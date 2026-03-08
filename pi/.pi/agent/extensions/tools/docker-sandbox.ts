@@ -25,6 +25,13 @@
  *     node:22 sleep infinity
  *
  * The container image should have: bash, rg (ripgrep), fd, base64.
+ *
+ * WSL2 + Docker Desktop note: if Docker Desktop starts before the WSL
+ * distro, `docker inspect` may report mangled bind-mount source paths
+ * (e.g. /run/desktop/mnt/host/wsl/docker-desktop-bind-mounts/Ubuntu/<hash>)
+ * instead of the real WSL paths, breaking host→container path translation.
+ * Starting the WSL distro first and then launching Docker Desktop avoids
+ * this issue.
  */
 
 import { spawn, execSync } from "node:child_process";
