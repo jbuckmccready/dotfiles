@@ -70,6 +70,9 @@ $n.Dispose()
 }
 
 export default function (pi: ExtensionAPI) {
+    // Don't notify in subagent child processes.
+    if (Number(process.env.PI_SUBAGENT_DEPTH ?? 0) > 0) return;
+
     pi.on("agent_end", async () => {
         notify("Pi", "Ready for input");
     });
