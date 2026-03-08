@@ -1,24 +1,25 @@
 {
-	"name": "pi-extension-tools",
-	"private": true,
-	"version": "1.0.0",
-	"type": "module",
-	"scripts": {
-		"check": "tsc --noEmit -p tsconfig.json",
-		"test": "node --import tsx --test *.test.ts"
-	},
-	"pi": {
-		"extensions": [
-			"./index.ts"
-		]
-	},
-	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "^0.0.26",
-		"@earendil-works/gondolin": "^0.5.0",
-		"diff": "^7.0.0",
-		"strip-ansi": "^7.1.2"
-	},
-	"devDependencies": {
-		"tsx": "^4.21.0"
-	}
+    "name": "pi-extension-tools",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "check": "tsc --noEmit -p tsconfig.json",
+        "test": "node --import tsx --test *.test.ts"
+    },
+    "pi": {
+        "extensions": [
+            "./index.ts"
+        ]
+    },
+    "dependencies": {
+        "@anthropic-ai/sandbox-runtime": "^0.0.26",
+        "@earendil-works/gondolin": "^0.5.0",
+        "diff": "^7.0.0",
+        "glob": "^13.0.6",
+        "strip-ansi": "^7.1.2"
+    },
+    "devDependencies": {
+        "tsx": "^4.21.0"
+    }
 }
