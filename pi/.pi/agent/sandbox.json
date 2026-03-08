@@ -1,13 +1,4 @@
 {
-    "type": "gondolin",
-    "memory": "6G",
-    "cpus": 10,
-    "imagePath": "~/.gondolin/dev-assets",
-    "allowedHosts": ["*"],
-    "secrets": {
-        "GH_TOKEN": {
-            "hosts": ["api.github.com", "github.com"],
-            "fromEnv": "GH_TOKEN_READONLY"
-        }
-    }
+    "type": "docker",
+    "container": "pi-docker-sandbox"
 }
