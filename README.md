@@ -97,6 +97,20 @@ fisher install jorgebucaran/hydro
 stow tmux
 ```
 
+#### Windows Terminal (WSL)
+
+Windows Terminal doesn't natively send CSI-u key sequences for modified keys like Shift+Enter. To make Shift+Enter work correctly in Pi (for inserting newlines), add this keybinding to your Windows Terminal `settings.json` (`Ctrl+Shift+,`):
+
+```json
+{
+    "command": {
+        "action": "sendInput",
+        "input": "\u001b[13;2u"
+    },
+    "keys": "shift+enter"
+}
+```
+
 Follow instructions [here](https://github.com/tmux-plugins/tpm)
 
 ```sh
