@@ -10,6 +10,21 @@ return {
             end,
             desc = "Copilot Suggestions Panel",
         },
+        {
+            "<leader>up",
+            function()
+                local client = require("copilot.client")
+                local command = require("copilot.command")
+                if client.is_disabled() then
+                    command.enable()
+                    vim.notify("Enabling Copilot...", vim.log.levels.INFO)
+                else
+                    command.disable()
+                    vim.notify("Disabling Copilot...", vim.log.levels.INFO)
+                end
+            end,
+            desc = "Toggle Copilot",
+        },
     },
     config = function()
         require("copilot").setup({
