@@ -42,24 +42,24 @@ return {
         set("x", "M", mc.matchCursors, { desc = "Match new cursors within visual selections by regex" })
 
         -- Add cursors to all matches of the current word/search.
-        set({ "n", "v" }, "<leader>ma", mc.matchAllAddCursors, { desc = "Add cursor to all matches under cursor" })
+        set({ "n", "x" }, "<leader>ma", mc.matchAllAddCursors, { desc = "Add cursor to all matches under cursor" })
         set("n", "<leader>mA", mc.searchAllAddCursors, { desc = "Add cursor to all search results in buffer" })
 
         -- Jump to first/last cursor.
-        set({ "n", "v" }, "<leader>mH", mc.firstCursor, { desc = "Select first cursor" })
-        set({ "n", "v" }, "<leader>mL", mc.lastCursor, { desc = "Select last cursor" })
+        set({ "n", "x" }, "<leader>mH", mc.firstCursor, { desc = "Select first cursor" })
+        set({ "n", "x" }, "<leader>mL", mc.lastCursor, { desc = "Select last cursor" })
 
-        set("v", "<leader>mh", function()
+        set("x", "<leader>mh", function()
             mc.swapCursors(-1)
         end, { desc = "Swap cursors left" })
-        set("v", "<leader>ml", function()
+        set("x", "<leader>ml", function()
             mc.swapCursors(1)
         end, { desc = "Swap cursors right" })
 
-        set("v", "<leader>mt", function()
+        set("x", "<leader>mt", function()
             mc.transposeCursors(1)
         end, { desc = "Rotate cursors clockwise" })
-        set("v", "<leader>mT", function()
+        set("x", "<leader>mT", function()
             mc.transposeCursors(-1)
         end, { desc = "Rotate cursors anti-clockwise" })
 
