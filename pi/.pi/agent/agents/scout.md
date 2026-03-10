@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Fast codebase recon that returns compressed context for handoff to other agents
+description: Fast codebase recon/semantic search that returns compressed context for handoff to other agents, use when needing to search for files and line numbers relevant to a query or task, do not use when needing to read complete files (use read tool directly for that)
 model: claude-haiku-4-5
 thinking: high
 ---
