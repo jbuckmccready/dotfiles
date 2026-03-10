@@ -22,7 +22,7 @@
  */
 
 import {
-    complete,
+    completeSimple,
     type Model,
     type Api,
     type UserMessage,
@@ -91,7 +91,7 @@ const CODEX_MODEL_ID = "gpt-5.1-codex-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 /**
- * Prefer Codex mini for extraction, then haiku, then Gemini Flash, otherwise fallback to the current model.
+ * Prefer haiku for extraction, then Codex mini, then Gemini Flash, otherwise fallback to the current model.
  */
 async function selectExtractionModel(
     currentModel: Model<Api>,
@@ -101,8 +101,8 @@ async function selectExtractionModel(
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
-        { provider: "github-copilot", modelId: CODEX_MODEL_ID },
         { provider: "anthropic", modelId: HAIKU_MODEL_ID },
+        { provider: "github-copilot", modelId: CODEX_MODEL_ID },
         { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
     ];
 
@@ -523,7 +523,7 @@ export default function (pi: ExtensionAPI) {
             return;
         }
 
-        // Select the best model for extraction (prefer Codex mini, then haiku, then Gemini Flash)
+        // Select the best model for extraction (prefer haiku, then Codex mini, then Gemini Flash)
         const extractionModel = await selectExtractionModel(
             ctx.model,
             ctx.modelRegistry,
@@ -548,13 +548,13 @@ export default function (pi: ExtensionAPI) {
                         timestamp: Date.now(),
                     };
 
-                    const response = await complete(
+                    const response = await completeSimple(
                         extractionModel,
                         {
                             systemPrompt: SYSTEM_PROMPT,
                             messages: [userMessage],
                         },
-                        { apiKey, signal: loader.signal },
+                        { apiKey, signal: loader.signal, reasoning: "high" },
                     );
 
                     if (response.stopReason === "aborted") {
