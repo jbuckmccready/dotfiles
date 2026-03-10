@@ -25,6 +25,8 @@ import {
   DEFAULT_DELEGATION_MODE,
   emptyUsage,
   getFinalOutput,
+  getRecoveryStatusText,
+  getResultErrorText,
   isResultError,
 } from "./types.js";
 
@@ -671,16 +673,13 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
     });
 
     if (isResultError(result)) {
-      const errorMsg =
-        result.errorMessage ||
-        result.stderr ||
-        getFinalOutput(result.messages) ||
-        "(no output)";
+      const errorMsg = getResultErrorText(result) || "(no output)";
+      const recoveryStatus = getRecoveryStatusText(result);
       return {
         content: [
           {
             type: "text" as const,
-            text: `Agent ${result.stopReason || "failed"}: ${errorMsg}`,
+            text: `${recoveryStatus ? `${recoveryStatus}\n\n` : ""}Agent ${result.stopReason || "failed"}: ${errorMsg}`,
           },
         ],
         details: makeDetails("single")([result]),
@@ -691,7 +690,9 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
       content: [
         {
           type: "text" as const,
-          text: getFinalOutput(result.messages) || "(no output)",
+          text: [getRecoveryStatusText(result), getFinalOutput(result.messages) || "(no output)"]
+            .filter(Boolean)
+            .join("\n\n"),
         },
       ],
       details: makeDetails("single")([result]),
@@ -789,10 +790,14 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
       if (heartbeat) clearInterval(heartbeat);
     }
 
-    const successCount = results.filter((r) => r.exitCode === 0).length;
+    const successCount = results.filter((r) => !isResultError(r)).length;
     const summaries = results.map((r) => {
-      const output = getFinalOutput(r.messages);
-      return `[${r.agent}] ${r.exitCode === 0 ? "completed" : "failed"}: ${output || "(no output)"}`;
+      const success = !isResultError(r);
+      const output = success ? getFinalOutput(r.messages) : getResultErrorText(r);
+      const recoveryStatus = getRecoveryStatusText(r);
+      return [`[${r.agent}] ${success ? "completed" : "failed"}: ${output || "(no output)"}`, recoveryStatus]
+        .filter(Boolean)
+        .join("\n");
     });
 
     return {

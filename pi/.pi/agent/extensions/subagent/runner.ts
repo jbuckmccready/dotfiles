@@ -14,7 +14,9 @@ import type { AgentConfig } from "./agents.js";
 import {
   type DelegationMode,
   type SingleResult,
+  type StreamParseError,
   type SubagentDetails,
+  aggregateUsage,
   emptyUsage,
   getFinalOutput,
 } from "./types.js";
@@ -25,33 +27,110 @@ const SUBAGENT_MAX_DEPTH_ENV = "PI_SUBAGENT_MAX_DEPTH";
 const SUBAGENT_STACK_ENV = "PI_SUBAGENT_STACK";
 const SUBAGENT_PREVENT_CYCLES_ENV = "PI_SUBAGENT_PREVENT_CYCLES";
 const PI_OFFLINE_ENV = "PI_OFFLINE";
+const MAX_RECOVERABLE_RETRIES = 1;
 
 type OnUpdateCallback = (partial: AgentToolResult<SubagentDetails>) => void;
+
+type SessionRunConfig =
+  | { kind: "sessionDir"; path: string; continueSession: boolean }
+  | { kind: "sessionFile"; path: string };
+
+interface RunAttemptOptions {
+  cwd: string;
+  agent: AgentConfig;
+  agentName: string;
+  task: string;
+  prompt: string;
+  systemPromptPath: string | null;
+  parentDepth: number;
+  parentAgentStack: string[];
+  maxDepth: number;
+  preventCycles: boolean;
+  sessionConfig: SessionRunConfig;
+  signal?: AbortSignal;
+  onUpdate?: (result: SingleResult) => void;
+}
+
+interface TempFileRef {
+  dir: string;
+  filePath: string;
+}
+
+interface PreparedSessionResources {
+  cleanupDir: string | null;
+  buildConfig: (attemptIndex: number) => SessionRunConfig;
+}
+
+function formatLinePreview(line: string, maxChars = 240): string {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars)}...`;
+}
+
+function recordStreamParseError(
+  result: SingleResult,
+  error: unknown,
+  line: string,
+): void {
+  const message = error instanceof Error ? error.message : String(error);
+  const entry: StreamParseError = {
+    stream: "stdout",
+    message,
+    linePreview: formatLinePreview(line),
+    lineLength: line.length,
+  };
+  if (!result.streamParseErrors) result.streamParseErrors = [];
+  result.streamParseErrors.push(entry);
+}
 
 // ---------------------------------------------------------------------------
 // Temp file helpers
 // ---------------------------------------------------------------------------
 
-function writePromptToTempFile(
+function writeTempFile(
   agentName: string,
-  prompt: string,
-): { dir: string; filePath: string } {
+  prefix: string,
+  suffix: string,
+  contents: string,
+): TempFileRef {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagent-"));
   const safeName = agentName.replace(/[^\w.-]+/g, "_");
-  const filePath = path.join(tmpDir, `prompt-${safeName}.md`);
-  fs.writeFileSync(filePath, prompt, { encoding: "utf-8", mode: 0o600 });
+  const filePath = path.join(tmpDir, `${prefix}${safeName}${suffix}`);
+  fs.writeFileSync(filePath, contents, { encoding: "utf-8", mode: 0o600 });
   return { dir: tmpDir, filePath };
 }
 
-function writeForkSessionToTempFile(
+function createTempSessionDir(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagent-session-"));
+}
+
+function prepareSessionResources(
+  delegationMode: DelegationMode,
   agentName: string,
-  sessionJsonl: string,
-): { dir: string; filePath: string } {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagent-"));
-  const safeName = agentName.replace(/[^\w.-]+/g, "_");
-  const filePath = path.join(tmpDir, `fork-${safeName}.jsonl`);
-  fs.writeFileSync(filePath, sessionJsonl, { encoding: "utf-8", mode: 0o600 });
-  return { dir: tmpDir, filePath };
+  forkSessionSnapshotJsonl?: string,
+): PreparedSessionResources {
+  if (delegationMode === "spawn") {
+    const sessionDir = createTempSessionDir();
+    return {
+      cleanupDir: sessionDir,
+      buildConfig: (attemptIndex) => ({
+        kind: "sessionDir",
+        path: sessionDir,
+        continueSession: attemptIndex > 0,
+      }),
+    };
+  }
+
+  const sessionFile = writeTempFile(
+    agentName,
+    "fork-",
+    ".jsonl",
+    forkSessionSnapshotJsonl ?? "",
+  );
+  return {
+    cleanupDir: sessionFile.dir,
+    buildConfig: () => ({ kind: "sessionFile", path: sessionFile.filePath }),
+  };
 }
 
 function cleanupTempDir(dir: string | null): void {
@@ -73,7 +152,8 @@ function processJsonLine(line: string, result: SingleResult): boolean {
   let event: any;
   try {
     event = JSON.parse(line);
-  } catch {
+  } catch (error) {
+    recordStreamParseError(result, error, line);
     return false;
   }
 
@@ -119,25 +199,152 @@ function processJsonLine(line: string, result: SingleResult): boolean {
 function buildPiArgs(
   agent: AgentConfig,
   systemPromptPath: string | null,
-  task: string,
-  delegationMode: DelegationMode,
-  forkSessionPath: string | null,
+  prompt: string,
+  sessionConfig: SessionRunConfig,
 ): string[] {
   const args: string[] = ["--mode", "json", "-p"];
 
-  if (delegationMode === "spawn") {
-    args.push("--no-session");
-  } else if (forkSessionPath) {
-    args.push("--session", forkSessionPath);
+  if (sessionConfig.kind === "sessionDir") {
+    if (sessionConfig.continueSession) args.push("--continue");
+    args.push("--session-dir", sessionConfig.path);
+  } else {
+    args.push("--session", sessionConfig.path);
   }
 
   if (agent.model) args.push("--model", agent.model);
   if (agent.thinking) args.push("--thinking", agent.thinking);
-  if (agent.tools && agent.tools.length > 0)
+  if (agent.tools && agent.tools.length > 0) {
     args.push("--tools", agent.tools.join(","));
+  }
   if (systemPromptPath) args.push("--append-system-prompt", systemPromptPath);
-  args.push(`Task: ${task}`);
+  args.push(prompt);
   return args;
+}
+
+function buildRecoveryPrompt(errorMessage: string): string {
+  return [
+    "Your previous turn failed because your last tool call had invalid JSON arguments and could not be executed.",
+    `Failure: ${errorMessage}`,
+    "Continue from the current session state.",
+    "Do not restart from scratch.",
+    "Re-issue the intended tool call with valid JSON arguments, or choose another tool if that is better.",
+  ].join("\n");
+}
+
+/** If the child failed due to malformed tool-call JSON, return the error message so the caller can retry. */
+function getRecoverableToolCallError(result: SingleResult): string | null {
+  if (result.stopReason !== "error") return null;
+  if ((result.streamParseErrors?.length ?? 0) > 0) return null;
+
+  const message = result.errorMessage?.trim();
+  if (!message) return null;
+
+  return /json/i.test(message) ? message : null;
+}
+
+async function runAttempt(opts: RunAttemptOptions): Promise<SingleResult> {
+  const {
+    cwd,
+    agent,
+    agentName,
+    task,
+    prompt,
+    systemPromptPath,
+    parentDepth,
+    parentAgentStack,
+    maxDepth,
+    preventCycles,
+    sessionConfig,
+    signal,
+    onUpdate,
+  } = opts;
+
+  const result: SingleResult = {
+    agent: agentName,
+    agentSource: agent.source,
+    task,
+    exitCode: -1,
+    messages: [],
+    stderr: "",
+    usage: emptyUsage(),
+    model: agent.model,
+  };
+
+  const emitUpdate = () => {
+    onUpdate?.(result);
+  };
+
+  const piArgs = buildPiArgs(agent, systemPromptPath, prompt, sessionConfig);
+  let wasAborted = false;
+
+  const exitCode = await new Promise<number>((resolve) => {
+    const nextDepth = Math.max(0, Math.floor(parentDepth)) + 1;
+    const propagatedMaxDepth = Math.max(0, Math.floor(maxDepth));
+    const propagatedStack = [...parentAgentStack, agentName];
+    const proc = spawn("pi", piArgs, {
+      cwd,
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        [SUBAGENT_DEPTH_ENV]: String(nextDepth),
+        [SUBAGENT_MAX_DEPTH_ENV]: String(propagatedMaxDepth),
+        [SUBAGENT_STACK_ENV]: JSON.stringify(propagatedStack),
+        [SUBAGENT_PREVENT_CYCLES_ENV]: preventCycles ? "1" : "0",
+        [PI_OFFLINE_ENV]: "1",
+      },
+    });
+
+    let buffer = "";
+
+    const flushLine = (line: string) => {
+      if (processJsonLine(line, result)) emitUpdate();
+    };
+
+    proc.stdout.on("data", (chunk: Buffer) => {
+      buffer += chunk.toString();
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) flushLine(line);
+    });
+
+    proc.stderr.on("data", (chunk: Buffer) => {
+      result.stderr += chunk.toString();
+    });
+
+    proc.on("close", (code) => {
+      if (buffer.trim()) flushLine(buffer);
+      resolve(code ?? 0);
+    });
+
+    proc.on("error", (error) => {
+      if (!result.stderr.trim()) {
+        result.stderr = error instanceof Error ? error.message : String(error);
+      }
+      resolve(1);
+    });
+
+    if (signal) {
+      const kill = () => {
+        wasAborted = true;
+        proc.kill("SIGTERM");
+        setTimeout(() => {
+          if (!proc.killed) proc.kill("SIGKILL");
+        }, SIGKILL_TIMEOUT_MS);
+      };
+      if (signal.aborted) kill();
+      else signal.addEventListener("abort", kill, { once: true });
+    }
+  });
+
+  result.exitCode = exitCode;
+  if (wasAborted) {
+    result.exitCode = 130;
+    result.stopReason = "aborted";
+    result.errorMessage = "Subagent was aborted.";
+    if (!result.stderr.trim()) result.stderr = "Subagent was aborted.";
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -229,18 +436,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
     };
   }
 
-  const result: SingleResult = {
-    agent: agentName,
-    agentSource: agent.source,
-    task,
-    exitCode: -1,
-    messages: [],
-    stderr: "",
-    usage: emptyUsage(),
-    model: agent.model,
-  };
-
-  const emitUpdate = () => {
+  const emitUpdate = (result: SingleResult) => {
     onUpdate?.({
       content: [
         {
@@ -252,101 +448,110 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
     });
   };
 
-  // Write system prompt to temp file if needed
-  let promptTmpDir: string | null = null;
-  let promptTmpPath: string | null = null;
-  if (agent.systemPrompt.trim()) {
-    const tmp = writePromptToTempFile(agent.name, agent.systemPrompt);
-    promptTmpDir = tmp.dir;
-    promptTmpPath = tmp.filePath;
-  }
-
-  // Write forked session snapshot if needed
-  let forkSessionTmpDir: string | null = null;
-  let forkSessionTmpPath: string | null = null;
-  if (delegationMode === "fork" && forkSessionSnapshotJsonl) {
-    const tmp = writeForkSessionToTempFile(agent.name, forkSessionSnapshotJsonl);
-    forkSessionTmpDir = tmp.dir;
-    forkSessionTmpPath = tmp.filePath;
-  }
+  const promptTempFile = agent.systemPrompt.trim()
+    ? writeTempFile(agent.name, "prompt-", ".md", agent.systemPrompt)
+    : null;
+  const sessionResources = prepareSessionResources(
+    delegationMode,
+    agent.name,
+    forkSessionSnapshotJsonl,
+  );
 
   try {
-    const piArgs = buildPiArgs(
-      agent,
-      promptTmpPath,
-      task,
-      delegationMode,
-      forkSessionTmpPath,
-    );
-    let wasAborted = false;
+    const completedAttempts: SingleResult[] = [];
+    let recoveryTriggerError: string | undefined;
 
-    const exitCode = await new Promise<number>((resolve) => {
-      const nextDepth = Math.max(0, Math.floor(parentDepth)) + 1;
-      const propagatedMaxDepth = Math.max(0, Math.floor(maxDepth));
-      const propagatedStack = [...parentAgentStack, agentName];
-      const proc = spawn("pi", piArgs, {
-        cwd,
-        shell: false,
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          [SUBAGENT_DEPTH_ENV]: String(nextDepth),
-          [SUBAGENT_MAX_DEPTH_ENV]: String(propagatedMaxDepth),
-          [SUBAGENT_STACK_ENV]: JSON.stringify(propagatedStack),
-          [SUBAGENT_PREVENT_CYCLES_ENV]: preventCycles ? "1" : "0",
-          [PI_OFFLINE_ENV]: "1",
-        },
-      });
+    const mergeAttempts = (
+      currentAttempt?: SingleResult,
+      running = false,
+    ): SingleResult => {
+      const allAttempts = currentAttempt
+        ? [...completedAttempts, currentAttempt]
+        : [...completedAttempts];
+      const lastAttempt =
+        currentAttempt ?? completedAttempts[completedAttempts.length - 1];
+      const streamParseErrors = allAttempts.flatMap(
+        (attempt) => attempt.streamParseErrors ?? [],
+      );
 
-      let buffer = "";
-
-      const flushLine = (line: string) => {
-        if (processJsonLine(line, result)) emitUpdate();
+      const merged: SingleResult = {
+        agent: agentName,
+        agentSource: agent.source,
+        task,
+        exitCode: running ? -1 : lastAttempt?.exitCode ?? -1,
+        messages: allAttempts.flatMap((attempt) => attempt.messages),
+        stderr: running ? "" : lastAttempt?.stderr ?? "",
+        usage: aggregateUsage(allAttempts),
+        model: lastAttempt?.model ?? agent.model,
       };
 
-      proc.stdout.on("data", (chunk: Buffer) => {
-        buffer += chunk.toString();
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) flushLine(line);
-      });
-
-      proc.stderr.on("data", (chunk: Buffer) => {
-        result.stderr += chunk.toString();
-      });
-
-      proc.on("close", (code) => {
-        if (buffer.trim()) flushLine(buffer);
-        resolve(code ?? 0);
-      });
-
-      proc.on("error", () => resolve(1));
-
-      // Abort handling
-      if (signal) {
-        const kill = () => {
-          wasAborted = true;
-          proc.kill("SIGTERM");
-          setTimeout(() => {
-            if (!proc.killed) proc.kill("SIGKILL");
-          }, SIGKILL_TIMEOUT_MS);
-        };
-        if (signal.aborted) kill();
-        else signal.addEventListener("abort", kill, { once: true });
+      if (streamParseErrors.length > 0) {
+        merged.streamParseErrors = streamParseErrors;
       }
-    });
+      if (!running && lastAttempt?.stopReason) merged.stopReason = lastAttempt.stopReason;
+      if (!running && lastAttempt?.errorMessage) {
+        merged.errorMessage = lastAttempt.errorMessage;
+      }
+      if (recoveryTriggerError) {
+        merged.recoveryAttempts = running
+          ? completedAttempts.length
+          : Math.max(0, completedAttempts.length - 1);
+        merged.recoveryTriggerError = recoveryTriggerError;
+      }
+      if (running) merged.recoveryInProgress = true;
 
-    result.exitCode = exitCode;
-    if (wasAborted) {
-      result.exitCode = 130;
-      result.stopReason = "aborted";
-      result.errorMessage = "Subagent was aborted.";
-      if (!result.stderr.trim()) result.stderr = "Subagent was aborted.";
+      return merged;
+    };
+
+    const emitMergedUpdate = (
+      currentAttempt?: SingleResult,
+      running = false,
+    ) => {
+      emitUpdate(mergeAttempts(currentAttempt, running));
+    };
+
+    let prompt = `Task: ${task}`;
+
+    for (
+      let attemptIndex = 0;
+      attemptIndex <= MAX_RECOVERABLE_RETRIES;
+      attemptIndex++
+    ) {
+      const attemptResult = await runAttempt({
+        cwd,
+        agent,
+        agentName,
+        task,
+        prompt,
+        systemPromptPath: promptTempFile?.filePath ?? null,
+        parentDepth,
+        parentAgentStack,
+        maxDepth,
+        preventCycles,
+        sessionConfig: sessionResources.buildConfig(attemptIndex),
+        signal,
+        onUpdate: (partial) => emitMergedUpdate(partial),
+      });
+
+      const recoverableError = getRecoverableToolCallError(attemptResult);
+      const shouldRetry =
+        recoverableError !== null && attemptIndex < MAX_RECOVERABLE_RETRIES;
+
+      completedAttempts.push(attemptResult);
+
+      if (!shouldRetry) {
+        return mergeAttempts();
+      }
+
+      recoveryTriggerError = recoverableError;
+      prompt = buildRecoveryPrompt(recoverableError);
+      emitMergedUpdate(undefined, true);
     }
-    return result;
+
+    return mergeAttempts();
   } finally {
-    cleanupTempDir(promptTmpDir);
-    cleanupTempDir(forkSessionTmpDir);
+    cleanupTempDir(promptTempFile?.dir ?? null);
+    cleanupTempDir(sessionResources.cleanupDir);
   }
 }
 

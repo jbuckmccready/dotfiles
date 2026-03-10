@@ -4,6 +4,13 @@
 
 import type { Message } from "@mariozechner/pi-ai";
 
+export interface StreamParseError {
+	stream: "stdout";
+	message: string;
+	linePreview: string;
+	lineLength: number;
+}
+
 /** Context mode for delegated runs. */
 export type DelegationMode = "spawn" | "fork";
 
@@ -34,6 +41,10 @@ export interface SingleResult {
 	model?: string;
 	stopReason?: string;
 	errorMessage?: string;
+	streamParseErrors?: StreamParseError[];
+	recoveryAttempts?: number;
+	recoveryInProgress?: boolean;
+	recoveryTriggerError?: string;
 }
 
 /** Metadata attached to every tool result for rendering. */
@@ -85,6 +96,43 @@ export function getFinalOutput(messages: Message[]): string {
 		}
 	}
 	return "";
+}
+
+function formatStreamParseError(error: StreamParseError, index: number): string {
+	return [
+		`Parent failed to parse child ${error.stream} JSONL line ${index + 1}: ${error.message}`,
+		`Raw line preview (${error.lineLength} chars): ${error.linePreview}`,
+	].join("\n");
+}
+
+export function getResultErrorText(result: SingleResult): string {
+	const parts: string[] = [];
+	if (result.errorMessage) parts.push(`Child agent error: ${result.errorMessage}`);
+	if (result.stderr.trim()) parts.push(`Child stderr:\n${result.stderr.trim()}`);
+	if (result.streamParseErrors && result.streamParseErrors.length > 0) {
+		parts.push(
+			result.streamParseErrors
+				.map((error, index) => formatStreamParseError(error, index))
+				.join("\n\n"),
+		);
+	}
+	if (parts.length > 0) return parts.join("\n\n");
+	return getFinalOutput(result.messages);
+}
+
+export function getRecoveryStatusText(result: SingleResult): string | null {
+	const attempts = result.recoveryAttempts ?? 0;
+	if (attempts <= 0) return null;
+	const suffix = result.recoveryTriggerError
+		? ` Trigger: ${result.recoveryTriggerError}`
+		: "";
+	if (result.recoveryInProgress) {
+		return `Recovery retry ${attempts} in progress after malformed tool-call JSON.${suffix}`;
+	}
+	if (isResultError(result)) {
+		return `Recovery retry failed after ${attempts} attempt${attempts === 1 ? "" : "s"}.${suffix}`;
+	}
+	return `Recovered after ${attempts} retr${attempts === 1 ? "y" : "ies"}.${suffix}`;
 }
 
 /** Extract all display-worthy items from a message history. */

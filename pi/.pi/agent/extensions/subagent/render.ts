@@ -13,6 +13,8 @@ import {
 	aggregateUsage,
 	getDisplayItems,
 	getFinalOutput,
+	getRecoveryStatusText,
+	getResultErrorText,
 	isResultError,
 } from "./types.js";
 import {
@@ -305,6 +307,8 @@ function renderSingleResult(
 		const lines: string[] = [];
 		appendWrapped(lines, header, width);
 		if (error && r.stopReason) appendWrapped(lines, theme.fg("error", `Error ${r.stopReason}`), width);
+		const recoveryStatus = getRecoveryStatusText(r);
+		if (recoveryStatus) appendWrapped(lines, theme.fg(r.recoveryInProgress ? "warning" : "muted", recoveryStatus), width);
 		lines.push(makeSep(theme, width));
 
 		if (expanded) {
@@ -351,7 +355,7 @@ function getCollapsedSinglePreviewLines(
 	width: number,
 ): string[] {
 	if (error) {
-		const message = r.errorMessage || r.stderr || getFinalOutput(r.messages);
+		const message = getResultErrorText(r);
 		return message
 			? wrapLines(theme.fg("error", `Error: ${message}`), width)
 			: [];
@@ -368,7 +372,7 @@ function getExpandedSingleOutputLines(
 ): string[] {
 	const lines: string[] = [];
 	if (error) {
-		const errorText = r.errorMessage || r.stderr || getFinalOutput(r.messages);
+		const errorText = getResultErrorText(r);
 		if (errorText) appendWrapped(lines, theme.fg("error", `Error: ${errorText}`), width);
 	}
 
@@ -397,8 +401,9 @@ function renderParallelResult(
 ) {
 	return component((width) => {
 		const running = details.results.filter((r) => r.exitCode === -1).length;
-		const successCount = details.results.filter((r) => r.exitCode === 0).length;
-		const failCount = details.results.filter((r) => r.exitCode > 0).length;
+		const doneCount = details.results.filter((r) => r.exitCode !== -1).length;
+		const successCount = details.results.filter((r) => r.exitCode !== -1 && !isResultError(r)).length;
+		const failCount = details.results.filter((r) => r.exitCode !== -1 && isResultError(r)).length;
 		const isRunning = running > 0;
 		const icon = isRunning
 			? theme.fg("warning", "⏳")
@@ -406,7 +411,7 @@ function renderParallelResult(
 				? theme.fg("warning", "◐")
 				: theme.fg("success", "✓");
 		const status = isRunning
-			? `${successCount + failCount}/${details.results.length} done, ${running} running`
+			? `${doneCount}/${details.results.length} done, ${running} running`
 			: `${successCount}/${details.results.length} tasks`;
 
 		const lines: string[] = [];
@@ -420,6 +425,10 @@ function renderParallelResult(
 		for (const [index, result] of details.results.entries()) {
 			if (index > 0) lines.push(makeSep(theme, width));
 			appendWrapped(lines, `${statusIcon(result, theme)} ${theme.fg("accent", result.agent)}`, width);
+			const recoveryStatus = getRecoveryStatusText(result);
+			if (recoveryStatus) {
+				appendWrapped(lines, theme.fg(result.recoveryInProgress ? "warning" : "muted", recoveryStatus), width);
+			}
 			if (expanded) {
 				appendWrapped(lines, theme.fg("muted", "Task"), width);
 				appendWrapped(lines, theme.fg("dim", result.task), width);
@@ -463,7 +472,7 @@ function renderParallelResult(
 
 function getCollapsedParallelPreviewLines(r: SingleResult, theme: Theme, width: number): string[] {
 	if (isResultError(r)) {
-		const message = r.errorMessage || r.stderr || getFinalOutput(r.messages);
+		const message = getResultErrorText(r);
 		return message
 			? wrapLines(theme.fg("error", `Error: ${message}`), width)
 			: [];
