@@ -7,8 +7,9 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Text, visibleWidth, truncateToWidth } from "@mariozechner/pi-tui";
 import * as Diff from "diff";
-import { shortenPath } from "./shared";
+import { shortenPath, component } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode } from "./tool-view-mode";
 
 // darken(color, factor, base) where base = #1e1e2e
 const ADDED_LINE_BG = "\x1b[48;2;48;66;52m"; // darken(#a6e3a1, 0.18)
@@ -300,7 +301,7 @@ class DiffText {
             return truncateToWidth(line, width);
         });
         this.cachedWidth = width;
-        this.cachedLines = [sep, ...lines, sep];
+        this.cachedLines = lines;
         return this.cachedLines;
     }
 }
@@ -355,8 +356,16 @@ export function createEditOverride(sandbox: SandboxAPI) {
                     .map((c: any) => c.text)
                     .join("\n") ?? "";
 
-            if (isError || !details?.diff) {
-                return new Text(isError ? theme.fg("error", text) : text, 0, 0);
+            if (isError) {
+                return new Text(theme.fg("error", text), 0, 0);
+            }
+
+            if (!details?.diff) {
+                return new Text(text, 0, 0);
+            }
+
+            if (getToolViewMode() === "minimal") {
+                return component(() => []);
             }
 
             const cached = diffTextCache.get(details);

@@ -5,16 +5,15 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
-    makeSep,
     component,
     shortenPath,
     replaceTabs,
     getSanitizedTextOutput,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type ExpandState = "expanded" | "collapsed";
-type CompCache = Partial<Record<ExpandState, any>>;
+type CompCache = Partial<Record<ToolViewMode, any>>;
 
 export function createWriteOverride(sandbox: SandboxAPI) {
     let lastWritePath: string | undefined;
@@ -106,7 +105,7 @@ export function createWriteOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { expanded, isPartial }: any, theme: any) {
+        renderResult(result: any, { isPartial }: any, theme: any) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Writing..."), 0, 0);
             }
@@ -115,22 +114,21 @@ export function createWriteOverride(sandbox: SandboxAPI) {
             const isError = details !== undefined;
 
             const output = getSanitizedTextOutput(result).trim();
-            const borderAnsi = theme.getFgAnsi("borderMuted");
 
             const rawPath = lastWritePath;
             const fileContent = lastWriteContent || "";
 
+            // Always show errors regardless of mode
             if (isError && output) {
-                return component((width) => [
+                return component(() => [
                     "",
                     theme.fg("error", output),
-                    makeSep(borderAnsi, width),
                 ]);
             }
 
-            const key: ExpandState = expanded ? "expanded" : "collapsed";
+            const mode = getToolViewMode();
             if (details) {
-                const cached = writeCache.get(details)?.[key];
+                const cached = writeCache.get(details)?.[mode];
                 if (cached) return cached;
             }
 
@@ -139,12 +137,14 @@ export function createWriteOverride(sandbox: SandboxAPI) {
                 : [];
 
             const comp = component((width) => {
+                if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (contentLines.length > 0) {
-                    const maxLines = expanded ? contentLines.length : 10;
+                    const maxLines =
+                        mode === "expanded" ? contentLines.length : 10;
                     const display = contentLines.slice(0, maxLines);
                     const remaining = contentLines.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
+                    lines.push(...display);
                     if (remaining > 0) {
                         lines.push(
                             theme.fg(
@@ -154,12 +154,11 @@ export function createWriteOverride(sandbox: SandboxAPI) {
                         );
                     }
                 }
-                lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
             if (details) {
                 const pair = writeCache.get(details) || {};
-                pair[key] = comp;
+                pair[mode] = comp;
                 writeCache.set(details, pair);
             }
             return comp;

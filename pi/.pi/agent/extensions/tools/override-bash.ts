@@ -5,17 +5,16 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
-    makeSep,
     component,
     getSanitizedTextOutput,
     replaceTabs,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 const BASH_PREVIEW_LINES = 5;
 
-type ExpandState = "expanded" | "collapsed";
-type CompCache = Partial<Record<ExpandState, any>>;
+type CompCache = Partial<Record<ToolViewMode, any>>;
 
 function formatDuration(ms: number): string {
     const s = Math.round(ms / 1000);
@@ -100,17 +99,15 @@ export function createBashOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { expanded, isPartial }: any, theme: any) {
+        renderResult(result: any, { isPartial }: any, theme: any) {
             const details = result.details;
-            const key: ExpandState = expanded ? "expanded" : "collapsed";
+            const mode = getToolViewMode();
             if (!isPartial && details) {
-                const cached = bashCache.get(details)?.[key];
+                const cached = bashCache.get(details)?.[mode];
                 if (cached) return cached;
             }
 
             const output = getSanitizedTextOutput(result).trim();
-            const borderAnsi = theme.getFgAnsi("borderMuted");
-
             const outputLines = output
                 ? output
                       .split("\n")
@@ -142,10 +139,11 @@ export function createBashOverride(sandbox: SandboxAPI) {
                 outputLines.length > 0 ? outputLines.join("\n") : "";
 
             const comp = component((width) => {
+                if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (styledOutput) {
-                    if (expanded) {
-                        lines.push(makeSep(borderAnsi, width), ...outputLines);
+                    if (mode === "expanded") {
+                        lines.push(...outputLines);
                     } else {
                         const result = truncateToVisualLines(
                             styledOutput,
@@ -159,25 +157,22 @@ export function createBashOverride(sandbox: SandboxAPI) {
                                     `... (${result.skippedCount} earlier lines,`,
                                 ) + ` ${keyHint("expandTools", "to expand")})`;
                             lines.push(
-                                makeSep(borderAnsi, width),
                                 hint,
                                 ...result.visualLines,
                             );
                         } else {
                             lines.push(
-                                makeSep(borderAnsi, width),
                                 ...result.visualLines,
                             );
                         }
                     }
                 }
                 if (warningLine) lines.push("", warningLine);
-                lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
             if (!isPartial && details) {
                 const pair = bashCache.get(details) || {};
-                pair[key] = comp;
+                pair[mode] = comp;
                 bashCache.set(details, pair);
             }
             return comp;

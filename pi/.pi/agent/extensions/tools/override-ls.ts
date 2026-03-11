@@ -1,16 +1,15 @@
 import { createLsTool } from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
-    makeSep,
     component,
     shortenPath,
     getSanitizedTextOutput,
     replaceTabs,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type ExpandState = "expanded" | "collapsed";
-type CompCache = Partial<Record<ExpandState, any>>;
+type CompCache = Partial<Record<ToolViewMode, any>>;
 
 export function createLsOverride(sandbox: SandboxAPI) {
     const lsCache = new WeakMap<object, CompCache>();
@@ -44,21 +43,19 @@ export function createLsOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { expanded, isPartial }: any, theme: any) {
+        renderResult(result: any, { isPartial }: any, theme: any) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Listing..."), 0, 0);
             }
 
             const details = (result as any).details;
-            const key: ExpandState = expanded ? "expanded" : "collapsed";
+            const mode = getToolViewMode();
             if (details) {
-                const cached = lsCache.get(details)?.[key];
+                const cached = lsCache.get(details)?.[mode];
                 if (cached) return cached;
             }
 
             const output = getSanitizedTextOutput(result).trim();
-            const borderAnsi = theme.getFgAnsi("borderMuted");
-
             const outputLines = output
                 ? output
                       .split("\n")
@@ -80,12 +77,14 @@ export function createLsOverride(sandbox: SandboxAPI) {
                     : null;
 
             const comp = component((width) => {
+                if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (outputLines.length > 0) {
-                    const maxLines = expanded ? outputLines.length : 20;
+                    const maxLines =
+                        mode === "expanded" ? outputLines.length : 20;
                     const display = outputLines.slice(0, maxLines);
                     const remaining = outputLines.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
+                    lines.push(...display);
                     if (remaining > 0) {
                         lines.push(
                             theme.fg("muted", `... (${remaining} more lines)`),
@@ -93,12 +92,11 @@ export function createLsOverride(sandbox: SandboxAPI) {
                     }
                 }
                 if (warningLine) lines.push("", warningLine);
-                lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
             if (details) {
                 const pair = lsCache.get(details) || {};
-                pair[key] = comp;
+                pair[mode] = comp;
                 lsCache.set(details, pair);
             }
             return comp;

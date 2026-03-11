@@ -5,16 +5,15 @@ import {
 } from "@mariozechner/pi-coding-agent";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
-    makeSep,
     component,
     shortenPath,
     replaceTabs,
     getSanitizedTextOutput,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type ExpandState = "expanded" | "collapsed";
-type CompCache = Partial<Record<ExpandState, any>>;
+type CompCache = Partial<Record<ToolViewMode, any>>;
 
 export function createReadOverride(sandbox: SandboxAPI) {
     let lastReadPath: string | undefined;
@@ -60,21 +59,19 @@ export function createReadOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { expanded, isPartial }: any, theme: any) {
+        renderResult(result: any, { isPartial }: any, theme: any) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Reading..."), 0, 0);
             }
 
             const details = (result as any).details;
-            const key: ExpandState = expanded ? "expanded" : "collapsed";
+            const mode = getToolViewMode();
             if (details) {
-                const cached = readCache.get(details)?.[key];
+                const cached = readCache.get(details)?.[mode];
                 if (cached) return cached;
             }
 
             const output = getSanitizedTextOutput(result);
-            const borderAnsi = theme.getFgAnsi("borderMuted");
-
             const rawPath = lastReadPath;
             const lang = rawPath
                 ? getLanguageFromPath(rawPath.replace(/^@/, ""))
@@ -110,12 +107,14 @@ export function createReadOverride(sandbox: SandboxAPI) {
             }
 
             const comp = component((width) => {
+                if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (highlighted.length > 0) {
-                    const maxLines = expanded ? highlighted.length : 10;
+                    const maxLines =
+                        mode === "expanded" ? highlighted.length : 10;
                     const display = highlighted.slice(0, maxLines);
                     const remaining = highlighted.length - maxLines;
-                    lines.push(makeSep(borderAnsi, width), ...display);
+                    lines.push(...display);
                     if (remaining > 0) {
                         lines.push(
                             theme.fg("muted", `... (${remaining} more lines)`),
@@ -123,12 +122,11 @@ export function createReadOverride(sandbox: SandboxAPI) {
                     }
                 }
                 if (warningLine) lines.push("", warningLine);
-                lines.push(makeSep(borderAnsi, width));
                 return lines;
             });
             if (details) {
                 const pair = readCache.get(details) || {};
-                pair[key] = comp;
+                pair[mode] = comp;
                 readCache.set(details, pair);
             }
             return comp;

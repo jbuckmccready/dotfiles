@@ -2,7 +2,7 @@
  * TUI rendering for subagent tool calls and results.
  */
 
-import { Markdown, type MarkdownTheme, wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import { Markdown, type MarkdownTheme, visibleWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
 	type DelegationMode,
 	type DisplayItem,
@@ -16,19 +16,25 @@ import {
 	getRecoveryStatusText,
 	getResultErrorText,
 	isResultError,
-} from "./types.js";
+} from "./types";
 import {
 	component,
 	getSanitizedTextOutput,
 	replaceTabs,
 	shortenPath,
-} from "../tools/shared.js";
+} from "../tools/shared";
+import type { ToolViewMode } from "../tools/tool-view-mode";
+
+let currentViewMode: ToolViewMode = "minimal";
+
+export function setViewMode(mode: ToolViewMode) {
+	currentViewMode = mode;
+}
 
 const COLLAPSED_LINE_COUNT = 10;
 const COLLAPSED_PARALLEL_LINE_COUNT = 5;
 
-type ExpandState = "expanded" | "collapsed";
-type CompCache = Partial<Record<ExpandState, any>>;
+type CompCache = Partial<Record<ToolViewMode, any>>;
 type ThemeFg = (color: any, text: string) => string;
 type Theme = {
 	fg: ThemeFg;
@@ -41,6 +47,11 @@ type Theme = {
 type RenderState = { expanded: boolean; isPartial?: boolean };
 
 const resultCache = new WeakMap<object, CompCache>();
+
+// Shared state: links renderCall args to renderResult details so renderCall
+// can hide completed tasks while renderResult shows them with status icons.
+let currentCallArgs: object | undefined;
+const argsToState = new WeakMap<object, { details?: SubagentDetails; complete: boolean }>();
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -72,13 +83,26 @@ function truncate(text: unknown, maxLen: number): string {
 	return value.length > maxLen ? `${value.slice(0, maxLen)}...` : value;
 }
 
+/** Width-aware single-line truncation that returns plain text (no ANSI codes).
+ *  Callers wrap the result with theme.fg() so the "…" inherits correct colors. */
+function truncateLine(text: string, maxWidth: number): string {
+	text = text.replace(/\s*[\r\n]+\s*/g, " ");
+	if (maxWidth <= 0) return "";
+	if (visibleWidth(text) <= maxWidth) return text;
+	const target = maxWidth - 1; // reserve 1 column for "…"
+	if (target <= 0) return "…";
+	let end = text.length;
+	while (end > 0 && visibleWidth(text.slice(0, end)) > target) end--;
+	return text.slice(0, end) + "…";
+}
+
 function normalizeDelegationMode(raw: unknown): DelegationMode {
 	return raw === "fork" ? "fork" : DEFAULT_DELEGATION_MODE;
 }
 
 function makeSep(theme: Theme, width: number): string {
 	const borderAnsi = theme.getFgAnsi?.("borderMuted") ?? "";
-	return `${borderAnsi}${"=".repeat(Math.max(1, width))}\x1b[39m`;
+	return `${borderAnsi}${"─".repeat(Math.max(1, width))}\x1b[39m`;
 }
 
 function wrapLines(text: string, width: number): string[] {
@@ -215,40 +239,54 @@ function usageLine(
 
 export function renderCall(args: Record<string, any> | undefined, theme: Theme) {
 	const safeArgs = args ?? {};
+	currentCallArgs = safeArgs;
 	const delegationMode = normalizeDelegationMode(safeArgs.mode);
 	const modeBadge = theme.fg("muted", ` [${delegationMode}]`);
 
-	return component((width) => {
-		const lines: string[] = [];
-		if (safeArgs.tasks && safeArgs.tasks.length > 0) {
-			appendWrapped(
-				lines,
-				theme.fg("toolTitle", theme.bold("subagent ")) +
-					theme.fg("accent", `parallel (${safeArgs.tasks.length} tasks)`) +
-					modeBadge,
-				width,
-			);
-			for (const task of safeArgs.tasks.slice(0, 3)) {
+	// No component() caching — must re-render each time to reflect completed tasks
+	return {
+		invalidate() {},
+		render(width: number): string[] {
+			const state = argsToState.get(safeArgs);
+			const completedSet = new Set<number>();
+			if (state?.details) {
+				state.details.results.forEach((r, i) => {
+					if (r.exitCode !== -1) completedSet.add(i);
+				});
+			}
+			const lines: string[] = [];
+
+			if (safeArgs.tasks && safeArgs.tasks.length > 0) {
 				appendWrapped(
 					lines,
-					`${theme.fg("accent", task?.agent || "...")} ${theme.fg("dim", truncate(task?.task || "...", 90))}`,
+					theme.fg("toolTitle", theme.bold("subagent ")) +
+						theme.fg("accent", `parallel (${safeArgs.tasks.length} tasks)`) +
+						modeBadge,
 					width,
 				);
+				// Show only pending tasks (not yet completed)
+				for (let i = 0; i < safeArgs.tasks.length; i++) {
+					if (completedSet.has(i)) continue;
+					const task = safeArgs.tasks[i];
+					const cPrefix = `${theme.fg("accent", task?.agent || "...")} `;
+					const cTask = truncateLine(task?.task || "...", width - visibleWidth(cPrefix));
+					lines.push(`${cPrefix}${theme.fg("dim", cTask)}`);
+				}
+				return lines;
 			}
-			if (safeArgs.tasks.length > 3) {
-				appendWrapped(lines, theme.fg("muted", `... +${safeArgs.tasks.length - 3} more`), width);
+
+			appendWrapped(
+				lines,
+				theme.fg("toolTitle", theme.bold("subagent ")) + theme.fg("accent", safeArgs.agent || "...") + modeBadge,
+				width,
+			);
+			// Show task description only while pending
+			if (!state?.complete) {
+				lines.push(theme.fg("dim", truncateLine(safeArgs.task || "...", width)));
 			}
 			return lines;
-		}
-
-		appendWrapped(
-			lines,
-			theme.fg("toolTitle", theme.bold("subagent ")) + theme.fg("accent", safeArgs.agent || "...") + modeBadge,
-			width,
-		);
-		appendWrapped(lines, theme.fg("dim", safeArgs.task ? truncate(safeArgs.task, 160) : "..."), width);
-		return lines;
-	});
+		},
+	} as any;
 }
 
 // ---------------------------------------------------------------------------
@@ -260,29 +298,74 @@ export function renderResult(
 	state: RenderState,
 	theme: Theme,
 ) {
-	const { expanded, isPartial } = state;
+	const { isPartial } = state;
 	const details = result.details as SubagentDetails | undefined;
-	const key: ExpandState = expanded ? "expanded" : "collapsed";
+	const mode = currentViewMode;
+
+	// Update shared state so renderCall can hide completed tasks
+	if (currentCallArgs && details) {
+		argsToState.set(currentCallArgs, { details, complete: !isPartial });
+	}
 
 	if (!isPartial && details) {
-		const cached = resultCache.get(details)?.[key];
+		const cached = resultCache.get(details)?.[mode];
 		if (cached) return cached;
 	}
 
-	const comp = !details || details.results.length === 0
-		? component((width) => {
-				const output = getSanitizedTextOutput(result).trim() || "(no output)";
-				const lines: string[] = [];
-				appendWrapped(lines, output, width);
+	if (!details || details.results.length === 0) {
+		return component((width) => {
+			const output = getSanitizedTextOutput(result).trim() || "(no output)";
+			const lines: string[] = [];
+			appendWrapped(lines, output, width);
+			return lines;
+		});
+	}
+
+	const delegationMode = normalizeDelegationMode(details.delegationMode);
+	let comp: any;
+
+	if (mode === "minimal") {
+		// No caching for minimal — must reflect latest partial state
+		const lines: string[] = [];
+		comp = {
+			invalidate() {},
+			render(width: number): string[] {
+				lines.length = 0;
+				// Show completed tasks with status icons
+				const completed = details.results.filter((r) => r.exitCode !== -1);
+				if (completed.length > 0) {
+					lines.push(makeSep(theme, width));
+					for (const r of completed) {
+						const icon = statusIcon(r, theme);
+						const rPrefix = `${icon} ${theme.fg("accent", r.agent)} `;
+						const rTask = truncateLine(r.task, width - visibleWidth(rPrefix));
+						lines.push(`${rPrefix}${theme.fg("dim", rTask)}`);
+					}
+				}
+				// Show usage only when complete
+				if (!isPartial) {
+					if (details.mode === "single") {
+						const r = details.results[0];
+						const usage = usageLine(r.usage, r.model, theme);
+						if (usage) appendWrapped(lines, usage, width);
+					} else {
+						const totalUsage = usageLine(aggregateUsage(details.results), undefined, theme, "Total usage");
+						if (totalUsage) appendWrapped(lines, totalUsage, width);
+					}
+				}
 				return lines;
-			})
-		: details.mode === "single"
-			? renderSingleResult(details.results[0], normalizeDelegationMode(details.delegationMode), expanded, theme)
-			: renderParallelResult(details, normalizeDelegationMode(details.delegationMode), expanded, theme);
+			},
+		} as any;
+	} else {
+		const expanded = mode === "expanded";
+		comp = details.mode === "single"
+			? renderSingleResult(details.results[0], delegationMode, expanded, theme)
+			: renderParallelResult(details, delegationMode, expanded, theme);
+	}
 
 	if (!isPartial && details) {
 		const pair = resultCache.get(details) || {};
-		pair[key] = comp;
+		pair[mode] = comp;
 		resultCache.set(details, pair);
 	}
 
@@ -420,6 +503,7 @@ function renderParallelResult(
 			`${icon} ${theme.fg("toolTitle", theme.bold("parallel "))}${theme.fg("accent", status)}${theme.fg("muted", ` [${delegationMode}]`)}`,
 			width,
 		);
+
 		lines.push(makeSep(theme, width));
 
 		for (const [index, result] of details.results.entries()) {

@@ -23,7 +23,8 @@
     "base": "#1e1e2e",
     "mantle": "#181825",
     "crust": "#11111b",
-    "errorBg": "#302630"
+    "errorBg": "#302630",
+    "toolSuccessBgVal": "#232335"
   },
   "colors": {
     "accent": "lavender",
@@ -44,7 +45,7 @@
     "customMessageText": "",
     "customMessageLabel": "peach",
     "toolPendingBg": "surface0",
-    "toolSuccessBg": "base",
+    "toolSuccessBg": "toolSuccessBgVal",
     "toolErrorBg": "errorBg",
     "toolTitle": "sapphire",
     "toolOutput": "subtext0",

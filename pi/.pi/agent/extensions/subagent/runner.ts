@@ -10,7 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { Message } from "@mariozechner/pi-ai";
-import type { AgentConfig } from "./agents.js";
+import type { AgentConfig } from "./agents";
 import {
   type DelegationMode,
   type SingleResult,
@@ -19,7 +19,7 @@ import {
   aggregateUsage,
   emptyUsage,
   getFinalOutput,
-} from "./types.js";
+} from "./types";
 
 const SIGKILL_TIMEOUT_MS = 5000;
 const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";

@@ -15,9 +15,10 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { type AgentConfig, discoverAgents } from "./agents.js";
-import { renderCall, renderResult } from "./render.js";
-import { mapConcurrent, runAgent } from "./runner.js";
+import { type AgentConfig, discoverAgents } from "./agents";
+import { renderCall, renderResult, setViewMode } from "./render";
+import type { ToolViewMode } from "../tools/tool-view-mode";
+import { mapConcurrent, runAgent } from "./runner";
 import {
   type DelegationMode,
   type SingleResult,
@@ -28,7 +29,7 @@ import {
   getRecoveryStatusText,
   getResultErrorText,
   isResultError,
-} from "./types.js";
+} from "./types";
 
 // ---------------------------------------------------------------------------
 // Limits
@@ -362,6 +363,11 @@ async function confirmProjectAgentsIfNeeded(
 // ---------------------------------------------------------------------------
 
 export default function (pi: ExtensionAPI) {
+  // Sync tool view mode from the tools extension via shared event bus
+  pi.events.on("tool-view-mode", (mode: unknown) => {
+    setViewMode(mode as ToolViewMode);
+  });
+
   pi.registerFlag("subagent-max-depth", {
     description: "Maximum allowed subagent delegation depth (default: 3).",
     type: "string",
@@ -432,6 +438,8 @@ Context behavior is controlled by optional 'mode':
 \`\`\`
 
 Use single mode for one task, parallel mode when tasks are independent and can run simultaneously.
+
+**Important:** Don't use subagents just to read file contents — use the \`read\` tool directly for that. Subagents are for tasks that require autonomous multi-step work (searching, summarizing, analyzing, implementing, etc.).
 
 ### Runtime delegation guards
 
