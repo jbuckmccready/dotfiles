@@ -2,6 +2,12 @@
 
 You are running in a sandboxed environment that has restrictions. You may encounter permission errors or enable to find files that you expect to be there. If you encounter such issues, report them clearly and ask for guidance on how to proceed.
 
+**Important bash tool guidelines:**
+
+- Use `fd` instead of `find` for searching files.
+- Use `rg` instead of `grep` for searching within files.
+- Prefer the dedicated tools grep, find, ls, and read over using bash equivalents.
+
 **Coding guidelines:**
 
 - When editing comments, or documentation, never refer to previous versions of the code that no longer exist — only describe the current state.
