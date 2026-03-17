@@ -180,16 +180,92 @@ export function findMatchingSentinel(
     }
 }
 
-/**
- * Bytes to retain at the tail of the streaming buffer to avoid forwarding
- * a partial sentinel to the caller. Must be >= max sentinel length (~52 bytes).
- */
-const TAIL_BUFFER_SIZE = 64;
+function findTrailingSentinelPrefixLength(pending: Buffer): number {
+    const maxLen = Math.min(pending.length, SENTINEL_PREFIX.length - 1);
+    for (let len = maxLen; len > 0; len--) {
+        if (
+            pending
+                .subarray(pending.length - len)
+                .equals(SENTINEL_PREFIX.subarray(0, len))
+        ) {
+            return len;
+        }
+    }
+    return 0;
+}
+
+function formatControlChannelError(prefix: string, data: Buffer): string {
+    const text = JSON.stringify(data.toString());
+    const snippet = text.length > 160 ? `${text.slice(0, 157)}...` : text;
+    return `${prefix}: ${snippet}`;
+}
+
+export function inspectStreamingControlBuffer(
+    pending: Buffer,
+    uuid: string,
+):
+    | { kind: "pending" }
+    | { kind: "consume"; bytes: number }
+    | { kind: "matched"; bytes: number; exitCode: number }
+    | { kind: "error"; message: string } {
+    if (pending.length === 0) return { kind: "pending" };
+
+    const sentinelIdx = pending.indexOf(SENTINEL_PREFIX);
+    if (sentinelIdx === -1) {
+        const trailingPrefixLen = findTrailingSentinelPrefixLength(pending);
+        const unexpectedEnd = pending.length - trailingPrefixLen;
+        if (unexpectedEnd === 0) return { kind: "pending" };
+        return {
+            kind: "error",
+            message: formatControlChannelError(
+                "Unexpected data on docker control stderr",
+                pending.subarray(0, unexpectedEnd),
+            ),
+        };
+    }
+
+    if (sentinelIdx > 0) {
+        return {
+            kind: "error",
+            message: formatControlChannelError(
+                "Unexpected data on docker control stderr",
+                pending.subarray(0, sentinelIdx),
+            ),
+        };
+    }
+
+    const nlIdx = pending.indexOf(0x0a, SENTINEL_PREFIX.length);
+    if (nlIdx === -1) return { kind: "pending" };
+
+    const bytes = nlIdx + 1;
+    const sentinel = pending.subarray(0, nlIdx).toString();
+    const match = sentinel.match(SENTINEL_REGEX);
+    if (!match) {
+        return {
+            kind: "error",
+            message: formatControlChannelError(
+                "Malformed docker control sentinel on stderr",
+                pending.subarray(0, bytes),
+            ),
+        };
+    }
+
+    if (match[2] !== uuid) {
+        return { kind: "consume", bytes };
+    }
+
+    return {
+        kind: "matched",
+        bytes,
+        exitCode: parseInt(match[1], 10),
+    };
+}
 
 /**
  * Keeps a single `docker exec -i <container> bash` process alive for the
- * entire session. Commands are serialized through a promise chain and
- * demarcated by null-byte-framed sentinel lines in stdout.
+ * entire session. Commands are serialized through a promise chain. Sync
+ * commands use stdout for merged output + sentinel; streaming commands use
+ * stdout for payload and stderr for the sentinel control channel.
  */
 class DockerPersistentShell {
     private child;
@@ -197,7 +273,8 @@ class DockerPersistentShell {
     private bashPid = 0;
     private dead = false;
     private deadReason: string | null = null;
-    private dataHandler: ((chunk: Buffer) => void) | null = null;
+    private stdoutHandler: ((chunk: Buffer) => void) | null = null;
+    private stderrHandler: ((chunk: Buffer) => void) | null = null;
     private chain: Promise<void> = Promise.resolve();
     readonly stderrFile: string;
 
@@ -209,13 +286,16 @@ class DockerPersistentShell {
         });
 
         this.child.stdout!.on("data", (chunk: Buffer) => {
-            this.dataHandler?.(chunk);
+            this.stdoutHandler?.(chunk);
         });
 
-        // Consume stderr to prevent pipe buffer blocking. Command stderr
-        // is redirected per-command (2>&1 or 2>/tmp/file), so this pipe
-        // only carries bash-level or docker-level errors.
-        this.child.stderr!.on("data", () => {});
+        // Consume stderr to prevent pipe buffer blocking. For streaming
+        // commands this pipe carries the control sentinel; otherwise any
+        // unexpected bytes here are ignored unless a caller installs a
+        // handler.
+        this.child.stderr!.on("data", (chunk: Buffer) => {
+            this.stderrHandler?.(chunk);
+        });
 
         this.child.on("error", (err) => {
             this.markDead(`spawn error: ${err.message}`);
@@ -256,7 +336,9 @@ class DockerPersistentShell {
     /**
      * Run a command with streaming output (for bash tool, grep).
      * The command is backgrounded to support abort via USR1.
-     * Caller controls stderr redirection in the command string.
+     * Payload bytes are streamed from stdout; stderr is reserved for
+     * the shell control sentinel unless the caller redirects command
+     * stderr inside the command string.
      */
     execStream(
         cmd: string,
@@ -304,6 +386,11 @@ class DockerPersistentShell {
         return signal ? `signal ${signal}` : `code ${code ?? "unknown"}`;
     }
 
+    private clearHandlers() {
+        this.stdoutHandler = null;
+        this.stderrHandler = null;
+    }
+
     private markClosed(code: number | null, signal: NodeJS.Signals | null) {
         this.markDead(`process closed (${this.closeDetails(code, signal)})`);
     }
@@ -341,19 +428,19 @@ class DockerPersistentShell {
                 signal: NodeJS.Signals | null,
             ) => {
                 this.markClosed(code, signal);
-                this.dataHandler = null;
+                this.clearHandlers();
                 reject(this.deadError());
             };
             this.child.once("close", onClose);
 
-            this.dataHandler = (chunk: Buffer) => {
+            this.stdoutHandler = (chunk: Buffer) => {
                 pending = Buffer.concat([pending, chunk]);
 
                 const marker = findMatchingSentinel(pending, uuid);
                 if (!marker) return;
 
                 this.child.removeListener("close", onClose);
-                this.dataHandler = null;
+                this.clearHandlers();
 
                 resolve({
                     exitCode: marker.exitCode,
@@ -382,14 +469,23 @@ class DockerPersistentShell {
             }
 
             const uuid = randomUUID();
-            let pending = Buffer.alloc(0);
+            let pendingStderr = Buffer.alloc(0);
             let timedOut = false;
 
             const cleanup = () => {
                 if (timer) clearTimeout(timer);
                 if (onAbort) opts.signal?.removeEventListener("abort", onAbort);
                 this.child.removeListener("close", onClose);
-                this.dataHandler = null;
+                this.clearHandlers();
+            };
+
+            const failProtocol = (message: string) => {
+                this.markDead(message);
+                cleanup();
+                try {
+                    this.child.kill();
+                } catch {}
+                reject(this.deadError());
             };
 
             const onClose = (
@@ -415,44 +511,54 @@ class DockerPersistentShell {
                 }, opts.timeout * 1000);
             }
 
-            this.dataHandler = (chunk: Buffer) => {
-                pending = Buffer.concat([pending, chunk]);
+            this.stdoutHandler = (chunk: Buffer) => {
+                opts.onData(chunk);
+            };
 
-                // Check for this command's sentinel (ignore non-matching lookalikes)
-                const marker = findMatchingSentinel(pending, uuid);
-                if (marker) {
+            this.stderrHandler = (chunk: Buffer) => {
+                pendingStderr = Buffer.concat([pendingStderr, chunk]);
+
+                while (true) {
+                    const control = inspectStreamingControlBuffer(
+                        pendingStderr,
+                        uuid,
+                    );
+                    if (control.kind === "pending") return;
+
+                    if (control.kind === "consume") {
+                        pendingStderr = Buffer.from(
+                            pendingStderr.subarray(control.bytes),
+                        );
+                        continue;
+                    }
+
+                    if (control.kind === "error") {
+                        failProtocol(control.message);
+                        return;
+                    }
+
+                    const trailing = pendingStderr.subarray(control.bytes);
+                    if (trailing.length > 0) {
+                        failProtocol(
+                            formatControlChannelError(
+                                "Unexpected data on docker control stderr",
+                                trailing,
+                            ),
+                        );
+                        return;
+                    }
+
                     cleanup();
-
-                    // Forward any remaining output before the sentinel
-                    const output = pending.subarray(0, marker.idx);
-                    if (output.length > 0) opts.onData(output);
-
                     if (opts.signal?.aborted) reject(new Error("aborted"));
                     else if (timedOut)
                         reject(new Error(`timeout:${opts.timeout}`));
-                    else resolve({ exitCode: marker.exitCode });
+                    else resolve({ exitCode: control.exitCode });
                     return;
-                }
-
-                // No sentinel yet — forward data, keeping a tail buffer
-                // large enough to detect a sentinel that spans two chunks
-                if (pending.length > TAIL_BUFFER_SIZE) {
-                    opts.onData(
-                        Buffer.from(
-                            pending.subarray(
-                                0,
-                                pending.length - TAIL_BUFFER_SIZE,
-                            ),
-                        ),
-                    );
-                    pending = Buffer.from(
-                        pending.subarray(pending.length - TAIL_BUFFER_SIZE),
-                    );
                 }
             };
 
             this.child.stdin!.write(
-                `${cmd} & _bg=$!\nwait "$_bg" 2>/dev/null\n_rc=$?; _bg=\nprintf '\\0\\0PIEOF:%d:%s\\0\\0\\n' "$_rc" ${uuid}\n`,
+                `${cmd} & _bg=$!\nwait "$_bg" 2>/dev/null\n_rc=$?; _bg=\nprintf '\\0\\0PIEOF:%d:%s\\0\\0\\n' "$_rc" ${uuid} >&2\n`,
             );
         });
     }
@@ -464,10 +570,11 @@ class DockerPersistentShell {
 
 /**
  * Bridge between DockerPersistentShell and the StreamingExec interface
- * used by sandbox-tools.ts. Stderr is captured to a fixed tmpfile
- * (one per shell instance) so that onStdout and onStderr can be called
- * separately. The file is overwritten each call; safe because commands
- * are serialized through the shell's promise chain.
+ * used by sandbox-tools.ts. Outer stderr is reserved for the shell's
+ * control sentinel, so command stderr is redirected to a fixed tmpfile
+ * (one per shell instance) and replayed after completion. The file is
+ * overwritten each call; safe because commands are serialized through
+ * the shell's promise chain.
  */
 function createShellStreamingExec(shell: DockerPersistentShell): StreamingExec {
     const { stderrFile } = shell;

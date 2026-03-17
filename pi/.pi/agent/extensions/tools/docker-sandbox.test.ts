@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findMatchingSentinel } from "./docker-sandbox.ts";
+import {
+    findMatchingSentinel,
+    inspectStreamingControlBuffer,
+} from "./docker-sandbox.ts";
 
 function sentinel(exitCode: number, uuid: string): string {
     return `\0\0PIEOF:${exitCode}:${uuid}\0\0\n`;
@@ -54,4 +57,75 @@ test("findMatchingSentinel skips malformed sentinel lines and finds valid one", 
         idx: Buffer.byteLength(malformed),
         exitCode: 3,
     });
+});
+
+test("inspectStreamingControlBuffer matches the current command sentinel", () => {
+    const uuid = "u-real";
+    const result = inspectStreamingControlBuffer(Buffer.from(sentinel(9, uuid)), uuid);
+
+    assert.deepEqual(result, {
+        kind: "matched",
+        bytes: Buffer.byteLength(sentinel(9, uuid)),
+        exitCode: 9,
+    });
+});
+
+test("inspectStreamingControlBuffer returns pending for an incomplete control sentinel", () => {
+    const uuid = "u-real";
+    const result = inspectStreamingControlBuffer(
+        Buffer.from("\0\0PIEOF:9:u-real\0\0"),
+        uuid,
+    );
+
+    assert.deepEqual(result, { kind: "pending" });
+});
+
+test("inspectStreamingControlBuffer handles a sentinel split across stderr chunks", () => {
+    const uuid = "u-real";
+    let pending = Buffer.alloc(0);
+    const chunks = ["\0\0PI", "EOF:12:", "u-real\0", "\0\n"];
+
+    for (const [index, chunk] of chunks.entries()) {
+        pending = Buffer.concat([pending, Buffer.from(chunk)]);
+        const result = inspectStreamingControlBuffer(pending, uuid);
+        if (index < chunks.length - 1) {
+            assert.deepEqual(result, { kind: "pending" });
+        } else {
+            assert.deepEqual(result, {
+                kind: "matched",
+                bytes: Buffer.byteLength(sentinel(12, uuid)),
+                exitCode: 12,
+            });
+        }
+    }
+});
+
+test("inspectStreamingControlBuffer consumes non-matching sentinels while searching", () => {
+    const uuid = "u-real";
+    const fake = sentinel(0, "u-fake");
+    const result = inspectStreamingControlBuffer(Buffer.from(fake), uuid);
+
+    assert.deepEqual(result, {
+        kind: "consume",
+        bytes: Buffer.byteLength(fake),
+    });
+});
+
+test("inspectStreamingControlBuffer rejects malformed sentinel-like stderr", () => {
+    const uuid = "u-real";
+    const result = inspectStreamingControlBuffer(
+        Buffer.from("\0\0PIEOF:not-a-code:u-real\0\0\n"),
+        uuid,
+    );
+
+    assert.equal(result.kind, "error");
+    assert.match(result.message, /Malformed docker control sentinel on stderr/);
+});
+
+test("inspectStreamingControlBuffer rejects unexpected non-sentinel stderr bytes", () => {
+    const uuid = "u-real";
+    const result = inspectStreamingControlBuffer(Buffer.from("docker warning\n"), uuid);
+
+    assert.equal(result.kind, "error");
+    assert.match(result.message, /Unexpected data on docker control stderr/);
 });
