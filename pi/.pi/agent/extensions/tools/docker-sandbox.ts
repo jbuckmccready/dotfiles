@@ -24,7 +24,7 @@
  *     -v ~/.pi/agent/skills:/root/.pi/agent/skills:ro \
  *     node:22 sleep infinity
  *
- * The container image should have: bash, rg (ripgrep), fd, base64.
+ * The container image should have: bash, python3, rg (ripgrep), fd, base64.
  *
  * WSL2 + Docker Desktop note: if Docker Desktop starts before the WSL
  * distro, `docker inspect` may report mangled bind-mount source paths
@@ -65,6 +65,93 @@ import { detectImageMimeFromBytes } from "./shared";
 
 function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
+const PYTHON_STREAM_HELPER = String.raw`
+import base64
+import os
+import selectors
+import subprocess
+import sys
+import traceback
+
+
+def emit_header(kind: str, value: int) -> None:
+    sys.stdout.buffer.write(f"{kind} {value}\n".encode("ascii"))
+    sys.stdout.buffer.flush()
+
+
+def emit_frame(kind: str, data: bytes) -> None:
+    emit_header(kind, len(data))
+    if data:
+        sys.stdout.buffer.write(data)
+        sys.stdout.buffer.flush()
+
+
+def main() -> int:
+    cmd = base64.b64decode(os.environ["PI_STREAM_CMD_B64"]).decode("utf-8")
+    merge_stderr = os.environ.get("PI_STREAM_MERGE_STDERR") == "1"
+    child = subprocess.Popen(
+        ["bash", "-lc", cmd],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT if merge_stderr else subprocess.PIPE,
+    )
+    sel = selectors.DefaultSelector()
+    assert child.stdout is not None
+    sel.register(child.stdout, selectors.EVENT_READ, "O")
+    if child.stderr is not None:
+        sel.register(child.stderr, selectors.EVENT_READ, "E")
+
+    try:
+        while sel.get_map():
+            for key, _ in sel.select():
+                chunk = os.read(key.fileobj.fileno(), 8192)
+                if chunk:
+                    emit_frame(key.data, chunk)
+                else:
+                    sel.unregister(key.fileobj)
+                    key.fileobj.close()
+    finally:
+        sel.close()
+
+    return child.wait()
+
+
+try:
+    raise SystemExit(main())
+except SystemExit:
+    raise
+except BaseException:
+    emit_frame("E", traceback.format_exc().encode())
+    raise SystemExit(127)
+`;
+
+function buildPythonStreamingCommand(
+    cmd: string,
+    mergeStderr: boolean,
+): string {
+    const cmdB64 = Buffer.from(cmd).toString("base64");
+    return [
+        `PI_STREAM_CMD_B64=${shQuote(cmdB64)} PI_STREAM_MERGE_STDERR=${mergeStderr ? "1" : "0"} python3 -u - <<'__PI_STREAM__'`,
+        PYTHON_STREAM_HELPER,
+        "__PI_STREAM__",
+        "_rc=$?",
+        `printf 'X %d\n' "$_rc"`,
+    ].join("\n");
+}
+
+export function parseStreamingFrameHeader(line: string):
+    | { kind: "stdout" | "stderr"; length: number }
+    | { kind: "exit"; exitCode: number } {
+    const match = line.match(/^([OEX]) (\d+)$/);
+    if (!match) {
+        throw new Error(`Malformed streaming frame header: ${JSON.stringify(line)}`);
+    }
+
+    const value = parseInt(match[2], 10);
+    if (match[1] === "O") return { kind: "stdout", length: value };
+    if (match[1] === "E") return { kind: "stderr", length: value };
+    return { kind: "exit", exitCode: value };
 }
 
 /**
@@ -181,62 +268,24 @@ export function findMatchingSentinel(
 }
 
 /**
- * Bytes to retain at the tail of the streaming buffer to avoid forwarding
- * a partial sentinel to the caller. Must be >= max sentinel length (~52 bytes).
- */
-const TAIL_BUFFER_SIZE = 64;
-
-/**
  * Keeps a single `docker exec -i <container> bash` process alive for the
- * entire session. Commands are serialized through a promise chain and
- * demarcated by null-byte-framed sentinel lines in stdout.
+ * entire session. Commands are serialized through a promise chain. Sync
+ * commands use raw stdout + sentinel; streaming commands use a Python helper
+ * that emits framed stdout/stderr chunks plus an exit frame on stdout.
  */
 class DockerPersistentShell {
-    private child;
+    private child!: ReturnType<typeof spawn>;
     private container: string;
-    private bashPid = 0;
+    private closedByCaller = false;
     private dead = false;
     private deadReason: string | null = null;
-    private dataHandler: ((chunk: Buffer) => void) | null = null;
+    private restartPromise: Promise<void> | null = null;
+    private stdoutHandler: ((chunk: Buffer) => void) | null = null;
     private chain: Promise<void> = Promise.resolve();
-    readonly stderrFile: string;
 
     constructor(container: string) {
         this.container = container;
-        this.stderrFile = `/tmp/_pi_stderr_${randomUUID().replace(/-/g, "")}`;
-        this.child = spawn("docker", ["exec", "-i", container, "bash"], {
-            stdio: ["pipe", "pipe", "pipe"],
-        });
-
-        this.child.stdout!.on("data", (chunk: Buffer) => {
-            this.dataHandler?.(chunk);
-        });
-
-        // Consume stderr to prevent pipe buffer blocking. Command stderr
-        // is redirected per-command (2>&1 or 2>/tmp/file), so this pipe
-        // only carries bash-level or docker-level errors.
-        this.child.stderr!.on("data", () => {});
-
-        this.child.on("error", (err) => {
-            this.markDead(`spawn error: ${err.message}`);
-        });
-
-        this.child.on("close", (code, signal) => {
-            this.markClosed(code, signal);
-        });
-
-        // Enable abort/timeout via USR1 → kill background process
-        this.child.stdin!.write("trap 'kill \"$_bg\" 2>/dev/null' USR1\n");
-    }
-
-    /**
-     * Capture bash's PID inside the container. Must be called once after
-     * construction so that sendSignal() can deliver USR1 directly to bash
-     * (docker exec doesn't forward arbitrary signals to the child process).
-     */
-    async init() {
-        const r = await this.exec("echo $$");
-        this.bashPid = parseInt(r.stdout.trim(), 10);
+        this.spawnChild();
     }
 
     /**
@@ -244,8 +293,10 @@ class DockerPersistentShell {
      * Stderr is merged into stdout via `( cmd ) 2>&1`.
      */
     exec(cmd: string): Promise<{ exitCode: number; stdout: string }> {
-        if (this.dead) return Promise.reject(this.deadError());
-        const p = this.chain.then(() => this.runSync(cmd));
+        const p = this.chain.then(async () => {
+            await this.ensureAlive();
+            return this.runSync(cmd);
+        });
         this.chain = p.then(
             () => {},
             () => {},
@@ -255,20 +306,26 @@ class DockerPersistentShell {
 
     /**
      * Run a command with streaming output (for bash tool, grep).
-     * The command is backgrounded to support abort via USR1.
-     * Caller controls stderr redirection in the command string.
+     * A Python helper runs the command under `bash -lc`, emits framed
+     * stdout/stderr chunks on stdout, and the shell appends an exit frame
+     * after the helper finishes. On abort/timeout the current persistent
+     * shell is discarded and a fresh shell is started for later commands.
      */
     execStream(
         cmd: string,
         opts: {
-            onData: (chunk: Buffer) => void;
+            onStdout: (chunk: Buffer) => void;
+            onStderr?: (chunk: Buffer) => void;
+            mergeStderr?: boolean;
             signal?: AbortSignal;
             timeout?: number;
         },
     ): Promise<{ exitCode: number }> {
-        if (this.dead) return Promise.reject(this.deadError());
         if (opts.signal?.aborted) return Promise.reject(new Error("aborted"));
-        const p = this.chain.then(() => this.runStream(cmd, opts));
+        const p = this.chain.then(async () => {
+            await this.ensureAlive();
+            return this.runStream(cmd, opts);
+        });
         this.chain = p.then(
             () => {},
             () => {},
@@ -277,7 +334,9 @@ class DockerPersistentShell {
     }
 
     close() {
+        this.closedByCaller = true;
         this.markDead("closed by caller");
+        this.stdoutHandler = null;
         try {
             this.child.stdin!.write("exit\n");
             this.child.kill();
@@ -304,24 +363,120 @@ class DockerPersistentShell {
         return signal ? `signal ${signal}` : `code ${code ?? "unknown"}`;
     }
 
-    private markClosed(code: number | null, signal: NodeJS.Signals | null) {
-        this.markDead(`process closed (${this.closeDetails(code, signal)})`);
+    private spawnChild() {
+        const child = spawn("docker", ["exec", "-i", this.container, "bash"], {
+            stdio: ["pipe", "pipe", "pipe"],
+        });
+        this.child = child;
+
+        child.stdout!.on("data", (chunk: Buffer) => {
+            if (this.child !== child) return;
+            this.stdoutHandler?.(chunk);
+        });
+
+        // Outer docker/bash stderr is not part of the command protocol.
+        // Streaming stdout/stderr both come from framed records on stdout.
+        child.stderr!.on("data", () => {});
+
+        child.on("error", (err) => {
+            if (this.child !== child) return;
+            this.markDead(`spawn error: ${err.message}`);
+        });
+
+        child.on("close", (code, signal) => {
+            if (this.child !== child) return;
+            this.markClosed(code, signal);
+        });
     }
 
-    /**
-     * Send USR1 to bash inside the container via a one-off docker exec.
-     * This bypasses the docker exec stdin pipe (which bash won't read
-     * while blocked in `wait`) and delivers the signal directly.
-     */
-    private sendSignal() {
-        if (!this.bashPid) return;
-        try {
-            spawn(
-                "docker",
-                ["exec", this.container, "kill", "-USR1", String(this.bashPid)],
-                { stdio: "ignore" },
-            ).unref();
-        } catch {}
+    private waitForShellReady(child: ReturnType<typeof spawn>): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const uuid = randomUUID();
+            const marker = Buffer.from(`\0\0PIREADY:${uuid}\0\0\n`);
+            let pending = Buffer.alloc(0);
+
+            const cleanup = () => {
+                child.stdout?.removeListener("data", onData);
+                child.removeListener("close", onClose);
+                child.removeListener("error", onError);
+            };
+
+            const onData = (chunk: Buffer) => {
+                pending = Buffer.concat([pending, chunk]);
+                if (pending.indexOf(marker) === -1) return;
+                cleanup();
+                resolve();
+            };
+
+            const onClose = (
+                code: number | null,
+                signal: NodeJS.Signals | null,
+            ) => {
+                cleanup();
+                reject(
+                    new Error(
+                        `shell failed to start (${this.closeDetails(code, signal)})`,
+                    ),
+                );
+            };
+
+            const onError = (err: Error) => {
+                cleanup();
+                reject(err);
+            };
+
+            child.stdout?.on("data", onData);
+            child.once("close", onClose);
+            child.once("error", onError);
+            child.stdin!.write(
+                `printf '\\0\\0PIREADY:%s\\0\\0\\n' ${uuid}\n`,
+            );
+        });
+    }
+
+    private async ensureAlive() {
+        if (this.closedByCaller) throw this.deadError();
+        if (this.restartPromise) await this.restartPromise;
+        if (!this.dead) return;
+        await this.restartShell(this.deadReason ?? "shell is dead");
+    }
+
+    private restartShell(reason: string): Promise<void> {
+        if (this.closedByCaller) return Promise.reject(this.deadError());
+        if (this.restartPromise) return this.restartPromise;
+
+        const previousChild = this.child;
+        this.restartPromise = Promise.resolve()
+            .then(async () => {
+                this.stdoutHandler = null;
+                try {
+                    previousChild.stdin!.write("exit\n");
+                } catch {}
+                try {
+                    previousChild.kill();
+                } catch {}
+                this.spawnChild();
+                await this.waitForShellReady(this.child);
+                this.dead = false;
+                this.deadReason = null;
+            })
+            .catch((err) => {
+                const message =
+                    err instanceof Error ? err.message : String(err);
+                this.markDead(
+                    `failed to restart shell after ${reason}: ${message}`,
+                );
+                throw this.deadError();
+            })
+            .finally(() => {
+                this.restartPromise = null;
+            });
+
+        return this.restartPromise;
+    }
+
+    private markClosed(code: number | null, signal: NodeJS.Signals | null) {
+        this.markDead(`process closed (${this.closeDetails(code, signal)})`);
     }
 
     private runSync(
@@ -341,19 +496,19 @@ class DockerPersistentShell {
                 signal: NodeJS.Signals | null,
             ) => {
                 this.markClosed(code, signal);
-                this.dataHandler = null;
+                this.stdoutHandler = null;
                 reject(this.deadError());
             };
             this.child.once("close", onClose);
 
-            this.dataHandler = (chunk: Buffer) => {
+            this.stdoutHandler = (chunk: Buffer) => {
                 pending = Buffer.concat([pending, chunk]);
 
                 const marker = findMatchingSentinel(pending, uuid);
                 if (!marker) return;
 
                 this.child.removeListener("close", onClose);
-                this.dataHandler = null;
+                this.stdoutHandler = null;
 
                 resolve({
                     exitCode: marker.exitCode,
@@ -370,7 +525,9 @@ class DockerPersistentShell {
     private runStream(
         cmd: string,
         opts: {
-            onData: (chunk: Buffer) => void;
+            onStdout: (chunk: Buffer) => void;
+            onStderr?: (chunk: Buffer) => void;
+            mergeStderr?: boolean;
             signal?: AbortSignal;
             timeout?: number;
         },
@@ -381,15 +538,23 @@ class DockerPersistentShell {
                 return;
             }
 
-            const uuid = randomUUID();
             let pending = Buffer.alloc(0);
-            let timedOut = false;
 
             const cleanup = () => {
                 if (timer) clearTimeout(timer);
                 if (onAbort) opts.signal?.removeEventListener("abort", onAbort);
                 this.child.removeListener("close", onClose);
-                this.dataHandler = null;
+                this.stdoutHandler = null;
+            };
+
+            const discardShell = (reason: string, error: Error) => {
+                this.markDead(reason);
+                cleanup();
+                void this.restartShell(reason);
+                try {
+                    this.child.kill();
+                } catch {}
+                reject(error);
             };
 
             const onClose = (
@@ -402,7 +567,9 @@ class DockerPersistentShell {
             };
             this.child.once("close", onClose);
 
-            const onAbort = opts.signal ? () => this.sendSignal() : undefined;
+            const onAbort = opts.signal
+                ? () => discardShell("streaming command aborted", new Error("aborted"))
+                : undefined;
             if (onAbort) {
                 opts.signal!.addEventListener("abort", onAbort, { once: true });
             }
@@ -410,50 +577,69 @@ class DockerPersistentShell {
             let timer: NodeJS.Timeout | undefined;
             if (opts.timeout && opts.timeout > 0) {
                 timer = setTimeout(() => {
-                    timedOut = true;
-                    this.sendSignal();
+                    discardShell(
+                        `streaming command timed out after ${opts.timeout}s`,
+                        new Error(`timeout:${opts.timeout}`),
+                    );
                 }, opts.timeout * 1000);
             }
 
-            this.dataHandler = (chunk: Buffer) => {
+            this.stdoutHandler = (chunk: Buffer) => {
                 pending = Buffer.concat([pending, chunk]);
 
-                // Check for this command's sentinel (ignore non-matching lookalikes)
-                const marker = findMatchingSentinel(pending, uuid);
-                if (marker) {
-                    cleanup();
+                while (true) {
+                    const nlIdx = pending.indexOf(0x0a);
+                    if (nlIdx === -1) return;
 
-                    // Forward any remaining output before the sentinel
-                    const output = pending.subarray(0, marker.idx);
-                    if (output.length > 0) opts.onData(output);
+                    const headerLine = pending.subarray(0, nlIdx).toString();
+                    let header;
+                    try {
+                        header = parseStreamingFrameHeader(headerLine);
+                    } catch (err) {
+                        cleanup();
+                        reject(
+                            err instanceof Error
+                                ? err
+                                : new Error(String(err)),
+                        );
+                        return;
+                    }
 
-                    if (opts.signal?.aborted) reject(new Error("aborted"));
-                    else if (timedOut)
-                        reject(new Error(`timeout:${opts.timeout}`));
-                    else resolve({ exitCode: marker.exitCode });
-                    return;
-                }
+                    if (header.kind === "exit") {
+                        pending = Buffer.from(pending.subarray(nlIdx + 1));
+                        if (pending.length > 0) {
+                            cleanup();
+                            reject(
+                                new Error(
+                                    "Unexpected trailing bytes after streaming exit frame",
+                                ),
+                            );
+                            return;
+                        }
+                        cleanup();
+                        resolve({ exitCode: header.exitCode });
+                        return;
+                    }
 
-                // No sentinel yet — forward data, keeping a tail buffer
-                // large enough to detect a sentinel that spans two chunks
-                if (pending.length > TAIL_BUFFER_SIZE) {
-                    opts.onData(
-                        Buffer.from(
-                            pending.subarray(
-                                0,
-                                pending.length - TAIL_BUFFER_SIZE,
-                            ),
-                        ),
+                    const frameEnd = nlIdx + 1 + header.length;
+                    if (pending.length < frameEnd) return;
+
+                    const payload = Buffer.from(
+                        pending.subarray(nlIdx + 1, frameEnd),
                     );
-                    pending = Buffer.from(
-                        pending.subarray(pending.length - TAIL_BUFFER_SIZE),
-                    );
+                    pending = Buffer.from(pending.subarray(frameEnd));
+
+                    if (payload.length === 0) continue;
+                    if (header.kind === "stdout") opts.onStdout(payload);
+                    else (opts.onStderr ?? opts.onStdout)(payload);
                 }
             };
 
-            this.child.stdin!.write(
-                `${cmd} & _bg=$!\nwait "$_bg" 2>/dev/null\n_rc=$?; _bg=\nprintf '\\0\\0PIEOF:%d:%s\\0\\0\\n' "$_rc" ${uuid}\n`,
+            const wrappedCmd = buildPythonStreamingCommand(
+                cmd,
+                opts.mergeStderr ?? false,
             );
+            this.child.stdin!.write(`${wrappedCmd}\n`);
         });
     }
 }
@@ -464,24 +650,16 @@ class DockerPersistentShell {
 
 /**
  * Bridge between DockerPersistentShell and the StreamingExec interface
- * used by sandbox-tools.ts. Stderr is captured to a fixed tmpfile
- * (one per shell instance) so that onStdout and onStderr can be called
- * separately. The file is overwritten each call; safe because commands
- * are serialized through the shell's promise chain.
+ * used by sandbox-tools.ts. The Python helper emits framed stdout/stderr
+ * chunks, so the adapter can stream both channels directly.
  */
 function createShellStreamingExec(shell: DockerPersistentShell): StreamingExec {
-    const { stderrFile } = shell;
-
     return async (cmd, { signal, onStdout, onStderr }) => {
-        const result = await shell.execStream(`${cmd} 2>${stderrFile}`, {
-            onData: (chunk) => onStdout(chunk.toString()),
+        return shell.execStream(cmd, {
+            onStdout: (chunk) => onStdout(chunk.toString()),
+            onStderr: (chunk) => onStderr(chunk.toString()),
             signal,
         });
-
-        const stderrResult = await shell.exec(`cat ${stderrFile} 2>/dev/null`);
-        if (stderrResult.stdout) onStderr(stderrResult.stdout);
-
-        return result;
     };
 }
 
@@ -496,8 +674,14 @@ function createDockerBashOps(
     return {
         async exec(command, cwd, { onData, signal, timeout }) {
             const guestCwd = hostToGuestPath(cwd, mounts);
-            const cmd = `cd ${shQuote(guestCwd)} && bash -c ${shQuote(command)} 2>&1`;
-            return shell.execStream(cmd, { onData, signal, timeout });
+            const cmd = `cd ${shQuote(guestCwd)} && bash -c ${shQuote(command)}`;
+            return shell.execStream(cmd, {
+                onStdout: onData,
+                onStderr: onData,
+                mergeStderr: false,
+                signal,
+                timeout,
+            });
         },
     };
 }
@@ -733,7 +917,6 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
             }
 
             shell = new DockerPersistentShell(container);
-            await shell.init();
 
             ops = {
                 bash: createDockerBashOps(shell, mounts),

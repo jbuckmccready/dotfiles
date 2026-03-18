@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findMatchingSentinel } from "./docker-sandbox.ts";
+import {
+    findMatchingSentinel,
+    parseStreamingFrameHeader,
+} from "./docker-sandbox.ts";
 
 function sentinel(exitCode: number, uuid: string): string {
     return `\0\0PIEOF:${exitCode}:${uuid}\0\0\n`;
@@ -54,4 +57,32 @@ test("findMatchingSentinel skips malformed sentinel lines and finds valid one", 
         idx: Buffer.byteLength(malformed),
         exitCode: 3,
     });
+});
+
+test("parseStreamingFrameHeader parses stdout frames", () => {
+    assert.deepEqual(parseStreamingFrameHeader("O 12"), {
+        kind: "stdout",
+        length: 12,
+    });
+});
+
+test("parseStreamingFrameHeader parses stderr frames", () => {
+    assert.deepEqual(parseStreamingFrameHeader("E 7"), {
+        kind: "stderr",
+        length: 7,
+    });
+});
+
+test("parseStreamingFrameHeader parses exit frames", () => {
+    assert.deepEqual(parseStreamingFrameHeader("X 42"), {
+        kind: "exit",
+        exitCode: 42,
+    });
+});
+
+test("parseStreamingFrameHeader rejects malformed frames", () => {
+    assert.throws(
+        () => parseStreamingFrameHeader("oops"),
+        /Malformed streaming frame header/,
+    );
 });
