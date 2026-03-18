@@ -418,7 +418,7 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             };
 
             const vmPromise = checkpointPath
-                ? VmCheckpoint.load(checkpointPath).resume<VM>(vmOptions)
+                ? VmCheckpoint.load(checkpointPath).resume(vmOptions)
                 : VM.create(vmOptions);
 
             const startLabel = checkpointPath
