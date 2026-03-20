@@ -87,11 +87,11 @@ Example output:
 }`;
 
 const GEMINI_MODEL_ID = "gemini-3-flash-preview";
-const CODEX_MODEL_ID = "gpt-5.1-codex-mini";
+const CODEX_MODEL_ID = "gpt-5.4-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 /**
- * Prefer haiku for extraction, then Codex mini, then Gemini Flash, otherwise fallback to the current model.
+ * Prefer OpenAI Codex GPT-5.4 mini for extraction, then Haiku, then Gemini Flash, otherwise fallback to the current model.
  */
 async function selectExtractionModel(
     currentModel: Model<Api>,
@@ -101,8 +101,8 @@ async function selectExtractionModel(
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
+        { provider: "openai-codex", modelId: CODEX_MODEL_ID },
         { provider: "anthropic", modelId: HAIKU_MODEL_ID },
-        { provider: "github-copilot", modelId: CODEX_MODEL_ID },
         { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
     ];
 
@@ -523,7 +523,7 @@ export default function (pi: ExtensionAPI) {
             return;
         }
 
-        // Select the best model for extraction (prefer haiku, then Codex mini, then Gemini Flash)
+        // Select the best model for extraction (prefer OpenAI Codex GPT-5.4 mini, then Haiku, then Gemini Flash)
         const extractionModel = await selectExtractionModel(
             ctx.model,
             ctx.modelRegistry,
@@ -554,7 +554,7 @@ export default function (pi: ExtensionAPI) {
                             systemPrompt: SYSTEM_PROMPT,
                             messages: [userMessage],
                         },
-                        { apiKey, signal: loader.signal, reasoning: "high" },
+                        { apiKey, signal: loader.signal, reasoning: "medium" },
                     );
 
                     if (response.stopReason === "aborted") {
