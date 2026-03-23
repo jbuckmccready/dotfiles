@@ -140,12 +140,16 @@ function buildPythonStreamingCommand(
     ].join("\n");
 }
 
-export function parseStreamingFrameHeader(line: string):
+export function parseStreamingFrameHeader(
+    line: string,
+):
     | { kind: "stdout" | "stderr"; length: number }
     | { kind: "exit"; exitCode: number } {
     const match = line.match(/^([OEX]) (\d+)$/);
     if (!match) {
-        throw new Error(`Malformed streaming frame header: ${JSON.stringify(line)}`);
+        throw new Error(
+            `Malformed streaming frame header: ${JSON.stringify(line)}`,
+        );
     }
 
     const value = parseInt(match[2], 10);
@@ -242,6 +246,7 @@ function autoDetectMounts(container: string): Record<string, string> {
 const SENTINEL_PREFIX = Buffer.from("\0\0PIEOF:");
 /** Regex for a full sentinel line (without trailing newline). */
 const SENTINEL_REGEX = /\0\0PIEOF:(\d+):([^\0]+)\0\0/;
+type RefHandle = { ref?: () => void; unref?: () => void };
 
 export function findMatchingSentinel(
     pending: Buffer,
@@ -294,8 +299,13 @@ class DockerPersistentShell {
      */
     exec(cmd: string): Promise<{ exitCode: number; stdout: string }> {
         const p = this.chain.then(async () => {
-            await this.ensureAlive();
-            return this.runSync(cmd);
+            this.setChildReferenced(true);
+            try {
+                await this.ensureAlive();
+                return await this.runSync(cmd);
+            } finally {
+                this.setChildReferenced(false);
+            }
         });
         this.chain = p.then(
             () => {},
@@ -323,8 +333,13 @@ class DockerPersistentShell {
     ): Promise<{ exitCode: number }> {
         if (opts.signal?.aborted) return Promise.reject(new Error("aborted"));
         const p = this.chain.then(async () => {
-            await this.ensureAlive();
-            return this.runStream(cmd, opts);
+            this.setChildReferenced(true);
+            try {
+                await this.ensureAlive();
+                return await this.runStream(cmd, opts);
+            } finally {
+                this.setChildReferenced(false);
+            }
         });
         this.chain = p.then(
             () => {},
@@ -363,6 +378,28 @@ class DockerPersistentShell {
         return signal ? `signal ${signal}` : `code ${code ?? "unknown"}`;
     }
 
+    private setHandleReferenced(
+        handle: RefHandle | null | undefined,
+        referenced: boolean,
+    ) {
+        try {
+            if (referenced) handle?.ref?.();
+            else handle?.unref?.();
+        } catch {}
+    }
+
+    private setChildReferenced(referenced: boolean) {
+        this.setHandleReferenced(this.child, referenced);
+        const stdioHandles = [
+            this.child.stdin,
+            this.child.stdout,
+            this.child.stderr,
+        ] as Array<RefHandle | null | undefined>;
+        for (const handle of stdioHandles) {
+            this.setHandleReferenced(handle, referenced);
+        }
+    }
+
     private spawnChild() {
         const child = spawn("docker", ["exec", "-i", this.container, "bash"], {
             stdio: ["pipe", "pipe", "pipe"],
@@ -387,6 +424,9 @@ class DockerPersistentShell {
             if (this.child !== child) return;
             this.markClosed(code, signal);
         });
+
+        // Init to false to avoid preventing exit when idle
+        this.setChildReferenced(false);
     }
 
     private waitForShellReady(child: ReturnType<typeof spawn>): Promise<void> {
@@ -428,9 +468,7 @@ class DockerPersistentShell {
             child.stdout?.on("data", onData);
             child.once("close", onClose);
             child.once("error", onError);
-            child.stdin!.write(
-                `printf '\\0\\0PIREADY:%s\\0\\0\\n' ${uuid}\n`,
-            );
+            child.stdin!.write(`printf '\\0\\0PIREADY:%s\\0\\0\\n' ${uuid}\n`);
         });
     }
 
@@ -568,7 +606,11 @@ class DockerPersistentShell {
             this.child.once("close", onClose);
 
             const onAbort = opts.signal
-                ? () => discardShell("streaming command aborted", new Error("aborted"))
+                ? () =>
+                      discardShell(
+                          "streaming command aborted",
+                          new Error("aborted"),
+                      )
                 : undefined;
             if (onAbort) {
                 opts.signal!.addEventListener("abort", onAbort, { once: true });
@@ -598,9 +640,7 @@ class DockerPersistentShell {
                     } catch (err) {
                         cleanup();
                         reject(
-                            err instanceof Error
-                                ? err
-                                : new Error(String(err)),
+                            err instanceof Error ? err : new Error(String(err)),
                         );
                         return;
                     }
