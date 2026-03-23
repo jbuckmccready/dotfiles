@@ -1,167 +1,86 @@
 import {
-    createWriteTool,
-    highlightCode,
-    getLanguageFromPath,
+    createWriteToolDefinition,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type ExtensionContext,
+    type Theme,
+    type WriteToolInput,
 } from "@mariozechner/pi-coding-agent";
-import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
-import {
-    component,
-    shortenPath,
-    replaceTabs,
-    getSanitizedTextOutput,
-} from "./shared";
+import type { Component } from "@mariozechner/pi-tui";
+import { wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import { component, shortenPath } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
+type WriteRenderArgs = WriteToolInput & { file_path?: string };
+
+type WriteRenderState = {
+    lastCallMode?: ToolViewMode;
+};
+
+type WriteRenderContext = {
+    args: WriteRenderArgs;
+    toolCallId: string;
+    invalidate: () => void;
+    lastComponent: Component | undefined;
+    state: WriteRenderState;
+    cwd: string;
+    executionStarted: boolean;
+    argsComplete: boolean;
+    isPartial: boolean;
+    expanded: boolean;
+    showImages: boolean;
+    isError: boolean;
+};
+
+function renderMinimalWriteCall(args: WriteRenderArgs, theme: Theme) {
+    const rawPath = args.file_path ?? args.path;
+    const path = rawPath ? shortenPath(rawPath.replace(/^@/, "")) : "...";
+    const pathDisplay = rawPath
+        ? theme.fg("accent", path)
+        : theme.fg("toolOutput", "...");
+    const title = `${theme.fg("toolTitle", theme.bold("write"))} ${pathDisplay}`;
+    return component((width) => wrapTextWithAnsi(title, width));
+}
 
 export function createWriteOverride(sandbox: SandboxAPI) {
-    let lastWritePath: string | undefined;
-    let lastWriteContent: string | undefined;
-    const writeCache = new WeakMap<object, CompCache>();
-
-    let writeHlCache:
-        | {
-              rawPath: string;
-              lang: string;
-              rawContent: string;
-              highlightedLines: string[];
-          }
-        | undefined;
-
-    function getWriteHighlighted(
-        rawPath: string | undefined,
-        content: string,
-        theme: any,
-    ): string[] {
-        if (!content) return [];
-
-        const lang = rawPath
-            ? getLanguageFromPath(rawPath.replace(/^@/, ""))
-            : undefined;
-
-        if (!lang) {
-            return content
-                .split("\n")
-                .map((l: string) => theme.fg("toolOutput", replaceTabs(l)));
-        }
-
-        // Cache hit: content is appended (streaming)
-        if (
-            writeHlCache &&
-            writeHlCache.lang === lang &&
-            writeHlCache.rawPath === rawPath &&
-            content.startsWith(writeHlCache.rawContent) &&
-            content.length > writeHlCache.rawContent.length
-        ) {
-            const cache = writeHlCache;
-            cache.rawContent = content;
-            const normalized = replaceTabs(content);
-            cache.highlightedLines = highlightCode(normalized, lang);
-            return cache.highlightedLines;
-        }
-
-        // Cache miss: full re-highlight
-        const normalized = replaceTabs(content);
-        const highlighted = highlightCode(normalized, lang);
-        writeHlCache = {
-            rawPath: rawPath!,
-            lang,
-            rawContent: content,
-            highlightedLines: highlighted,
-        };
-        return highlighted;
-    }
+    const builtinWrite = createWriteToolDefinition(process.cwd());
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
-            return createWriteTool(sandbox.translatePath(ctx.cwd), {
+            toolCallId: string,
+            params: WriteToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate: AgentToolUpdateCallback<undefined> | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<undefined>> {
+            return createWriteToolDefinition(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().write,
-            }).execute(toolCallId, params, signal, onUpdate);
+            }).execute(toolCallId, params, signal, onUpdate, ctx);
         },
 
-        renderCall(args: any, theme: any) {
-            const rawPath = ((args as Record<string, unknown>)?.file_path ??
-                args?.path) as string | undefined;
-            lastWritePath = rawPath;
-            const fileContent = (args?.content as string) || "";
-            lastWriteContent = fileContent;
-            const path = rawPath
-                ? shortenPath(rawPath.replace(/^@/, ""))
-                : "...";
-
-            const pathDisplay = rawPath
-                ? theme.fg("accent", path)
-                : theme.fg("toolOutput", "...");
-
-            const title = `${theme.fg("toolTitle", theme.bold("write"))} ${pathDisplay}`;
-
-            return component((width) => wrapTextWithAnsi(title, width));
-        },
-
-        renderResult(result: any, { isPartial }: any, theme: any) {
-            if (isPartial) {
-                return new Text(theme.fg("warning", "Writing..."), 0, 0);
-            }
-
-            const details = (result as any).details;
-            const isError = details !== undefined;
-
-            const output = getSanitizedTextOutput(result).trim();
-
-            const rawPath = lastWritePath;
-            const fileContent = lastWriteContent || "";
-
-            // Always show errors regardless of mode
-            if (isError && output) {
-                return component(() => [
-                    "",
-                    theme.fg("error", output),
-                ]);
-            }
-
+        renderCall(
+            args: WriteRenderArgs,
+            theme: Theme,
+            context: WriteRenderContext,
+        ) {
             const mode = getToolViewMode();
-            if (details) {
-                const cached = writeCache.get(details)?.[mode];
-                if (cached) return cached;
+            const state = context.state;
+            const lastCallMode = state.lastCallMode;
+            state.lastCallMode = mode;
+
+            if (mode === "minimal") {
+                return renderMinimalWriteCall(args, theme);
             }
 
-            const contentLines = fileContent
-                ? getWriteHighlighted(rawPath, fileContent, theme)
-                : [];
-
-            const comp = component((width) => {
-                if (mode === "minimal") return [];
-                const lines: string[] = [];
-                if (contentLines.length > 0) {
-                    const maxLines =
-                        mode === "expanded" ? contentLines.length : 10;
-                    const display = contentLines.slice(0, maxLines);
-                    const remaining = contentLines.length - maxLines;
-                    lines.push(...display);
-                    if (remaining > 0) {
-                        lines.push(
-                            theme.fg(
-                                "muted",
-                                `... (${remaining} more lines, ${contentLines.length} total)`,
-                            ),
-                        );
-                    }
-                }
-                return lines;
+            return builtinWrite.renderCall!(args, theme, {
+                ...context,
+                expanded: mode === "expanded",
+                lastComponent:
+                    lastCallMode && lastCallMode !== "minimal"
+                        ? context.lastComponent
+                        : undefined,
             });
-            if (details) {
-                const pair = writeCache.get(details) || {};
-                pair[mode] = comp;
-                writeCache.set(details, pair);
-            }
-            return comp;
         },
     };
 }

@@ -1,4 +1,14 @@
-import { createLsTool } from "@mariozechner/pi-coding-agent";
+import {
+    createLsTool,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type ExtensionContext,
+    type LsToolDetails,
+    type LsToolInput,
+    type Theme,
+    type ToolRenderResultOptions,
+} from "@mariozechner/pi-coding-agent";
+import type { Component } from "@mariozechner/pi-tui";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
     component,
@@ -9,28 +19,30 @@ import {
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
+type CompCache = Partial<Record<ToolViewMode, Component>>;
 
 export function createLsOverride(sandbox: SandboxAPI) {
     const lsCache = new WeakMap<object, CompCache>();
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
+            toolCallId: string,
+            params: LsToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate:
+                | AgentToolUpdateCallback<LsToolDetails | undefined>
+                | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<LsToolDetails | undefined>> {
             return createLsTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().ls,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: any, theme: any) {
-            const rawPath = (args?.path as string) || ".";
+        renderCall(args: LsToolInput, theme: Theme) {
+            const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
-            const limit = args?.limit as number | undefined;
+            const limit = args.limit;
 
             let title =
                 theme.fg("toolTitle", theme.bold("ls")) +
@@ -43,12 +55,16 @@ export function createLsOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { isPartial }: any, theme: any) {
+        renderResult(
+            result: AgentToolResult<LsToolDetails | undefined>,
+            { isPartial }: ToolRenderResultOptions,
+            theme: Theme,
+        ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Listing..."), 0, 0);
             }
 
-            const details = (result as any).details;
+            const details = result.details;
             const mode = getToolViewMode();
             if (details) {
                 const cached = lsCache.get(details)?.[mode];
@@ -59,8 +75,8 @@ export function createLsOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) =>
-                          theme.fg("toolOutput", replaceTabs(l)),
+                      .map((line) =>
+                          theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
 
@@ -76,7 +92,7 @@ export function createLsOverride(sandbox: SandboxAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            const comp = component((width) => {
+            const comp = component(() => {
                 if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (outputLines.length > 0) {

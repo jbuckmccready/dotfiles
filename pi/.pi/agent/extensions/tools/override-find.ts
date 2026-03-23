@@ -1,4 +1,14 @@
-import { createFindTool } from "@mariozechner/pi-coding-agent";
+import {
+    createFindTool,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type ExtensionContext,
+    type FindToolDetails,
+    type FindToolInput,
+    type Theme,
+    type ToolRenderResultOptions,
+} from "@mariozechner/pi-coding-agent";
+import type { Component } from "@mariozechner/pi-tui";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
     component,
@@ -9,36 +19,36 @@ import {
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
+type CompCache = Partial<Record<ToolViewMode, Component>>;
 
 export function createFindOverride(sandbox: SandboxAPI) {
     const findCache = new WeakMap<object, CompCache>();
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
+            toolCallId: string,
+            params: FindToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate:
+                | AgentToolUpdateCallback<FindToolDetails | undefined>
+                | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<FindToolDetails | undefined>> {
             return createFindTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().find,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: any, theme: any) {
-            const pattern = args?.pattern as string | undefined;
-            const rawPath = (args?.path as string) || ".";
+        renderCall(args: FindToolInput, theme: Theme) {
+            const pattern = args.pattern;
+            const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
-            const limit = args?.limit as number | undefined;
+            const limit = args.limit;
 
             let title =
                 theme.fg("toolTitle", theme.bold("find")) +
                 " " +
-                (pattern !== undefined
-                    ? theme.fg("accent", pattern || "")
-                    : theme.fg("toolOutput", "...")) +
+                theme.fg("accent", pattern || "") +
                 theme.fg("toolOutput", ` in ${path}`);
             if (limit !== undefined) {
                 title += theme.fg("toolOutput", ` (limit ${limit})`);
@@ -47,12 +57,16 @@ export function createFindOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { isPartial }: any, theme: any) {
+        renderResult(
+            result: AgentToolResult<FindToolDetails | undefined>,
+            { isPartial }: ToolRenderResultOptions,
+            theme: Theme,
+        ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
-            const details = (result as any).details;
+            const details = result.details;
             const mode = getToolViewMode();
             if (details) {
                 const cached = findCache.get(details)?.[mode];
@@ -63,8 +77,8 @@ export function createFindOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) =>
-                          theme.fg("toolOutput", replaceTabs(l)),
+                      .map((line) =>
+                          theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
 
@@ -80,7 +94,7 @@ export function createFindOverride(sandbox: SandboxAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            const comp = component((width) => {
+            const comp = component(() => {
                 if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (outputLines.length > 0) {

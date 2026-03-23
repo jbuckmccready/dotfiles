@@ -6,6 +6,7 @@
  */
 
 import path from "node:path";
+import type { GrepToolInput } from "@mariozechner/pi-coding-agent";
 import type { SandboxOps } from "./sandbox-shared";
 
 function shQuote(value: string): string {
@@ -29,6 +30,34 @@ export interface StreamingExec {
             onStderr: (data: string) => void;
         },
     ): Promise<{ exitCode: number }>;
+}
+
+interface GrepJsonEventPath {
+    text?: string;
+}
+
+interface GrepJsonEventLines {
+    text?: string;
+}
+
+interface GrepJsonEventData {
+    path?: GrepJsonEventPath;
+    line_number?: number;
+    lines?: GrepJsonEventLines;
+}
+
+type GrepJsonEvent = {
+    type?: "match" | "context" | string;
+    data?: GrepJsonEventData;
+};
+
+interface GrepExecuteDetails extends Record<string, unknown> {
+    truncation?: {
+        truncated: true;
+        originalSize: number;
+    };
+    matchLimitReached?: number;
+    linesTruncated?: boolean;
 }
 
 const MAX_LINE_LENGTH = 500;
@@ -55,7 +84,7 @@ export function createSandboxedGrepExecute(opts: {
     resolveSearchPath: (userPath: string) => string;
     exec: StreamingExec;
 }): SandboxOps["grepExecute"] {
-    return async (params: any, signal?: AbortSignal) => {
+    return async (params: GrepToolInput, signal?: AbortSignal) => {
         if (signal?.aborted) throw new Error("Operation aborted");
 
         const searchPath = opts.resolveSearchPath(params.path || ".");
@@ -75,7 +104,7 @@ export function createSandboxedGrepExecute(opts: {
         if (contextValue > 0) args.push("-C", String(contextValue));
         args.push(params.pattern, searchPath);
 
-        const cmd = ["rg", ...args.map((a) => shQuote(a))].join(" ");
+        const cmd = ["rg", ...args.map((arg) => shQuote(arg))].join(" ");
 
         const outputLines: string[] = [];
         let matchCount = 0;
@@ -102,9 +131,9 @@ export function createSandboxedGrepExecute(opts: {
                     for (const line of lines) {
                         if (!line.trim()) continue;
 
-                        let event: any;
+                        let event: GrepJsonEvent;
                         try {
-                            event = JSON.parse(line);
+                            event = JSON.parse(line) as GrepJsonEvent;
                         } catch {
                             continue;
                         }
@@ -123,30 +152,26 @@ export function createSandboxedGrepExecute(opts: {
                             event.type === "match" ||
                             event.type === "context"
                         ) {
-                            const filePath: string | undefined =
-                                event.data?.path?.text;
-                            const lineNumber: number | undefined =
-                                event.data?.line_number;
-                            const lineText: string = (
-                                event.data?.lines?.text ?? ""
-                            )
+                            const filePath = event.data?.path?.text;
+                            const lineNumber = event.data?.line_number;
+                            const lineText = (event.data?.lines?.text ?? "")
                                 .replace(/\n$/, "")
                                 .replace(/\r/g, "");
 
-                            if (!filePath || typeof lineNumber !== "number")
+                            if (!filePath || typeof lineNumber !== "number") {
                                 continue;
+                            }
 
-                            const rel = path.posix.relative(
-                                searchPath,
-                                filePath,
-                            );
+                            const rel = path.posix.relative(searchPath, filePath);
                             const displayPath =
                                 rel && !rel.startsWith("..")
                                     ? rel
                                     : path.posix.basename(filePath);
 
-                            const { text: truncatedText, wasTruncated } =
-                                truncateLine(lineText);
+                            const {
+                                text: truncatedText,
+                                wasTruncated,
+                            } = truncateLine(lineText);
                             if (wasTruncated) linesTruncated = true;
 
                             const sep = event.type === "match" ? ":" : "-";
@@ -187,7 +212,7 @@ export function createSandboxedGrepExecute(opts: {
 
         let output = outputLines.join("\n");
 
-        const details: Record<string, any> = {};
+        const details: GrepExecuteDetails = {};
         let truncated = false;
         const totalBytes = Buffer.byteLength(output, "utf-8");
         if (totalBytes > MAX_BYTES) {
@@ -266,7 +291,7 @@ export async function sandboxedFdGlob(opts: {
 
     let stdout = "";
     let stderr = "";
-    const r = await opts.exec(args.join(" "), {
+    const result = await opts.exec(args.join(" "), {
         onStdout: (data) => {
             stdout += data;
         },
@@ -275,9 +300,9 @@ export async function sandboxedFdGlob(opts: {
         },
     });
 
-    if (r.exitCode !== 0 && !stdout.trim()) {
+    if (result.exitCode !== 0 && !stdout.trim()) {
         const msg = stderr.trim();
-        if (msg) throw new Error(`find failed (${r.exitCode}): ${msg}`);
+        if (msg) throw new Error(`find failed (${result.exitCode}): ${msg}`);
         return [];
     }
 

@@ -7,8 +7,8 @@
         "test": "node --import tsx --test $(find . -name '*.test.ts' -not -path '*/node_modules/*')"
     },
     "dependencies": {
-        "@mariozechner/pi-coding-agent": "*",
-        "@mariozechner/pi-tui": "*",
+        "@mariozechner/pi-coding-agent": "0.62.0",
+        "@mariozechner/pi-tui": "0.62.0",
         "@sinclair/typebox": "*"
     },
     "devDependencies": {

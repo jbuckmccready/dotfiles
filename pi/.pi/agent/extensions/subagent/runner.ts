@@ -61,6 +61,11 @@ interface PreparedSessionResources {
   buildConfig: (attemptIndex: number) => SessionRunConfig;
 }
 
+type StreamEvent = {
+  type?: string;
+  message?: unknown;
+};
+
 function formatLinePreview(line: string, maxChars = 240): string {
   const normalized = line.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxChars) return normalized;
@@ -149,9 +154,9 @@ function cleanupTempDir(dir: string | null): void {
 function processJsonLine(line: string, result: SingleResult): boolean {
   if (!line.trim()) return false;
 
-  let event: any;
+  let event: StreamEvent;
   try {
-    event = JSON.parse(line);
+    event = JSON.parse(line) as StreamEvent;
   } catch (error) {
     recordStreamParseError(result, error, line);
     return false;

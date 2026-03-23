@@ -1,4 +1,14 @@
-import { createGrepTool } from "@mariozechner/pi-coding-agent";
+import {
+    createGrepTool,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type ExtensionContext,
+    type GrepToolDetails,
+    type GrepToolInput,
+    type Theme,
+    type ToolRenderResultOptions,
+} from "@mariozechner/pi-coding-agent";
+import type { Component } from "@mariozechner/pi-tui";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
     component,
@@ -6,44 +16,47 @@ import {
     getSanitizedTextOutput,
     replaceTabs,
 } from "./shared";
-import type { SandboxAPI } from "./sandbox-shared";
+import type { GrepExecuteResult, SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
+type CompCache = Partial<Record<ToolViewMode, Component>>;
 
 export function createGrepOverride(sandbox: SandboxAPI) {
     const grepCache = new WeakMap<object, CompCache>();
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
+            toolCallId: string,
+            params: GrepToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate:
+                | AgentToolUpdateCallback<GrepToolDetails | undefined>
+                | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<GrepToolDetails | undefined>> {
             const ops = sandbox.getOps();
             if (ops.grepExecute) {
-                return ops.grepExecute(params, signal);
+                return ops.grepExecute(
+                    params,
+                    signal,
+                ) as Promise<GrepExecuteResult & AgentToolResult<GrepToolDetails | undefined>>;
             }
             return createGrepTool(sandbox.translatePath(ctx.cwd), {
                 operations: ops.grep,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: any, theme: any) {
-            const pattern = args?.pattern as string | undefined;
-            const rawPath = (args?.path as string) || ".";
+        renderCall(args: GrepToolInput, theme: Theme) {
+            const pattern = args.pattern;
+            const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
-            const glob = args?.glob as string | undefined;
-            const limit = args?.limit as number | undefined;
+            const glob = args.glob;
+            const limit = args.limit;
 
             let title =
                 theme.fg("toolTitle", theme.bold("grep")) +
                 " " +
-                (pattern !== undefined
-                    ? theme.fg("accent", `/${pattern || ""}/`)
-                    : theme.fg("toolOutput", "...")) +
+                theme.fg("accent", `/${pattern || ""}/`) +
                 theme.fg("toolOutput", ` in ${path}`);
             if (glob) {
                 title += theme.fg("toolOutput", ` (${glob})`);
@@ -55,12 +68,16 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { isPartial }: any, theme: any) {
+        renderResult(
+            result: AgentToolResult<GrepToolDetails | undefined>,
+            { isPartial }: ToolRenderResultOptions,
+            theme: Theme,
+        ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
-            const details = (result as any).details;
+            const details = result.details;
             const mode = getToolViewMode();
             if (details) {
                 const cached = grepCache.get(details)?.[mode];
@@ -71,8 +88,8 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             const outputLines = output
                 ? output
                       .split("\n")
-                      .map((l: string) =>
-                          theme.fg("toolOutput", replaceTabs(l)),
+                      .map((line) =>
+                          theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
 
@@ -91,7 +108,7 @@ export function createGrepOverride(sandbox: SandboxAPI) {
                     ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
                     : null;
 
-            const comp = component((width) => {
+            const comp = component(() => {
                 if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (outputLines.length > 0) {

@@ -13,7 +13,10 @@
  *   - fork: child gets a forked snapshot of current session context + task prompt.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type {
+  AgentToolUpdateCallback,
+  ExtensionAPI,
+} from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { type AgentConfig, discoverAgents } from "./agents";
 import { renderCall, renderResult, setViewMode } from "./render";
@@ -643,9 +646,9 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
         };
       },
 
-      renderCall: (args, theme) => renderCall(args, theme),
-      renderResult: (result, state, theme) =>
-        renderResult(result, state, theme),
+      renderCall: (args, theme, context) => renderCall(args, theme, context),
+      renderResult: (result, state, theme, context) =>
+        renderResult(result, state, theme, context),
     });
   }
 
@@ -661,7 +664,7 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
     agents: AgentConfig[],
     defaultCwd: string,
     signal: AbortSignal | undefined,
-    onUpdate: ((partial: any) => void) | undefined,
+    onUpdate: AgentToolUpdateCallback<SubagentDetails> | undefined,
     makeDetails: ReturnType<typeof makeDetailsFactory>,
   ) {
     const result = await runAgent({
@@ -714,7 +717,7 @@ This guard prevents self-recursion and cyclic handoffs (for example A -> B -> A)
     agents: AgentConfig[],
     defaultCwd: string,
     signal: AbortSignal | undefined,
-    onUpdate: ((partial: any) => void) | undefined,
+    onUpdate: AgentToolUpdateCallback<SubagentDetails> | undefined,
     makeDetails: ReturnType<typeof makeDetailsFactory>,
   ) {
     if (tasks.length > MAX_PARALLEL_TASKS) {

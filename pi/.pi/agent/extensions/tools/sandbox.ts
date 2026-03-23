@@ -11,7 +11,7 @@ import { createGondolinSandbox } from "./gondolin-sandbox";
 import { createOsSandbox } from "./os-sandbox";
 
 export function initSandbox(pi: ExtensionAPI): SandboxAPI {
-    let provider: SandboxProvider<any> = createDisabledSandbox();
+    let provider: SandboxProvider = createDisabledSandbox();
 
     pi.registerFlag("no-sandbox", {
         description: "Disable OS-level sandboxing for bash commands",

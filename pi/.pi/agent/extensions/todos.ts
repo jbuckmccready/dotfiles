@@ -43,8 +43,10 @@ import {
     DynamicBorder,
     copyToClipboard,
     getMarkdownTheme,
+    keyText,
     type ExtensionAPI,
     type ExtensionContext,
+    type KeybindingsManager,
     type Theme,
 } from "@mariozechner/pi-coding-agent";
 import { StringEnum } from "@mariozechner/pi-ai";
@@ -66,7 +68,6 @@ import {
     Text,
     TUI,
     fuzzyMatch,
-    getEditorKeybindings,
     matchesKey,
     truncateToWidth,
     visibleWidth,
@@ -302,6 +303,7 @@ class TodoSelectorComponent extends Container implements Focusable {
     private onCancelCallback: () => void;
     private tui: TUI;
     private theme: Theme;
+    private keybindings: KeybindingsManager;
     private headerText: Text;
     private hintText: Text;
     private currentSessionId?: string;
@@ -318,6 +320,7 @@ class TodoSelectorComponent extends Container implements Focusable {
     constructor(
         tui: TUI,
         theme: Theme,
+        keybindings: KeybindingsManager,
         todos: TodoFrontMatter[],
         onSelect: (todo: TodoFrontMatter) => void,
         onCancel: () => void,
@@ -331,6 +334,7 @@ class TodoSelectorComponent extends Container implements Focusable {
         super();
         this.tui = tui;
         this.theme = theme;
+        this.keybindings = keybindings;
         this.currentSessionId = currentSessionId;
         this.allTodos = todos;
         this.filteredTodos = todos;
@@ -392,10 +396,13 @@ class TodoSelectorComponent extends Container implements Focusable {
     }
 
     private updateHints(): void {
+        const selectKeys = `${keyText("tui.select.up")}/${keyText("tui.select.down")}`;
+        const confirmKey = keyText("tui.select.confirm");
+        const cancelKey = keyText("tui.select.cancel");
         this.hintText.setText(
             this.theme.fg(
                 "dim",
-                "Type to search • ↑↓ select • Enter actions • Ctrl+Shift+W work • Ctrl+Shift+R refine • Esc close",
+                `Type to search • ${selectKeys} select • ${confirmKey} actions • Ctrl+Shift+W work • Ctrl+Shift+R refine • ${cancelKey} close`,
             ),
         );
     }
@@ -470,8 +477,7 @@ class TodoSelectorComponent extends Container implements Focusable {
     }
 
     handleInput(keyData: string): void {
-        const kb = getEditorKeybindings();
-        if (kb.matches(keyData, "selectUp")) {
+        if (this.keybindings.matches(keyData, "tui.select.up")) {
             if (this.filteredTodos.length === 0) return;
             this.selectedIndex =
                 this.selectedIndex === 0
@@ -480,7 +486,7 @@ class TodoSelectorComponent extends Container implements Focusable {
             this.updateList();
             return;
         }
-        if (kb.matches(keyData, "selectDown")) {
+        if (this.keybindings.matches(keyData, "tui.select.down")) {
             if (this.filteredTodos.length === 0) return;
             this.selectedIndex =
                 this.selectedIndex === this.filteredTodos.length - 1
@@ -489,12 +495,12 @@ class TodoSelectorComponent extends Container implements Focusable {
             this.updateList();
             return;
         }
-        if (kb.matches(keyData, "selectConfirm")) {
+        if (this.keybindings.matches(keyData, "tui.select.confirm")) {
             const selected = this.filteredTodos[this.selectedIndex];
             if (selected) this.onSelectCallback(selected);
             return;
         }
-        if (kb.matches(keyData, "selectCancel")) {
+        if (this.keybindings.matches(keyData, "tui.select.cancel")) {
             this.onCancelCallback();
             return;
         }
@@ -610,7 +616,14 @@ class TodoActionMenuComponent extends Container {
         this.selectList.onCancel = () => this.onCancelCallback();
 
         this.addChild(this.selectList);
-        this.addChild(new Text(theme.fg("dim", "Enter to confirm • Esc back")));
+        this.addChild(
+            new Text(
+                theme.fg(
+                    "dim",
+                    `${keyText("tui.select.confirm")} to confirm • ${keyText("tui.select.cancel")} back`,
+                ),
+            ),
+        );
         this.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
     }
 
@@ -656,7 +669,14 @@ class TodoDeleteConfirmComponent extends Container {
         this.selectList.onCancel = () => this.onConfirm(false);
 
         this.addChild(this.selectList);
-        this.addChild(new Text(theme.fg("dim", "Enter to confirm • Esc back")));
+        this.addChild(
+            new Text(
+                theme.fg(
+                    "dim",
+                    `${keyText("tui.select.confirm")} to confirm • ${keyText("tui.select.cancel")} back`,
+                ),
+            ),
+        );
         this.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
     }
 
@@ -673,6 +693,7 @@ class TodoDetailOverlayComponent {
     private todo: TodoRecord;
     private theme: Theme;
     private tui: TUI;
+    private keybindings: KeybindingsManager;
     private markdown: Markdown;
     private scrollOffset = 0;
     private viewHeight = 0;
@@ -682,11 +703,13 @@ class TodoDetailOverlayComponent {
     constructor(
         tui: TUI,
         theme: Theme,
+        keybindings: KeybindingsManager,
         todo: TodoRecord,
         onAction: (action: TodoOverlayAction) => void,
     ) {
         this.tui = tui;
         this.theme = theme;
+        this.keybindings = keybindings;
         this.todo = todo;
         this.onAction = onAction;
         this.markdown = new Markdown(
@@ -703,28 +726,27 @@ class TodoDetailOverlayComponent {
     }
 
     handleInput(keyData: string): void {
-        const kb = getEditorKeybindings();
-        if (kb.matches(keyData, "selectCancel")) {
+        if (this.keybindings.matches(keyData, "tui.select.cancel")) {
             this.onAction("back");
             return;
         }
-        if (kb.matches(keyData, "selectConfirm")) {
+        if (this.keybindings.matches(keyData, "tui.select.confirm")) {
             this.onAction("work");
             return;
         }
-        if (kb.matches(keyData, "selectUp")) {
+        if (this.keybindings.matches(keyData, "tui.select.up")) {
             this.scrollBy(-1);
             return;
         }
-        if (kb.matches(keyData, "selectDown")) {
+        if (this.keybindings.matches(keyData, "tui.select.down")) {
             this.scrollBy(1);
             return;
         }
-        if (kb.matches(keyData, "selectPageUp")) {
+        if (this.keybindings.matches(keyData, "tui.select.pageUp")) {
             this.scrollBy(-this.viewHeight || -1);
             return;
         }
-        if (kb.matches(keyData, "selectPageDown")) {
+        if (this.keybindings.matches(keyData, "tui.select.pageDown")) {
             this.scrollBy(this.viewHeight || 1);
             return;
         }
@@ -838,9 +860,12 @@ class TodoDetailOverlayComponent {
 
     private buildActionLine(width: number): string {
         const work =
-            this.theme.fg("accent", "enter") +
+            this.theme.fg("accent", keyText("tui.select.confirm")) +
             this.theme.fg("muted", " work on todo");
-        const back = this.theme.fg("dim", "esc back");
+        const back = this.theme.fg(
+            "dim",
+            `${keyText("tui.select.cancel")} back`,
+        );
         const pieces = [work, back];
 
         let line = pieces.join(this.theme.fg("muted", " • "));
@@ -2017,7 +2042,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 
             let nextPrompt: string | null = null;
             const rootTuiRef = { current: null as TUI | null };
-            await ctx.ui.custom<void>((tui, theme, _kb, done) => {
+            await ctx.ui.custom<void>((tui, theme, keybindings, done) => {
                 rootTuiRef.current = tui;
                 let selector: TodoSelectorComponent | null = null;
                 let actionMenu: TodoActionMenuComponent | null = null;
@@ -2167,10 +2192,16 @@ export default function todosExtension(pi: ExtensionAPI) {
                     record: TodoRecord,
                 ): Promise<TodoOverlayAction> => {
                     const action = await ctx.ui.custom<TodoOverlayAction>(
-                        (overlayTui, overlayTheme, _overlayKb, overlayDone) =>
+                        (
+                            overlayTui,
+                            overlayTheme,
+                            overlayKeybindings,
+                            overlayDone,
+                        ) =>
                             new TodoDetailOverlayComponent(
                                 overlayTui,
                                 overlayTheme,
+                                overlayKeybindings,
                                 record,
                                 overlayDone,
                             ),
@@ -2331,6 +2362,7 @@ export default function todosExtension(pi: ExtensionAPI) {
                 selector = new TodoSelectorComponent(
                     tui,
                     theme,
+                    keybindings,
                     todos,
                     (todo) => {
                         void handleSelect(todo);

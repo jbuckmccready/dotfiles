@@ -2,7 +2,15 @@ import {
     createReadTool,
     highlightCode,
     getLanguageFromPath,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type ExtensionContext,
+    type ReadToolDetails,
+    type ReadToolInput,
+    type Theme,
+    type ToolRenderResultOptions,
 } from "@mariozechner/pi-coding-agent";
+import type { Component } from "@mariozechner/pi-tui";
 import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import {
     component,
@@ -13,34 +21,35 @@ import {
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
+type ReadRenderArgs = ReadToolInput & { file_path?: string };
+type ReadRenderContext = { args: ReadRenderArgs };
+type CompCache = Partial<Record<ToolViewMode, Component>>;
 
 export function createReadOverride(sandbox: SandboxAPI) {
-    let lastReadPath: string | undefined;
     const readCache = new WeakMap<object, CompCache>();
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
+            toolCallId: string,
+            params: ReadToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate:
+                | AgentToolUpdateCallback<ReadToolDetails | undefined>
+                | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<ReadToolDetails | undefined>> {
             return createReadTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().read,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: any, theme: any) {
-            const rawPath = ((args as Record<string, unknown>)?.file_path ??
-                args?.path) as string | undefined;
-            lastReadPath = rawPath;
+        renderCall(args: ReadRenderArgs, theme: Theme) {
+            const rawPath = args.file_path ?? args.path;
             const path = rawPath
                 ? shortenPath(rawPath.replace(/^@/, ""))
                 : "...";
-            const offset = args?.offset as number | undefined;
-            const limit = args?.limit as number | undefined;
+            const offset = args.offset;
+            const limit = args.limit;
 
             let pathDisplay = rawPath
                 ? theme.fg("accent", path)
@@ -59,12 +68,17 @@ export function createReadOverride(sandbox: SandboxAPI) {
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
-        renderResult(result: any, { isPartial }: any, theme: any) {
+        renderResult(
+            result: AgentToolResult<ReadToolDetails | undefined>,
+            { isPartial }: ToolRenderResultOptions,
+            theme: Theme,
+            context: ReadRenderContext,
+        ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Reading..."), 0, 0);
             }
 
-            const details = (result as any).details;
+            const details = result.details;
             const mode = getToolViewMode();
             if (details) {
                 const cached = readCache.get(details)?.[mode];
@@ -72,7 +86,7 @@ export function createReadOverride(sandbox: SandboxAPI) {
             }
 
             const output = getSanitizedTextOutput(result);
-            const rawPath = lastReadPath;
+            const rawPath = context.args.file_path ?? context.args.path;
             const lang = rawPath
                 ? getLanguageFromPath(rawPath.replace(/^@/, ""))
                 : undefined;
@@ -81,32 +95,32 @@ export function createReadOverride(sandbox: SandboxAPI) {
                 ? highlightCode(replaceTabs(output), lang)
                 : output
                       .split("\n")
-                      .map((l: string) =>
-                          theme.fg("toolOutput", replaceTabs(l)),
+                      .map((line) =>
+                          theme.fg("toolOutput", replaceTabs(line)),
                       );
 
             let warningLine: string | null = null;
             if (details?.truncation?.truncated) {
-                const t = details.truncation;
-                if (t.firstLineExceedsLimit) {
+                const truncation = details.truncation;
+                if (truncation.firstLineExceedsLimit) {
                     warningLine = theme.fg(
                         "warning",
                         `[First line exceeds limit]`,
                     );
-                } else if (t.truncatedBy === "lines") {
+                } else if (truncation.truncatedBy === "lines") {
                     warningLine = theme.fg(
                         "warning",
-                        `[Truncated: showing ${t.outputLines} of ${t.totalLines} lines]`,
+                        `[Truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines]`,
                     );
                 } else {
                     warningLine = theme.fg(
                         "warning",
-                        `[Truncated: ${t.outputLines} lines shown]`,
+                        `[Truncated: ${truncation.outputLines} lines shown]`,
                     );
                 }
             }
 
-            const comp = component((width) => {
+            const comp = component(() => {
                 if (mode === "minimal") return [];
                 const lines: string[] = [];
                 if (highlighted.length > 0) {

@@ -10,6 +10,7 @@ import type {
     GrepOperations,
     FindOperations,
     LsOperations,
+    GrepToolInput,
 } from "@mariozechner/pi-coding-agent";
 import type { SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
 
@@ -120,7 +121,7 @@ function mergeOsConfig(
 
 function loadJson(path: string): Record<string, unknown> | null {
     if (!existsSync(path)) return null;
-    return JSON.parse(readFileSync(path, "utf-8"));
+    return JSON.parse(readFileSync(path, "utf-8")) as Record<string, unknown>;
 }
 
 export function loadConfig(cwd: string): SandboxConfig {
@@ -136,14 +137,14 @@ export function loadConfig(cwd: string): SandboxConfig {
     // Deep-merge network/filesystem for OS configs
     if (globalRaw.network && projectRaw.network) {
         merged.network = {
-            ...(globalRaw.network as any),
-            ...(projectRaw.network as any),
+            ...(globalRaw.network as Record<string, unknown>),
+            ...(projectRaw.network as Record<string, unknown>),
         };
     }
     if (globalRaw.filesystem && projectRaw.filesystem) {
         merged.filesystem = {
-            ...(globalRaw.filesystem as any),
-            ...(projectRaw.filesystem as any),
+            ...(globalRaw.filesystem as Record<string, unknown>),
+            ...(projectRaw.filesystem as Record<string, unknown>),
         };
     }
 
@@ -189,7 +190,7 @@ export function loadConfig(cwd: string): SandboxConfig {
 
 export interface GrepExecuteResult {
     content: Array<{ type: "text"; text: string }>;
-    details: Record<string, any> | undefined;
+    details: Record<string, unknown> | undefined;
 }
 
 export interface SandboxOps {
@@ -202,7 +203,7 @@ export interface SandboxOps {
     ls?: LsOperations;
     /** Full grep execute override (bypasses core tool's host-side rg) */
     grepExecute?: (
-        params: any,
+        params: GrepToolInput,
         signal?: AbortSignal,
     ) => Promise<GrepExecuteResult>;
 }

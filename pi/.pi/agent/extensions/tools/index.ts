@@ -1,12 +1,15 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type {
+    ExtensionAPI,
+    ToolDefinition,
+} from "@mariozechner/pi-coding-agent";
 import {
-    createReadTool,
-    createGrepTool,
-    createWriteTool,
-    createFindTool,
-    createLsTool,
-    createEditTool,
-    createBashTool,
+    createReadToolDefinition,
+    createGrepToolDefinition,
+    createWriteToolDefinition,
+    createFindToolDefinition,
+    createLsToolDefinition,
+    createEditToolDefinition,
+    createBashToolDefinition,
 } from "@mariozechner/pi-coding-agent";
 import { initSandbox } from "./sandbox";
 import { createReadOverride } from "./override-read";
@@ -30,10 +33,50 @@ const MODE_LABELS: Record<ToolViewMode, string> = {
     expanded: "◆ expanded",
 };
 
+// Preserve built-in metadata, but give overrides a distinct top-level
+// parameters object. Pi currently uses `definition.parameters ===
+// builtInToolDefinition.parameters` to detect built-in definitions for
+// renderer inheritance, so reusing the same schema object can bypass our
+// custom renderers.
+function cloneSchemaRoot<T extends object>(schema: T): T {
+    const clone = Array.isArray(schema)
+        ? []
+        : Object.create(Object.getPrototypeOf(schema));
+    for (const key of Reflect.ownKeys(schema)) {
+        const descriptor = Object.getOwnPropertyDescriptor(schema, key);
+        if (descriptor) {
+            Object.defineProperty(clone, key, descriptor);
+        }
+    }
+    return clone as T;
+}
+
+function withBuiltinMetadataAndDistinctParameters(
+    builtin: ToolDefinition<any, any, any>,
+    override: Record<string, unknown>,
+): ToolDefinition<any, any, any> {
+    return {
+        name: builtin.name,
+        label: builtin.label,
+        description: builtin.description,
+        promptSnippet: builtin.promptSnippet,
+        promptGuidelines: builtin.promptGuidelines,
+        parameters: cloneSchemaRoot(builtin.parameters),
+        ...override,
+    } as unknown as ToolDefinition<any, any, any>;
+}
+
 function syncMode(pi: ExtensionAPI) {
     const mode = getToolViewMode();
     pi.events.emit("tool-view-mode", mode);
 }
+
+type ToolViewModeContext = {
+    ui: {
+        setToolsExpanded: (expanded: boolean) => void;
+        setStatus: (key: string, value: string) => void;
+    };
+};
 
 export default function (pi: ExtensionAPI) {
     const sandbox = initSandbox(pi);
@@ -41,7 +84,7 @@ export default function (pi: ExtensionAPI) {
 
     // --- Tool view mode: command + shortcut + status ---
 
-    function applyMode(ctx: any) {
+    function applyMode(ctx: ToolViewModeContext) {
         const mode = getToolViewMode();
         syncMode(pi);
         ctx.ui.setToolsExpanded(toolViewModeExpanded());
@@ -89,72 +132,44 @@ export default function (pi: ExtensionAPI) {
     // --- Tool overrides (unchanged wiring) ---
 
     const read = createReadOverride(sandbox);
-    const builtinRead = createReadTool(cwd);
-    pi.registerTool({
-        name: "read",
-        label: builtinRead.label,
-        description: builtinRead.description,
-        parameters: builtinRead.parameters,
-        ...read,
-    });
+    const builtinRead = createReadToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinRead, read),
+    );
 
     const grep = createGrepOverride(sandbox);
-    const builtinGrep = createGrepTool(cwd);
-    pi.registerTool({
-        name: "grep",
-        label: builtinGrep.label,
-        description: builtinGrep.description,
-        parameters: builtinGrep.parameters,
-        ...grep,
-    });
+    const builtinGrep = createGrepToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinGrep, grep),
+    );
 
     const write = createWriteOverride(sandbox);
-    const builtinWrite = createWriteTool(cwd);
-    pi.registerTool({
-        name: "write",
-        label: builtinWrite.label,
-        description: builtinWrite.description,
-        parameters: builtinWrite.parameters,
-        ...write,
-    });
+    const builtinWrite = createWriteToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinWrite, write),
+    );
 
     const find = createFindOverride(sandbox);
-    const builtinFind = createFindTool(cwd);
-    pi.registerTool({
-        name: "find",
-        label: builtinFind.label,
-        description: builtinFind.description,
-        parameters: builtinFind.parameters,
-        ...find,
-    });
+    const builtinFind = createFindToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinFind, find),
+    );
 
     const ls = createLsOverride(sandbox);
-    const builtinLs = createLsTool(cwd);
-    pi.registerTool({
-        name: "ls",
-        label: builtinLs.label,
-        description: builtinLs.description,
-        parameters: builtinLs.parameters,
-        ...ls,
-    });
+    const builtinLs = createLsToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinLs, ls),
+    );
 
     const edit = createEditOverride(sandbox);
-    const builtinEdit = createEditTool(cwd);
-    pi.registerTool({
-        name: "edit",
-        label: builtinEdit.label,
-        description: builtinEdit.description,
-        parameters: builtinEdit.parameters,
-        ...edit,
-    });
+    const builtinEdit = createEditToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinEdit, edit),
+    );
 
     const bash = createBashOverride(sandbox);
-    const builtinBash = createBashTool(cwd);
-    pi.registerTool({
-        name: "bash",
-        label: builtinBash.label,
-        description: builtinBash.description,
-        parameters: builtinBash.parameters,
-        ...bash,
-    });
+    const builtinBash = createBashToolDefinition(cwd);
+    pi.registerTool(
+        withBuiltinMetadataAndDistinctParameters(builtinBash, bash),
+    );
 }

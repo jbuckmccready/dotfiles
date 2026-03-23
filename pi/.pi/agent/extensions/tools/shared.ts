@@ -1,6 +1,16 @@
-import stripAnsi from "strip-ansi";
+import type { Component } from "@mariozechner/pi-tui";
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import stripAnsi from "strip-ansi";
 import { homedir } from "os";
+
+interface TextBlock {
+    type: "text";
+    text?: string;
+}
+
+interface TextResultLike {
+    content?: Array<{ type: string; text?: string }>;
+}
 
 /**
  * Sanitize binary output for display/storage.
@@ -27,19 +37,20 @@ export function sanitizeToolText(text: string): string {
     return sanitizeBinaryOutput(stripAnsi(text)).replace(/\r/g, "");
 }
 
-export function getSanitizedTextOutput(result: any): string {
-    const textBlocks =
-        result.content?.filter((c: any) => c.type === "text") || [];
-    return textBlocks
-        .map((c: any) => sanitizeToolText(c.text || ""))
-        .join("\n");
+function isTextBlock(block: { type: string; text?: string }): block is TextBlock {
+    return block.type === "text";
+}
+
+export function getSanitizedTextOutput(result: TextResultLike): string {
+    const textBlocks = result.content?.filter(isTextBlock) ?? [];
+    return textBlocks.map((block) => sanitizeToolText(block.text || "")).join("\n");
 }
 
 export function makeSep(borderAnsi: string, width: number): string {
     return borderAnsi + "─".repeat(width) + "\x1b[39m";
 }
 
-export function component(renderFn: (width: number) => string[]) {
+export function component(renderFn: (width: number) => string[]): Component {
     let cachedWidth: number | undefined;
     let cachedLines: string[] | undefined;
     return {
@@ -49,11 +60,11 @@ export function component(renderFn: (width: number) => string[]) {
         },
         render(width: number) {
             if (cachedLines && cachedWidth === width) return cachedLines;
-            cachedLines = renderFn(width).map((l) => truncateToWidth(l, width));
+            cachedLines = renderFn(width).map((line) => truncateToWidth(line, width));
             cachedWidth = width;
             return cachedLines;
         },
-    } as any;
+    };
 }
 
 export function shortenPath(path: string): string {

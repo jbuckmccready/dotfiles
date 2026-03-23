@@ -2,7 +2,14 @@
  * TUI rendering for subagent tool calls and results.
  */
 
-import { Markdown, type MarkdownTheme, visibleWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
+import type { ThemeColor } from "@mariozechner/pi-coding-agent";
+import {
+	Markdown,
+	type MarkdownTheme,
+	type Component,
+	visibleWidth,
+	wrapTextWithAnsi,
+} from "@mariozechner/pi-tui";
 import {
 	type DelegationMode,
 	type DisplayItem,
@@ -34,24 +41,31 @@ export function setViewMode(mode: ToolViewMode) {
 const COLLAPSED_LINE_COUNT = 10;
 const COLLAPSED_PARALLEL_LINE_COUNT = 5;
 
-type CompCache = Partial<Record<ToolViewMode, any>>;
-type ThemeFg = (color: any, text: string) => string;
+type CompCache = Partial<Record<ToolViewMode, Component>>;
+type ThemeFg = (color: ThemeColor, text: string) => string;
 type Theme = {
 	fg: ThemeFg;
 	bold: (s: string) => string;
 	italic?: (s: string) => string;
 	underline?: (s: string) => string;
 	strikethrough?: (s: string) => string;
-	getFgAnsi?: (color: any) => string;
+	getFgAnsi?: (color: ThemeColor) => string;
 };
 type RenderState = { expanded: boolean; isPartial?: boolean };
+type RowRenderState = { details?: SubagentDetails; complete?: boolean };
+type SubagentTaskArgs = { agent?: string; task?: string };
+type SubagentRenderArgs = {
+	agent?: string;
+	task?: string;
+	tasks?: SubagentTaskArgs[];
+	mode?: unknown;
+};
+
+type RenderContext = {
+	state: RowRenderState;
+};
 
 const resultCache = new WeakMap<object, CompCache>();
-
-// Shared state: links renderCall args to renderResult details so renderCall
-// can hide completed tasks while renderResult shows them with status icons.
-let currentCallArgs: object | undefined;
-const argsToState = new WeakMap<object, { details?: SubagentDetails; complete: boolean }>();
 
 // ---------------------------------------------------------------------------
 // Formatting helpers
@@ -237,9 +251,13 @@ function usageLine(
 // renderCall — shown while the tool is being invoked
 // ---------------------------------------------------------------------------
 
-export function renderCall(args: Record<string, any> | undefined, theme: Theme) {
+export function renderCall(
+	args: SubagentRenderArgs | undefined,
+	theme: Theme,
+	context: RenderContext,
+) {
 	const safeArgs = args ?? {};
-	currentCallArgs = safeArgs;
+	const rowState = context.state;
 	const delegationMode = normalizeDelegationMode(safeArgs.mode);
 	const modeBadge = theme.fg("muted", ` [${delegationMode}]`);
 
@@ -247,10 +265,9 @@ export function renderCall(args: Record<string, any> | undefined, theme: Theme) 
 	return {
 		invalidate() {},
 		render(width: number): string[] {
-			const state = argsToState.get(safeArgs);
 			const completedSet = new Set<number>();
-			if (state?.details) {
-				state.details.results.forEach((r, i) => {
+			if (rowState.details) {
+				rowState.details.results.forEach((r, i) => {
 					if (r.exitCode !== -1) completedSet.add(i);
 				});
 			}
@@ -281,12 +298,12 @@ export function renderCall(args: Record<string, any> | undefined, theme: Theme) 
 				width,
 			);
 			// Show task description only while pending
-			if (!state?.complete) {
+			if (!rowState.complete) {
 				lines.push(theme.fg("dim", truncateLine(safeArgs.task || "...", width)));
 			}
 			return lines;
 		},
-	} as any;
+	} as Component;
 }
 
 // ---------------------------------------------------------------------------
@@ -297,15 +314,15 @@ export function renderResult(
 	result: { content: Array<{ type: string; text?: string }>; details?: unknown },
 	state: RenderState,
 	theme: Theme,
+	context: RenderContext,
 ) {
 	const { isPartial } = state;
 	const details = result.details as SubagentDetails | undefined;
 	const mode = currentViewMode;
+	const rowState = context.state;
 
-	// Update shared state so renderCall can hide completed tasks
-	if (currentCallArgs && details) {
-		argsToState.set(currentCallArgs, { details, complete: !isPartial });
-	}
+	rowState.details = details;
+	rowState.complete = !isPartial;
 
 	if (!isPartial && details) {
 		const cached = resultCache.get(details)?.[mode];
@@ -322,7 +339,7 @@ export function renderResult(
 	}
 
 	const delegationMode = normalizeDelegationMode(details.delegationMode);
-	let comp: any;
+	let comp: Component;
 
 	if (mode === "minimal") {
 		// No caching for minimal — must reflect latest partial state
@@ -355,7 +372,7 @@ export function renderResult(
 				}
 				return lines;
 			},
-		} as any;
+		} as Component;
 	} else {
 		const expanded = mode === "expanded";
 		comp = details.mode === "single"

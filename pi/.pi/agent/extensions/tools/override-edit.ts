@@ -1,13 +1,18 @@
-import type { EditToolDetails } from "@mariozechner/pi-coding-agent";
 import {
     createEditTool,
     highlightCode,
     getLanguageFromPath,
+    type AgentToolResult,
+    type AgentToolUpdateCallback,
+    type EditToolDetails,
+    type EditToolInput,
+    type ExtensionContext,
     type Theme,
+    type ToolRenderResultOptions,
 } from "@mariozechner/pi-coding-agent";
 import { Text, visibleWidth, truncateToWidth } from "@mariozechner/pi-tui";
 import * as Diff from "diff";
-import { shortenPath, component } from "./shared";
+import { shortenPath, component, getSanitizedTextOutput } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode } from "./tool-view-mode";
 
@@ -19,6 +24,9 @@ const REMOVED_WORD_BG = "\x1b[48;2;109;58;93m"; // darken(#f38ba8, 0.37)
 
 const STRIP_ANSI = /\x1b\[[0-9;]*m/g;
 
+type EditRenderArgs = EditToolInput & { file_path?: string };
+type EditRenderContext = { args: EditRenderArgs; isError: boolean };
+
 function parseDiffLine(line: string) {
     const match = line.match(/^([+-\s])(\s*\d*)\s(.*)$/);
     if (!match) return null;
@@ -28,9 +36,9 @@ function parseDiffLine(line: string) {
 function collectLines(lines: string[], i: number, prefix: string) {
     const collected: { lineNum: string; content: string }[] = [];
     while (i < lines.length) {
-        const p = parseDiffLine(lines[i]);
-        if (!p || p.prefix !== prefix) break;
-        collected.push({ lineNum: p.lineNum, content: p.content });
+        const parsed = parseDiffLine(lines[i]);
+        if (!parsed || parsed.prefix !== prefix) break;
+        collected.push({ lineNum: parsed.lineNum, content: parsed.content });
         i++;
     }
     return { collected, i };
@@ -181,23 +189,23 @@ function fmtLine(
 
 function renderDiff(diffText: string, theme: Theme, lang?: string): string {
     const lines = diffText.split("\n");
-    const tabs = (s: string) => s.replace(/\t/g, "   ");
+    const tabs = (text: string) => text.replace(/\t/g, "   ");
 
     // Batch-highlight: collect all content lines, call highlightCode once
     // instead of per-line (amortizes grammar/tokenizer initialization).
     const allPlain: string[] = [];
     for (const line of lines) {
-        const p = parseDiffLine(line);
-        if (p) allPlain.push(tabs(p.content));
+        const parsed = parseDiffLine(line);
+        if (parsed) allPlain.push(tabs(parsed.content));
     }
-    const allHl =
+    const allHighlighted =
         lang && allPlain.length > 0
             ? highlightCode(allPlain.join("\n"), lang)
             : allPlain;
-    let hlIdx = 0;
-    const hl = () => {
-        const j = hlIdx++;
-        return allHl[j] ?? allPlain[j] ?? "";
+    let highlightedIndex = 0;
+    const nextHighlighted = () => {
+        const index = highlightedIndex++;
+        return allHighlighted[index] ?? allPlain[index] ?? "";
     };
 
     const result: string[] = [];
@@ -210,57 +218,88 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
             continue;
         }
         if (parsed.prefix === "-") {
-            const rem = collectLines(lines, i, "-");
-            const add = collectLines(lines, rem.i, "+");
-            i = add.i;
+            const removed = collectLines(lines, i, "-");
+            const added = collectLines(lines, removed.i, "+");
+            i = added.i;
 
-            if (rem.collected.length === 1 && add.collected.length === 1) {
-                const r = rem.collected[0],
-                    a = add.collected[0];
-                const rPlain = tabs(r.content),
-                    aPlain = tabs(a.content);
-                const rHl = hl(),
-                    aHl = hl();
-                const { removedLine, addedLine } = renderIntraLineDiff(
-                    rPlain,
-                    aPlain,
-                    rHl,
-                    aHl,
-                    REMOVED_WORD_BG,
-                    ADDED_WORD_BG,
-                    REMOVED_LINE_BG,
-                    ADDED_LINE_BG,
-                );
+            if (removed.collected.length === 1 && added.collected.length === 1) {
+                const removedLine = removed.collected[0];
+                const addedLine = added.collected[0];
+                const removedPlain = tabs(removedLine.content);
+                const addedPlain = tabs(addedLine.content);
+                const { removedLine: highlightedRemoved, addedLine: highlightedAdded } =
+                    renderIntraLineDiff(
+                        removedPlain,
+                        addedPlain,
+                        nextHighlighted(),
+                        nextHighlighted(),
+                        REMOVED_WORD_BG,
+                        ADDED_WORD_BG,
+                        REMOVED_LINE_BG,
+                        ADDED_LINE_BG,
+                    );
                 result.push(
                     fmtLine(
                         theme,
                         "toolDiffRemoved",
                         "-",
-                        r.lineNum,
-                        removedLine,
+                        removedLine.lineNum,
+                        highlightedRemoved,
                     ),
                 );
                 result.push(
-                    fmtLine(theme, "toolDiffAdded", "+", a.lineNum, addedLine),
+                    fmtLine(
+                        theme,
+                        "toolDiffAdded",
+                        "+",
+                        addedLine.lineNum,
+                        highlightedAdded,
+                    ),
                 );
             } else {
-                for (const r of rem.collected)
+                for (const removedLine of removed.collected) {
                     result.push(
-                        fmtLine(theme, "toolDiffRemoved", "-", r.lineNum, hl()),
+                        fmtLine(
+                            theme,
+                            "toolDiffRemoved",
+                            "-",
+                            removedLine.lineNum,
+                            nextHighlighted(),
+                        ),
                     );
-                for (const a of add.collected)
+                }
+                for (const addedLine of added.collected) {
                     result.push(
-                        fmtLine(theme, "toolDiffAdded", "+", a.lineNum, hl()),
+                        fmtLine(
+                            theme,
+                            "toolDiffAdded",
+                            "+",
+                            addedLine.lineNum,
+                            nextHighlighted(),
+                        ),
                     );
+                }
             }
         } else if (parsed.prefix === "+") {
             result.push(
-                fmtLine(theme, "toolDiffAdded", "+", parsed.lineNum, hl()),
+                fmtLine(
+                    theme,
+                    "toolDiffAdded",
+                    "+",
+                    parsed.lineNum,
+                    nextHighlighted(),
+                ),
             );
             i++;
         } else {
             result.push(
-                fmtLine(theme, "toolDiffContext", " ", parsed.lineNum, hl()),
+                fmtLine(
+                    theme,
+                    "toolDiffContext",
+                    " ",
+                    parsed.lineNum,
+                    nextHighlighted(),
+                ),
             );
             i++;
         }
@@ -271,23 +310,23 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
 class DiffText {
     private text: string;
     private boxBg: string;
-    private borderAnsi: string;
     private cachedWidth: number | undefined;
     private cachedLines: string[] | undefined;
-    constructor(text: string, boxBg: string, borderAnsi: string) {
+
+    constructor(text: string, boxBg: string) {
         this.text = text;
         this.boxBg = boxBg;
-        this.borderAnsi = borderAnsi;
     }
+
     invalidate() {
         this.cachedWidth = undefined;
         this.cachedLines = undefined;
     }
+
     render(width: number): string[] {
         if (this.cachedLines && this.cachedWidth === width) {
             return this.cachedLines;
         }
-        const sep = this.borderAnsi + "─".repeat(width) + "\x1b[39m";
         const lines = this.text.split("\n").map((line) => {
             const raw = line.replace(STRIP_ANSI, "");
             if (raw.startsWith("+") || raw.startsWith("-")) {
@@ -307,25 +346,25 @@ class DiffText {
 }
 
 export function createEditOverride(sandbox: SandboxAPI) {
-    let lastEditPath: string | undefined;
     const diffTextCache = new WeakMap<object, DiffText>();
 
     return {
         execute(
-            toolCallId: any,
-            params: any,
-            signal: any,
-            onUpdate: any,
-            ctx: any,
-        ) {
+            toolCallId: string,
+            params: EditToolInput,
+            signal: AbortSignal | undefined,
+            onUpdate:
+                | AgentToolUpdateCallback<EditToolDetails | undefined>
+                | undefined,
+            ctx: ExtensionContext,
+        ): Promise<AgentToolResult<EditToolDetails | undefined>> {
             return createEditTool(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().edit,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: any, theme: any) {
-            const rawPath = args?.path as string | undefined;
-            lastEditPath = rawPath;
+        renderCall(args: EditRenderArgs, theme: Theme) {
+            const rawPath = args.file_path ?? args.path;
             const path = rawPath
                 ? shortenPath(rawPath.replace(/^@/, ""))
                 : "...";
@@ -333,29 +372,23 @@ export function createEditOverride(sandbox: SandboxAPI) {
                 ? theme.fg("accent", path)
                 : theme.fg("toolOutput", "...");
             const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}`;
-            return {
-                invalidate() {},
-                render(_width: number) {
-                    return [title];
-                },
-            } as any;
+            return component(() => [title]);
         },
 
-        renderResult(result: any, { isPartial }: any, theme: any) {
-            const { details, isError } = result as {
-                details?: EditToolDetails;
-                isError?: boolean;
-            };
+        renderResult(
+            result: AgentToolResult<EditToolDetails | undefined>,
+            { isPartial }: ToolRenderResultOptions,
+            theme: Theme,
+            context: EditRenderContext,
+        ) {
+            const details = result.details;
+            const isError = context.isError;
 
-            if (isPartial)
+            if (isPartial) {
                 return new Text(theme.fg("warning", "Editing..."), 0, 0);
+            }
 
-            const text =
-                result.content
-                    ?.filter((c: any) => c.type === "text")
-                    .map((c: any) => c.text)
-                    .join("\n") ?? "";
-
+            const text = getSanitizedTextOutput(result);
             if (isError) {
                 return new Text(theme.fg("error", text), 0, 0);
             }
@@ -371,16 +404,16 @@ export function createEditOverride(sandbox: SandboxAPI) {
             const cached = diffTextCache.get(details);
             if (cached) return cached;
 
-            const lang = lastEditPath
-                ? getLanguageFromPath(lastEditPath.replace(/^@/, ""))
+            const rawPath = context.args.file_path ?? context.args.path;
+            const lang = rawPath
+                ? getLanguageFromPath(rawPath.replace(/^@/, ""))
                 : undefined;
 
             const rendered = renderDiff(details.diff, theme, lang);
             const boxBg = theme.getBgAnsi("toolSuccessBg");
-            const borderAnsi = theme.getFgAnsi("borderMuted");
-            const dt = new DiffText(rendered, boxBg, borderAnsi);
-            diffTextCache.set(details, dt);
-            return dt as any;
+            const diffText = new DiffText(rendered, boxBg);
+            diffTextCache.set(details, diffText);
+            return diffText;
         },
     };
 }
