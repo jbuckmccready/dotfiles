@@ -6,7 +6,7 @@ You are running in a sandboxed environment that has restrictions. You may encoun
 
 - Use `fd` instead of `find` for searching files.
 - Use `rg` instead of `grep` for searching within files.
-- Prefer the dedicated tools grep, find, ls, and read over using bash equivalents.
+- Prefer the dedicated tools `grep`, `find`, `ls`, and `read` over using bash equivalents.
 
 **Coding guidelines:**
 
@@ -31,3 +31,8 @@ You are running in a sandboxed environment that has restrictions. You may encoun
     - If you notice unrelated dead code, mention it - don't delete it.
     - Do remove imports/variables/functions that YOUR changes made unused.
     - Every changed line should trace directly to the user's request.
+
+**Subagent guidelines:**
+
+- Use scout to quickly explore codebases and find relevant files/locations to read.
+- Do not use subagents for anything that can be done with well defined direct tool calls, e.g., file edits, direct file reads, etc.
