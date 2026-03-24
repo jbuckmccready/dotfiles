@@ -10,7 +10,12 @@ import {
     type Theme,
     type ToolRenderResultOptions,
 } from "@mariozechner/pi-coding-agent";
-import { Text, visibleWidth, truncateToWidth } from "@mariozechner/pi-tui";
+import {
+    Text,
+    visibleWidth,
+    truncateToWidth,
+    wrapTextWithAnsi,
+} from "@mariozechner/pi-tui";
 import * as Diff from "diff";
 import { shortenPath, component, getSanitizedTextOutput } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
@@ -25,6 +30,13 @@ const REMOVED_WORD_BG = "\x1b[48;2;109;58;93m"; // darken(#f38ba8, 0.37)
 const STRIP_ANSI = /\x1b\[[0-9;]*m/g;
 
 type EditRenderArgs = EditToolInput & { file_path?: string };
+type EditCallRenderState = {
+    rawPath?: string;
+    oldText?: string;
+    newText?: string;
+    counts?: { added: number; removed: number };
+};
+type EditCallRenderContext = { state: EditCallRenderState };
 type EditRenderContext = { args: EditRenderArgs; isError: boolean };
 
 function parseDiffLine(line: string) {
@@ -42,6 +54,28 @@ function collectLines(lines: string[], i: number, prefix: string) {
         i++;
     }
     return { collected, i };
+}
+
+function countLines(text: string) {
+    if (!text) return 0;
+    const lineCount = text.split("\n").length;
+    return text.endsWith("\n") ? lineCount - 1 : lineCount;
+}
+
+function getLineChangeCounts(oldText: string, newText: string) {
+    let added = 0;
+    let removed = 0;
+
+    for (const part of Diff.diffLines(oldText, newText)) {
+        const lineCount = countLines(part.value);
+        if (part.added) {
+            added += lineCount;
+        } else if (part.removed) {
+            removed += lineCount;
+        }
+    }
+
+    return { added, removed };
 }
 
 /**
@@ -222,22 +256,27 @@ function renderDiff(diffText: string, theme: Theme, lang?: string): string {
             const added = collectLines(lines, removed.i, "+");
             i = added.i;
 
-            if (removed.collected.length === 1 && added.collected.length === 1) {
+            if (
+                removed.collected.length === 1 &&
+                added.collected.length === 1
+            ) {
                 const removedLine = removed.collected[0];
                 const addedLine = added.collected[0];
                 const removedPlain = tabs(removedLine.content);
                 const addedPlain = tabs(addedLine.content);
-                const { removedLine: highlightedRemoved, addedLine: highlightedAdded } =
-                    renderIntraLineDiff(
-                        removedPlain,
-                        addedPlain,
-                        nextHighlighted(),
-                        nextHighlighted(),
-                        REMOVED_WORD_BG,
-                        ADDED_WORD_BG,
-                        REMOVED_LINE_BG,
-                        ADDED_LINE_BG,
-                    );
+                const {
+                    removedLine: highlightedRemoved,
+                    addedLine: highlightedAdded,
+                } = renderIntraLineDiff(
+                    removedPlain,
+                    addedPlain,
+                    nextHighlighted(),
+                    nextHighlighted(),
+                    REMOVED_WORD_BG,
+                    ADDED_WORD_BG,
+                    REMOVED_LINE_BG,
+                    ADDED_LINE_BG,
+                );
                 result.push(
                     fmtLine(
                         theme,
@@ -363,7 +402,11 @@ export function createEditOverride(sandbox: SandboxAPI) {
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: EditRenderArgs, theme: Theme) {
+        renderCall(
+            args: EditRenderArgs,
+            theme: Theme,
+            context: EditCallRenderContext,
+        ) {
             const rawPath = args.file_path ?? args.path;
             const path = rawPath
                 ? shortenPath(rawPath.replace(/^@/, ""))
@@ -371,8 +414,42 @@ export function createEditOverride(sandbox: SandboxAPI) {
             const display = rawPath
                 ? theme.fg("accent", path)
                 : theme.fg("toolOutput", "...");
-            const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}`;
-            return component(() => [title]);
+
+            let counts = "";
+            if (
+                typeof rawPath === "string" &&
+                typeof args.oldText === "string" &&
+                typeof args.newText === "string"
+            ) {
+                const state = context.state;
+                if (
+                    state.rawPath !== rawPath ||
+                    state.oldText !== args.oldText ||
+                    state.newText !== args.newText
+                ) {
+                    state.rawPath = rawPath;
+                    state.oldText = args.oldText;
+                    state.newText = args.newText;
+                    state.counts = getLineChangeCounts(
+                        args.oldText,
+                        args.newText,
+                    );
+                }
+                const countState = state.counts!;
+                counts =
+                    " " +
+                    theme.fg("toolDiffAdded", `+${countState.added}`) +
+                    " " +
+                    theme.fg("toolDiffRemoved", `-${countState.removed}`);
+            } else {
+                context.state.rawPath = undefined;
+                context.state.oldText = undefined;
+                context.state.newText = undefined;
+                context.state.counts = undefined;
+            }
+
+            const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}${counts}`;
+            return component((width) => wrapTextWithAnsi(title, width));
         },
 
         renderResult(
