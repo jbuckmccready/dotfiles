@@ -9,6 +9,7 @@ For example:
 - `nvim/.config/nvim/init.lua` symlinks to `~/.config/nvim/init.lua`
 - `git/.gitconfig` symlinks to `~/.gitconfig`
 - `fish/.config/fish/config.fish` symlinks to `~/.config/fish/config.fish`
+- `pi/.pi/AGENTS.md` symlinks to `~/.pi/AGENTS.md`
 
 ## Reading and Writing Files
 
