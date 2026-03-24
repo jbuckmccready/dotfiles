@@ -1,4 +1,4 @@
-Use the `todo` tool to create TODOs for $ARGUMENTS, the created TODOs must:
+Use the `todo` tool to create TODOs $ARGUMENTS, the created TODOs must:
 
 - Be a single coherent unit of work (one focused session, not a multi-day epic)
 - Have a clear, actionable title and body understandable without session context
