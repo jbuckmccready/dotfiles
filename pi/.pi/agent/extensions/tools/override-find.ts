@@ -15,11 +15,29 @@ import {
     shortenPath,
     getSanitizedTextOutput,
     replaceTabs,
+    countRenderedLinesWithoutNotice,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 type CompCache = Partial<Record<ToolViewMode, Component>>;
+
+type FindRenderState = {
+    lineCount?: number;
+    truncated?: boolean;
+};
+
+type FindRenderContext = {
+    state: FindRenderState;
+    invalidate: () => void;
+};
+
+function hasFindNotice(details: FindToolDetails | undefined): boolean {
+    return (
+        details?.resultLimitReached !== undefined ||
+        details?.truncation?.truncated === true
+    );
+}
 
 export function createFindOverride(sandbox: SandboxAPI) {
     const findCache = new WeakMap<object, CompCache>();
@@ -39,7 +57,11 @@ export function createFindOverride(sandbox: SandboxAPI) {
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: FindToolInput, theme: Theme) {
+        renderCall(
+            args: FindToolInput,
+            theme: Theme,
+            context: FindRenderContext,
+        ) {
             const pattern = args.pattern;
             const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
@@ -53,6 +75,13 @@ export function createFindOverride(sandbox: SandboxAPI) {
             if (limit !== undefined) {
                 title += theme.fg("toolOutput", ` (limit ${limit})`);
             }
+            if (context.state.lineCount !== undefined) {
+                let suffix = ` • ${context.state.lineCount} lines`;
+                if (context.state.truncated) {
+                    suffix += " [Truncated]";
+                }
+                title += theme.fg("warning", suffix);
+            }
 
             return component((width) => wrapTextWithAnsi(title, width));
         },
@@ -61,12 +90,26 @@ export function createFindOverride(sandbox: SandboxAPI) {
             result: AgentToolResult<FindToolDetails | undefined>,
             { isPartial }: ToolRenderResultOptions,
             theme: Theme,
+            context: FindRenderContext,
         ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
             const details = result.details;
+            const lineCount = countRenderedLinesWithoutNotice(
+                getSanitizedTextOutput(result),
+                hasFindNotice(details),
+            );
+            const truncated = hasFindNotice(details);
+            if (
+                context.state.lineCount !== lineCount ||
+                context.state.truncated !== truncated
+            ) {
+                context.state.lineCount = lineCount;
+                context.state.truncated = truncated;
+                context.invalidate();
+            }
             const mode = getToolViewMode();
             if (details) {
                 const cached = findCache.get(details)?.[mode];
@@ -81,18 +124,6 @@ export function createFindOverride(sandbox: SandboxAPI) {
                           theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
-
-            const warnings: string[] = [];
-            if (details?.resultLimitReached) {
-                warnings.push(`${details.resultLimitReached} results limit`);
-            }
-            if (details?.truncation?.truncated) {
-                warnings.push("output truncated");
-            }
-            const warningLine =
-                warnings.length > 0
-                    ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
-                    : null;
 
             const comp = component(() => {
                 if (mode === "minimal") return [];
@@ -109,7 +140,6 @@ export function createFindOverride(sandbox: SandboxAPI) {
                         );
                     }
                 }
-                if (warningLine) lines.push("", warningLine);
                 return lines;
             });
             if (details) {

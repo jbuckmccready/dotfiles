@@ -15,11 +15,29 @@ import {
     shortenPath,
     getSanitizedTextOutput,
     replaceTabs,
+    countRenderedLinesWithoutNotice,
 } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 type CompCache = Partial<Record<ToolViewMode, Component>>;
+
+type LsRenderState = {
+    lineCount?: number;
+    truncated?: boolean;
+};
+
+type LsRenderContext = {
+    state: LsRenderState;
+    invalidate: () => void;
+};
+
+function hasLsNotice(details: LsToolDetails | undefined): boolean {
+    return (
+        details?.entryLimitReached !== undefined ||
+        details?.truncation?.truncated === true
+    );
+}
 
 export function createLsOverride(sandbox: SandboxAPI) {
     const lsCache = new WeakMap<object, CompCache>();
@@ -39,7 +57,11 @@ export function createLsOverride(sandbox: SandboxAPI) {
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: LsToolInput, theme: Theme) {
+        renderCall(
+            args: LsToolInput,
+            theme: Theme,
+            context: LsRenderContext,
+        ) {
             const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
             const limit = args.limit;
@@ -51,6 +73,13 @@ export function createLsOverride(sandbox: SandboxAPI) {
             if (limit !== undefined) {
                 title += theme.fg("toolOutput", ` (limit ${limit})`);
             }
+            if (context.state.lineCount !== undefined) {
+                let suffix = ` • ${context.state.lineCount} lines`;
+                if (context.state.truncated) {
+                    suffix += " [Truncated]";
+                }
+                title += theme.fg("warning", suffix);
+            }
 
             return component((width) => wrapTextWithAnsi(title, width));
         },
@@ -59,12 +88,26 @@ export function createLsOverride(sandbox: SandboxAPI) {
             result: AgentToolResult<LsToolDetails | undefined>,
             { isPartial }: ToolRenderResultOptions,
             theme: Theme,
+            context: LsRenderContext,
         ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Listing..."), 0, 0);
             }
 
             const details = result.details;
+            const lineCount = countRenderedLinesWithoutNotice(
+                getSanitizedTextOutput(result),
+                hasLsNotice(details),
+            );
+            const truncated = hasLsNotice(details);
+            if (
+                context.state.lineCount !== lineCount ||
+                context.state.truncated !== truncated
+            ) {
+                context.state.lineCount = lineCount;
+                context.state.truncated = truncated;
+                context.invalidate();
+            }
             const mode = getToolViewMode();
             if (details) {
                 const cached = lsCache.get(details)?.[mode];
@@ -79,18 +122,6 @@ export function createLsOverride(sandbox: SandboxAPI) {
                           theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
-
-            const warnings: string[] = [];
-            if (details?.entryLimitReached) {
-                warnings.push(`${details.entryLimitReached} entries limit`);
-            }
-            if (details?.truncation?.truncated) {
-                warnings.push("output truncated");
-            }
-            const warningLine =
-                warnings.length > 0
-                    ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
-                    : null;
 
             const comp = component(() => {
                 if (mode === "minimal") return [];
@@ -107,7 +138,6 @@ export function createLsOverride(sandbox: SandboxAPI) {
                         );
                     }
                 }
-                if (warningLine) lines.push("", warningLine);
                 return lines;
             });
             if (details) {

@@ -180,27 +180,6 @@ export function createReadOverride(sandbox: SandboxAPI) {
                       .split("\n")
                       .map((line) => theme.fg("toolOutput", replaceTabs(line)));
 
-            let warningLine: string | null = null;
-            if (details?.truncation?.truncated) {
-                const truncation = details.truncation;
-                if (truncation.firstLineExceedsLimit) {
-                    warningLine = theme.fg(
-                        "warning",
-                        `[First line exceeds limit]`,
-                    );
-                } else if (truncation.truncatedBy === "lines") {
-                    warningLine = theme.fg(
-                        "warning",
-                        `[Truncated: showing ${truncation.outputLines} of ${truncation.totalLines} lines]`,
-                    );
-                } else {
-                    warningLine = theme.fg(
-                        "warning",
-                        `[Truncated: ${truncation.outputLines} lines shown]`,
-                    );
-                }
-            }
-
             const comp = component(() => {
                 if (mode === "minimal") return [];
                 const lines: string[] = [];
@@ -216,7 +195,6 @@ export function createReadOverride(sandbox: SandboxAPI) {
                         );
                     }
                 }
-                if (warningLine) lines.push("", warningLine);
                 return lines;
             });
             if (details) {

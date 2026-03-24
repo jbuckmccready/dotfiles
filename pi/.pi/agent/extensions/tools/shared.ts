@@ -46,6 +46,18 @@ export function getSanitizedTextOutput(result: TextResultLike): string {
     return textBlocks.map((block) => sanitizeToolText(block.text || "")).join("\n");
 }
 
+export function countRenderedLines(text: string): number {
+    return text === "" ? 0 : text.split("\n").length;
+}
+
+export function countRenderedLinesWithoutNotice(
+    text: string,
+    hasTrailingNotice: boolean,
+): number {
+    const lineCount = countRenderedLines(text.trim());
+    return hasTrailingNotice ? Math.max(0, lineCount - 2) : lineCount;
+}
+
 export function makeSep(borderAnsi: string, width: number): string {
     return borderAnsi + "─".repeat(width) + "\x1b[39m";
 }

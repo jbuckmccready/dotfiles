@@ -15,11 +15,30 @@ import {
     shortenPath,
     getSanitizedTextOutput,
     replaceTabs,
+    countRenderedLinesWithoutNotice,
 } from "./shared";
 import type { GrepExecuteResult, SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 type CompCache = Partial<Record<ToolViewMode, Component>>;
+
+type GrepRenderState = {
+    lineCount?: number;
+    truncated?: boolean;
+};
+
+type GrepRenderContext = {
+    state: GrepRenderState;
+    invalidate: () => void;
+};
+
+function hasGrepNotice(details: GrepToolDetails | undefined): boolean {
+    return (
+        details?.matchLimitReached !== undefined ||
+        details?.truncation?.truncated === true ||
+        details?.linesTruncated === true
+    );
+}
 
 export function createGrepOverride(sandbox: SandboxAPI) {
     const grepCache = new WeakMap<object, CompCache>();
@@ -46,7 +65,11 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             }).execute(toolCallId, params, signal, onUpdate);
         },
 
-        renderCall(args: GrepToolInput, theme: Theme) {
+        renderCall(
+            args: GrepToolInput,
+            theme: Theme,
+            context: GrepRenderContext,
+        ) {
             const pattern = args.pattern;
             const rawPath = args.path || ".";
             const path = shortenPath(rawPath);
@@ -64,6 +87,13 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             if (limit !== undefined) {
                 title += theme.fg("toolOutput", ` limit ${limit}`);
             }
+            if (context.state.lineCount !== undefined) {
+                let suffix = ` • ${context.state.lineCount} lines`;
+                if (context.state.truncated) {
+                    suffix += " [Truncated]";
+                }
+                title += theme.fg("warning", suffix);
+            }
 
             return component((width) => wrapTextWithAnsi(title, width));
         },
@@ -72,12 +102,26 @@ export function createGrepOverride(sandbox: SandboxAPI) {
             result: AgentToolResult<GrepToolDetails | undefined>,
             { isPartial }: ToolRenderResultOptions,
             theme: Theme,
+            context: GrepRenderContext,
         ) {
             if (isPartial) {
                 return new Text(theme.fg("warning", "Searching..."), 0, 0);
             }
 
             const details = result.details;
+            const lineCount = countRenderedLinesWithoutNotice(
+                getSanitizedTextOutput(result),
+                hasGrepNotice(details),
+            );
+            const truncated = hasGrepNotice(details);
+            if (
+                context.state.lineCount !== lineCount ||
+                context.state.truncated !== truncated
+            ) {
+                context.state.lineCount = lineCount;
+                context.state.truncated = truncated;
+                context.invalidate();
+            }
             const mode = getToolViewMode();
             if (details) {
                 const cached = grepCache.get(details)?.[mode];
@@ -92,21 +136,6 @@ export function createGrepOverride(sandbox: SandboxAPI) {
                           theme.fg("toolOutput", replaceTabs(line)),
                       )
                 : [];
-
-            const warnings: string[] = [];
-            if (details?.matchLimitReached) {
-                warnings.push(`${details.matchLimitReached} matches limit`);
-            }
-            if (details?.truncation?.truncated) {
-                warnings.push("output truncated");
-            }
-            if (details?.linesTruncated) {
-                warnings.push("some lines truncated");
-            }
-            const warningLine =
-                warnings.length > 0
-                    ? theme.fg("warning", `[Truncated: ${warnings.join(", ")}]`)
-                    : null;
 
             const comp = component(() => {
                 if (mode === "minimal") return [];
@@ -123,7 +152,6 @@ export function createGrepOverride(sandbox: SandboxAPI) {
                         );
                     }
                 }
-                if (warningLine) lines.push("", warningLine);
                 return lines;
             });
             if (details) {
