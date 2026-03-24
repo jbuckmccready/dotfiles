@@ -1,4 +1,9 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { readFileSync } from "node:fs";
+import { dirname } from "node:path";
+import {
+    stripFrontmatter,
+    type ExtensionAPI,
+} from "@mariozechner/pi-coding-agent";
 import {
     loadConfig,
     type SandboxProvider,
@@ -9,6 +14,39 @@ import { createDisabledSandbox } from "./disabled-sandbox";
 import { createDockerSandbox } from "./docker-sandbox";
 import { createGondolinSandbox } from "./gondolin-sandbox";
 import { createOsSandbox } from "./os-sandbox";
+
+function expandSkillCommandForSandbox(
+    pi: ExtensionAPI,
+    provider: SandboxProvider,
+    text: string,
+): string | undefined {
+    if (!text.startsWith("/skill:")) return;
+
+    const spaceIndex = text.indexOf(" ");
+    const commandName = spaceIndex === -1 ? text.slice(1) : text.slice(1, spaceIndex);
+    const skillName = commandName.slice("skill:".length);
+    const args = spaceIndex === -1 ? "" : text.slice(spaceIndex + 1).trim();
+
+    const command = pi
+        .getCommands()
+        .find((entry) => entry.source === "skill" && entry.name === commandName);
+    if (!command) return;
+
+    const hostFilePath = command.sourceInfo.path;
+    const hostBaseDir = dirname(hostFilePath);
+    const guestFilePath = provider.translatePath(hostFilePath);
+    const guestBaseDir = provider.translatePath(hostBaseDir);
+
+    if (guestFilePath === hostFilePath && guestBaseDir === hostBaseDir) {
+        return;
+    }
+
+    const content = readFileSync(hostFilePath, "utf-8");
+    const body = stripFrontmatter(content).trim();
+    const skillBlock = `<skill name="${skillName}" location="${guestFilePath}">\nReferences are relative to ${guestBaseDir}.\n\n${body}\n</skill>`;
+
+    return args ? `${skillBlock}\n\n${args}` : skillBlock;
+}
 
 export function initSandbox(pi: ExtensionAPI): SandboxAPI {
     let provider: SandboxProvider = createDisabledSandbox();
@@ -100,6 +138,17 @@ export function initSandbox(pi: ExtensionAPI): SandboxAPI {
         if (patched !== event.systemPrompt) {
             return { systemPrompt: patched };
         }
+    });
+
+    pi.on("input", async (event) => {
+        let expanded: string | undefined;
+        try {
+            expanded = expandSkillCommandForSandbox(pi, provider, event.text);
+        } catch {
+            return;
+        }
+        if (!expanded) return;
+        return { action: "transform", text: expanded, images: event.images };
     });
 
     pi.registerCommand("sandbox", {

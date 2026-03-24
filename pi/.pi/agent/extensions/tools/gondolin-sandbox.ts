@@ -498,6 +498,12 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 `Current working directory: ${localCwd}`,
                 `Current working directory: ${GUEST_WORKSPACE} (Gondolin VM, mounted from host: ${localCwd})`,
             );
+            modified = modified.replace(
+                /(<location>)([^<]+)(<\/location>)/g,
+                (_match, openTag: string, location: string, closeTag: string) =>
+                    `${openTag}${hostToGuestPath(localCwd, location)}${closeTag}`,
+            );
+            modified = modified.split(HOST_HOME).join(GUEST_HOME);
             modified = modified
                 .split(savedHostSkillsDir)
                 .join(GUEST_SKILLS_DIR);

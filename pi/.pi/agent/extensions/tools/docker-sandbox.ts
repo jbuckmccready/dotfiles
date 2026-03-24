@@ -902,6 +902,8 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
     let savedMounts: Record<string, string> = {};
     let savedCwd = "";
     let savedContainerCwd = "";
+    let savedHostHome = "";
+    let savedGuestHome = "";
     let savedHostSkillsDir = "";
     let savedGuestSkillsDir = "";
     let shell: DockerPersistentShell | null = null;
@@ -925,13 +927,18 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
             const containerCwd = hostToGuestPath(cwd, mounts);
             const cwdMapped = isPathCoveredByMounts(cwd, mounts);
 
+            const hostHome = homedir();
             const hostSkillsDir = path.join(
-                homedir(),
+                hostHome,
                 ".pi",
                 "agent",
                 "skills",
             );
             const guestSkillsDir = hostToGuestPath(hostSkillsDir, mounts);
+            const guestHomeSuffix = "/.pi/agent/skills";
+            const guestHome = guestSkillsDir.endsWith(guestHomeSuffix)
+                ? guestSkillsDir.slice(0, -guestHomeSuffix.length) || "/"
+                : "";
             const skillsMapped = isPathCoveredByMounts(hostSkillsDir, mounts);
 
             // Show errors for missing mounts
@@ -973,6 +980,8 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
             savedMounts = mounts;
             savedCwd = cwd;
             savedContainerCwd = containerCwd;
+            savedHostHome = hostHome;
+            savedGuestHome = guestHome;
             savedHostSkillsDir = hostSkillsDir;
             savedGuestSkillsDir = guestSkillsDir;
 
@@ -1017,6 +1026,14 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
                 `Current working directory: ${savedCwd}`,
                 `Current working directory: ${savedContainerCwd} (docker: ${savedContainer})`,
             );
+            modified = modified.replace(
+                /(<location>)([^<]+)(<\/location>)/g,
+                (_match, openTag: string, location: string, closeTag: string) =>
+                    `${openTag}${hostToGuestPath(location, savedMounts)}${closeTag}`,
+            );
+            if (savedGuestHome) {
+                modified = modified.split(savedHostHome).join(savedGuestHome);
+            }
             modified = modified
                 .split(savedHostSkillsDir)
                 .join(savedGuestSkillsDir);

@@ -7,7 +7,7 @@ description: Help address review/issue comments on the open GitHub PR for the cu
 
 ## 1) Inspect comments needing attention
 
-- Run scripts/fetch_comments.py which will print out all the comments and review threads on the PR
+- Run `{baseDir}/scripts/fetch_comments.py` which will print out all the comments and review threads on the PR
 
 ## 2) Ask the user for clarification
 
