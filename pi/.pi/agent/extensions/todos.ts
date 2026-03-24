@@ -1675,6 +1675,7 @@ export default function todosExtension(pi: ExtensionAPI) {
     pi.registerTool({
         name: "todo",
         label: "Todo",
+        promptSnippet: "Create and manage todos",
         description:
             `Manage file-based todos in ${todosDirLabel} (list, list-all, get, create, update, append, delete, claim, release). ` +
             "Title is the short summary; body is long-form markdown notes (update replaces, append adds). " +
