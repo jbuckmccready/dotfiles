@@ -26,6 +26,7 @@ const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";
 const SUBAGENT_MAX_DEPTH_ENV = "PI_SUBAGENT_MAX_DEPTH";
 const SUBAGENT_STACK_ENV = "PI_SUBAGENT_STACK";
 const SUBAGENT_PREVENT_CYCLES_ENV = "PI_SUBAGENT_PREVENT_CYCLES";
+const SUBAGENT_ALLOWED_TOOLS_ENV = "PI_SUBAGENT_ALLOWED_TOOLS";
 const PI_OFFLINE_ENV = "PI_OFFLINE";
 const MAX_RECOVERABLE_RETRIES = 1;
 
@@ -296,6 +297,11 @@ async function runAttempt(opts: RunAttemptOptions): Promise<SingleResult> {
         [SUBAGENT_MAX_DEPTH_ENV]: String(propagatedMaxDepth),
         [SUBAGENT_STACK_ENV]: JSON.stringify(propagatedStack),
         [SUBAGENT_PREVENT_CYCLES_ENV]: preventCycles ? "1" : "0",
+        ...(agent.tools && agent.tools.length > 0
+          ? {
+              [SUBAGENT_ALLOWED_TOOLS_ENV]: JSON.stringify(agent.tools),
+            }
+          : {}),
         [PI_OFFLINE_ENV]: "1",
       },
     });

@@ -47,6 +47,7 @@ const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";
 const SUBAGENT_MAX_DEPTH_ENV = "PI_SUBAGENT_MAX_DEPTH";
 const SUBAGENT_STACK_ENV = "PI_SUBAGENT_STACK";
 const SUBAGENT_PREVENT_CYCLES_ENV = "PI_SUBAGENT_PREVENT_CYCLES";
+const SUBAGENT_ALLOWED_TOOLS_ENV = "PI_SUBAGENT_ALLOWED_TOOLS";
 
 // ---------------------------------------------------------------------------
 // Tool parameter schema
@@ -170,6 +171,23 @@ function parseAgentStack(raw: unknown): string[] | null {
   return parsed
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
+}
+
+function parseAllowedTools(raw: unknown): string[] | null {
+  if (raw === undefined) return null;
+  if (typeof raw !== "string") return null;
+  if (!raw.trim()) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(parsed)) return null;
+  if (!parsed.every((value) => typeof value === "string")) return null;
+  return parsed.map((value) => value.trim()).filter(Boolean);
 }
 
 function getMaxDepthFlagFromArgv(argv: string[]): string | null {
@@ -385,10 +403,23 @@ export default function (pi: ExtensionAPI) {
   const { currentDepth, maxDepth, canDelegate, ancestorAgentStack, preventCycles } =
     depthConfig;
 
+  const allowedToolsRaw = process.env[SUBAGENT_ALLOWED_TOOLS_ENV];
+  const allowedTools = parseAllowedTools(allowedToolsRaw);
+  if (allowedToolsRaw !== undefined && allowedTools === null) {
+    console.warn(
+      `[pi-subagent] Ignoring invalid ${SUBAGENT_ALLOWED_TOOLS_ENV} value. Expected a JSON array of tool names.`,
+    );
+  }
+  const subagentToolAllowed = !allowedTools || allowedTools.includes("subagent");
+
   let discoveredAgents: AgentConfig[] = [];
 
   // Auto-discover agents on session start
   pi.on("session_start", async (_event, ctx) => {
+    if (allowedTools) {
+      pi.setActiveTools(allowedTools);
+    }
+
     if (!canDelegate) return;
 
     const discovery = discoverAgents(ctx.cwd, "both");
@@ -407,7 +438,7 @@ export default function (pi: ExtensionAPI) {
 
   // Inject available agents into the system prompt
   pi.on("before_agent_start", async (event) => {
-    if (!canDelegate) return;
+    if (!canDelegate || !subagentToolAllowed) return;
     if (discoveredAgents.length === 0) return;
 
     const agentList = discoveredAgents
