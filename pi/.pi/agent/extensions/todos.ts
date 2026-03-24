@@ -72,6 +72,8 @@ import {
     truncateToWidth,
     visibleWidth,
 } from "@mariozechner/pi-tui";
+import type { ToolViewMode } from "./tools/tool-view-mode";
+import { component } from "./tools/shared";
 
 const TODO_DIR_NAME = ".pi/todos";
 const TODO_PATH_ENV = "PI_TODO_PATH";
@@ -176,6 +178,8 @@ type TodoToolDetails =
           currentSessionId?: string;
       }
     | { kind: "todo"; action: TodoSingleAction; todo: TodoRecord };
+
+let currentToolViewMode: ToolViewMode = "minimal";
 
 function todoError(action: TodoAction, error: string) {
     return {
@@ -1663,6 +1667,16 @@ async function deleteTodo(
 }
 
 export default function todosExtension(pi: ExtensionAPI) {
+    pi.events.on("tool-view-mode", (mode: unknown) => {
+        if (
+            mode === "minimal" ||
+            mode === "condensed" ||
+            mode === "expanded"
+        ) {
+            currentToolViewMode = mode;
+        }
+    });
+
     pi.on("session_start", async (_event, ctx) => {
         const todosDir = getTodosDir(ctx.cwd);
         await ensureTodosDir(todosDir);
@@ -1959,6 +1973,9 @@ export default function todosExtension(pi: ExtensionAPI) {
             const details = result.details as TodoToolDetails | undefined;
             if (isPartial) {
                 return new Text(theme.fg("warning", "Processing..."), 0, 0);
+            }
+            if (currentToolViewMode === "minimal") {
+                return component(() => []);
             }
             if (!details) {
                 const text = result.content[0];
