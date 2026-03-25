@@ -1,5 +1,11 @@
-Review $ARGUMENTS for anything that can be simplified. This could include:
+Review $ARGUMENTS for simplification opportunities. List each suggestion with the file path, line range, and a brief explanation of the change. Do not make any changes. All suggestions must preserve existing behavior.
 
-- Merging similiar functions or making helper functions to reduce code duplication
-- Removing unnecessary code or comments
-- Refactoring complex code into simpler, more readable code
+Look for:
+
+- Code duplication that could be merged into shared functions (only if called more than once)
+- Dead code, unused imports, or unreachable branches
+- Comments that restate what the code already says
+- Unnecessary intermediate variables or redundant conditionals
+- Over-abstracted wrappers or indirection that only have a single call site
+- Complex expressions that could be rewritten more directly
+- Code that deviates from the surrounding patterns, abstractions, or style

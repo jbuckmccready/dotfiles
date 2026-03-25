@@ -1,0 +1,1 @@
+Too many questions. Most of these are low-impact and adjustable later. Use your judgement for anything that isn't a hard-to-reverse architectural decision — briefly note what you chose. Only re-ask questions where getting it wrong would mean significant rework or where the answer is critical to intended behavior.
