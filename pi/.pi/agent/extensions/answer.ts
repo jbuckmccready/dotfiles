@@ -101,8 +101,8 @@ async function selectExtractionModel(
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
-        { provider: "openai-codex", modelId: CODEX_MODEL_ID },
         { provider: "anthropic", modelId: HAIKU_MODEL_ID },
+        { provider: "openai-codex", modelId: CODEX_MODEL_ID },
         { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
     ];
 
