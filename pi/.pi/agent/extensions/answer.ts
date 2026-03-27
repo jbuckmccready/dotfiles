@@ -97,7 +97,7 @@ async function selectExtractionModel(
     currentModel: Model<Api>,
     modelRegistry: {
         find: (provider: string, modelId: string) => Model<Api> | undefined;
-        getApiKey: (model: Model<Api>) => Promise<string | undefined>;
+        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string> } | { ok: false; error: string }>;
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
@@ -109,8 +109,8 @@ async function selectExtractionModel(
     for (const candidate of candidates) {
         const model = modelRegistry.find(candidate.provider, candidate.modelId);
         if (model) {
-            const apiKey = await modelRegistry.getApiKey(model);
-            if (apiKey) return model;
+            const auth = await modelRegistry.getApiKeyAndHeaders(model);
+            if (auth.ok) return model;
         }
     }
 
@@ -540,8 +540,9 @@ export default function (pi: ExtensionAPI) {
                 loader.onAbort = () => done(null);
 
                 const doExtract = async () => {
-                    const apiKey =
-                        await ctx.modelRegistry.getApiKey(extractionModel);
+                    const auth =
+                        await ctx.modelRegistry.getApiKeyAndHeaders(extractionModel);
+                    if (!auth.ok) throw new Error(auth.error);
                     const userMessage: UserMessage = {
                         role: "user",
                         content: [{ type: "text", text: lastAssistantText! }],
@@ -554,7 +555,7 @@ export default function (pi: ExtensionAPI) {
                             systemPrompt: SYSTEM_PROMPT,
                             messages: [userMessage],
                         },
-                        { apiKey, signal: loader.signal, reasoning: "medium" },
+                        { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "medium" },
                     );
 
                     if (response.stopReason === "aborted") {

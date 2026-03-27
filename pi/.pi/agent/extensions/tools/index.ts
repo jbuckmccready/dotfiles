@@ -33,25 +33,7 @@ const MODE_LABELS: Record<ToolViewMode, string> = {
     expanded: "◆ expanded",
 };
 
-// Preserve built-in metadata, but give overrides a distinct top-level
-// parameters object. Pi currently uses `definition.parameters ===
-// builtInToolDefinition.parameters` to detect built-in definitions for
-// renderer inheritance, so reusing the same schema object can bypass our
-// custom renderers.
-function cloneSchemaRoot<T extends object>(schema: T): T {
-    const clone = Array.isArray(schema)
-        ? []
-        : Object.create(Object.getPrototypeOf(schema));
-    for (const key of Reflect.ownKeys(schema)) {
-        const descriptor = Object.getOwnPropertyDescriptor(schema, key);
-        if (descriptor) {
-            Object.defineProperty(clone, key, descriptor);
-        }
-    }
-    return clone as T;
-}
-
-function withBuiltinMetadataAndDistinctParameters(
+function withBuiltinMetadata(
     builtin: ToolDefinition<any, any, any>,
     override: Record<string, unknown>,
 ): ToolDefinition<any, any, any> {
@@ -61,7 +43,7 @@ function withBuiltinMetadataAndDistinctParameters(
         description: builtin.description,
         promptSnippet: builtin.promptSnippet,
         promptGuidelines: builtin.promptGuidelines,
-        parameters: cloneSchemaRoot(builtin.parameters),
+        parameters: builtin.parameters,
         ...override,
     } as unknown as ToolDefinition<any, any, any>;
 }
@@ -133,43 +115,29 @@ export default function (pi: ExtensionAPI) {
 
     const read = createReadOverride(sandbox);
     const builtinRead = createReadToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinRead, read),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinRead, read));
 
     const grep = createGrepOverride(sandbox);
     const builtinGrep = createGrepToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinGrep, grep),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinGrep, grep));
 
     const write = createWriteOverride(sandbox);
     const builtinWrite = createWriteToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinWrite, write),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinWrite, write));
 
     const find = createFindOverride(sandbox);
     const builtinFind = createFindToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinFind, find),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinFind, find));
 
     const ls = createLsOverride(sandbox);
     const builtinLs = createLsToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinLs, ls),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinLs, ls));
 
     const edit = createEditOverride(sandbox);
     const builtinEdit = createEditToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinEdit, edit),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinEdit, edit));
 
     const bash = createBashOverride(sandbox);
     const builtinBash = createBashToolDefinition(cwd);
-    pi.registerTool(
-        withBuiltinMetadataAndDistinctParameters(builtinBash, bash),
-    );
+    pi.registerTool(withBuiltinMetadata(builtinBash, bash));
 }

@@ -107,14 +107,14 @@ async function selectModel(
     currentModel: Model<Api>,
     modelRegistry: {
         find: (provider: string, modelId: string) => Model<Api> | undefined;
-        getApiKey: (model: Model<Api>) => Promise<string | undefined>;
+        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string> } | { ok: false; error: string }>;
     },
 ): Promise<Model<Api>> {
     for (const candidate of MODEL_CANDIDATES) {
         const model = modelRegistry.find(candidate.provider, candidate.modelId);
         if (model) {
-            const apiKey = await modelRegistry.getApiKey(model);
-            if (apiKey) return model;
+            const auth = await modelRegistry.getApiKeyAndHeaders(model);
+            if (auth.ok) return model;
         }
     }
     return currentModel;
@@ -217,7 +217,8 @@ async function handleCommitStaged(
             loader.onAbort = () => done(null);
 
             const doGenerate = async () => {
-                const apiKey = await ctx.modelRegistry.getApiKey(model);
+                const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
+                if (!auth.ok) throw new Error(auth.error);
                 const userMessage: UserMessage = {
                     role: "user",
                     content: [
@@ -238,7 +239,7 @@ async function handleCommitStaged(
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
-                    { apiKey, signal: loader.signal, reasoning: "high" },
+                    { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "high" },
                 );
 
                 if (response.stopReason === "aborted") return null;
