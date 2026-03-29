@@ -194,6 +194,7 @@ async function createRuntime(config: VerbosityConfig) {
     let modelSelectHandler: ((event: { model: Model<Api> }, ctx: TestContext) => Promise<void> | void) | undefined;
     let beforeProviderRequestHandler: ((event: { payload: unknown }, ctx: TestContext) => unknown) | undefined;
     let shortcutHandler: ((ctx: TestContext) => Promise<void> | void) | undefined;
+    let commandHandler: ((args: string | undefined, ctx: TestContext) => Promise<void> | void) | undefined;
 
     const pi = {
         on: (event: string, handler: (event: unknown, ctx: TestContext) => Promise<void> | void) => {
@@ -213,11 +214,14 @@ async function createRuntime(config: VerbosityConfig) {
         registerShortcut: (_shortcut: string, options: { handler: (ctx: TestContext) => Promise<void> | void }) => {
             shortcutHandler = options.handler;
         },
+        registerCommand: (_name: string, options: { handler: (args: string | undefined, ctx: TestContext) => Promise<void> | void }) => {
+            commandHandler = options.handler;
+        },
     };
 
     verbosityControlExtension(pi as never);
 
-    if (!sessionStartHandler || !sessionShutdownHandler || !modelSelectHandler || !beforeProviderRequestHandler || !shortcutHandler) {
+    if (!sessionStartHandler || !sessionShutdownHandler || !modelSelectHandler || !beforeProviderRequestHandler || !shortcutHandler || !commandHandler) {
         throw new Error("Extension did not register expected handlers");
     }
 
@@ -227,6 +231,7 @@ async function createRuntime(config: VerbosityConfig) {
         modelSelectHandler,
         beforeProviderRequestHandler,
         shortcutHandler,
+        commandHandler,
     };
 }
 
@@ -354,6 +359,54 @@ describe("pi-verbosity-control runtime", () => {
         assert.equal(saved.models["gpt-5.4"], "medium");
         assert.deepEqual(setStatusMock.calls.at(-1), ["verbosity", "🗣 medium"]);
         assert.deepEqual(notifyMock.calls.at(-1), ["Verbosity for gpt-5.4 → medium", "info"]);
+    });
+
+    it("sets verbosity directly via command with argument", async () => {
+        const runtime = await createRuntime({
+            models: {
+                "gpt-5.4": "low",
+            },
+        });
+        const { ctx, notifyMock, setStatusMock } = createContext(createModel());
+
+        await runtime.sessionStartHandler({}, ctx);
+        await runtime.commandHandler("high", ctx);
+
+        const saved = JSON.parse(await readFile(path.join(testHome, ".pi", "agent", "verbosity.json"), "utf8")) as {
+            models: Record<string, string>;
+        };
+
+        assert.equal(saved.models["gpt-5.4"], "high");
+        assert.deepEqual(setStatusMock.calls.at(-1), ["verbosity", "🗣 high"]);
+        assert.deepEqual(notifyMock.calls.at(-1), ["Verbosity for gpt-5.4 → high", "info"]);
+    });
+
+    it("cycles verbosity via command with no argument", async () => {
+        const runtime = await createRuntime({
+            models: {
+                "gpt-5.4": "low",
+            },
+        });
+        const { ctx, notifyMock } = createContext(createModel());
+
+        await runtime.sessionStartHandler({}, ctx);
+        await runtime.commandHandler(undefined, ctx);
+
+        assert.deepEqual(notifyMock.calls.at(-1), ["Verbosity for gpt-5.4 → medium", "info"]);
+    });
+
+    it("rejects invalid command argument", async () => {
+        const runtime = await createRuntime({
+            models: {
+                "gpt-5.4": "low",
+            },
+        });
+        const { ctx, notifyMock } = createContext(createModel());
+
+        await runtime.sessionStartHandler({}, ctx);
+        await runtime.commandHandler("banana", ctx);
+
+        assert.deepEqual(notifyMock.calls.at(-1), ['Unknown verbosity "banana". Use: low, medium, high', "error"]);
     });
 
     it("clears footer status on session shutdown", async () => {

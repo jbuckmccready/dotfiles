@@ -203,45 +203,85 @@ function getShortcut(): KeyId {
 export default function piVerbosityControlExtension(pi: ExtensionAPI): void {
     let activeConfig: VerbosityConfig = { ...DEFAULT_CONFIG };
 
+    async function applyVerbosity(ctx: StatusContext, targetVerbosity: Verbosity): Promise<void> {
+        const model = ctx.model!;
+        const resolved = resolveConfiguredVerbosity(activeConfig, model);
+        const configKey = resolved.key ?? getExactModelKey(model);
+
+        activeConfig = setModelVerbosity(activeConfig, configKey, targetVerbosity);
+
+        try {
+            await saveConfig(activeConfig);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (ctx.hasUI) {
+                ctx.ui.notify(`Failed to save verbosity config: ${message}`, "error");
+            }
+            return;
+        }
+
+        syncVerbosityStatus(ctx, activeConfig, model);
+
+        if (ctx.hasUI) {
+            ctx.ui.notify(`Verbosity for ${configKey} → ${targetVerbosity}`, "info");
+        }
+    }
+
+    function validateModel(ctx: StatusContext): boolean {
+        const model = ctx.model;
+        if (!model) {
+            if (ctx.hasUI) {
+                ctx.ui.notify("No active model.", "warning");
+            }
+            return false;
+        }
+
+        if (!supportsVerbosityControl(model)) {
+            if (ctx.hasUI) {
+                ctx.ui.notify(`Verbosity control is not supported for ${model.provider}/${model.id}.`, "warning");
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    pi.registerCommand("verbosity", {
+        description: "Set or cycle response verbosity for the current model (low | medium | high)",
+        getArgumentCompletions: (prefix: string) => {
+            const levels: Verbosity[] = ["low", "medium", "high"];
+            const items = levels.map((v) => ({ value: v, label: v }));
+            const filtered = items.filter((i) => i.value.startsWith(prefix));
+            return filtered.length > 0 ? filtered : null;
+        },
+        handler: async (args, ctx) => {
+            if (!validateModel(ctx)) return;
+
+            const arg = args?.trim();
+            let nextVerbosity: Verbosity;
+
+            if (arg === "low" || arg === "medium" || arg === "high") {
+                nextVerbosity = arg;
+            } else if (!arg) {
+                const resolved = resolveConfiguredVerbosity(activeConfig, ctx.model!);
+                nextVerbosity = cycleVerbosity(resolved.verbosity);
+            } else {
+                if (ctx.hasUI) {
+                    ctx.ui.notify(`Unknown verbosity "${arg}". Use: low, medium, high`, "error");
+                }
+                return;
+            }
+
+            await applyVerbosity(ctx, nextVerbosity);
+        },
+    });
+
     pi.registerShortcut(getShortcut(), {
         description: "Cycle response verbosity for the current model",
         handler: async (ctx) => {
-            const model = ctx.model;
-            if (!model) {
-                if (ctx.hasUI) {
-                    ctx.ui.notify("No active model.", "warning");
-                }
-                return;
-            }
-
-            if (!supportsVerbosityControl(model)) {
-                if (ctx.hasUI) {
-                    ctx.ui.notify(`Verbosity control is not supported for ${model.provider}/${model.id}.`, "warning");
-                }
-                return;
-            }
-
-            const resolved = resolveConfiguredVerbosity(activeConfig, model);
-            const nextVerbosity = cycleVerbosity(resolved.verbosity);
-            const configKey = resolved.key ?? getExactModelKey(model);
-
-            activeConfig = setModelVerbosity(activeConfig, configKey, nextVerbosity);
-
-            try {
-                await saveConfig(activeConfig);
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                if (ctx.hasUI) {
-                    ctx.ui.notify(`Failed to save verbosity config: ${message}`, "error");
-                }
-                return;
-            }
-
-            syncVerbosityStatus(ctx, activeConfig, model);
-
-            if (ctx.hasUI) {
-                ctx.ui.notify(`Verbosity for ${configKey} → ${nextVerbosity}`, "info");
-            }
+            if (!validateModel(ctx)) return;
+            const resolved = resolveConfiguredVerbosity(activeConfig, ctx.model!);
+            await applyVerbosity(ctx, cycleVerbosity(resolved.verbosity));
         },
     });
 
