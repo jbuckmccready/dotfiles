@@ -30,13 +30,7 @@ const REMOVED_WORD_BG = "\x1b[48;2;109;58;93m"; // darken(#f38ba8, 0.37)
 const STRIP_ANSI = /\x1b\[[0-9;]*m/g;
 
 type EditRenderArgs = EditToolInput & { file_path?: string };
-type EditCallRenderState = {
-    rawPath?: string;
-    oldText?: string;
-    newText?: string;
-    counts?: { added: number; removed: number };
-};
-type EditCallRenderContext = { state: EditCallRenderState };
+type EditCallRenderContext = { state: Record<string, never> };
 type EditRenderContext = { args: EditRenderArgs; isError: boolean };
 
 function parseDiffLine(line: string) {
@@ -73,6 +67,19 @@ function getLineChangeCounts(oldText: string, newText: string) {
         } else if (part.removed) {
             removed += lineCount;
         }
+    }
+
+    return { added, removed };
+}
+
+function getEditsLineChangeCounts(edits: EditToolInput["edits"]) {
+    let added = 0;
+    let removed = 0;
+
+    for (const edit of edits) {
+        const counts = getLineChangeCounts(edit.oldText, edit.newText);
+        added += counts.added;
+        removed += counts.removed;
     }
 
     return { added, removed };
@@ -416,36 +423,13 @@ export function createEditOverride(sandbox: SandboxAPI) {
                 : theme.fg("toolOutput", "...");
 
             let counts = "";
-            if (
-                typeof rawPath === "string" &&
-                typeof args.oldText === "string" &&
-                typeof args.newText === "string"
-            ) {
-                const state = context.state;
-                if (
-                    state.rawPath !== rawPath ||
-                    state.oldText !== args.oldText ||
-                    state.newText !== args.newText
-                ) {
-                    state.rawPath = rawPath;
-                    state.oldText = args.oldText;
-                    state.newText = args.newText;
-                    state.counts = getLineChangeCounts(
-                        args.oldText,
-                        args.newText,
-                    );
-                }
-                const countState = state.counts!;
+            if (typeof rawPath === "string" && Array.isArray(args.edits)) {
+                const countState = getEditsLineChangeCounts(args.edits);
                 counts =
                     " " +
                     theme.fg("toolDiffAdded", `+${countState.added}`) +
                     " " +
                     theme.fg("toolDiffRemoved", `-${countState.removed}`);
-            } else {
-                context.state.rawPath = undefined;
-                context.state.oldText = undefined;
-                context.state.newText = undefined;
-                context.state.counts = undefined;
             }
 
             const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}${counts}`;

@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { Api, Model } from "@mariozechner/pi-ai";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type { KeyId } from "@mariozechner/pi-tui";
 
 export type Verbosity = "low" | "medium" | "high";
@@ -18,9 +18,7 @@ type SupportedVerbosityApi = "openai-responses" | "openai-codex-responses" | "az
 type StatusContext = {
     hasUI: boolean;
     model?: Model<Api>;
-    ui: {
-        setStatus: (key: string, text: string | undefined) => void;
-    };
+    ui: Pick<ExtensionUIContext, "setStatus" | "notify">;
 };
 
 const DEFAULT_CONFIG: VerbosityConfig = {
