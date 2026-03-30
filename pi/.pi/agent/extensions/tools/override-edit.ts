@@ -30,7 +30,7 @@ const REMOVED_WORD_BG = "\x1b[48;2;109;58;93m"; // darken(#f38ba8, 0.37)
 const STRIP_ANSI = /\x1b\[[0-9;]*m/g;
 
 type EditRenderArgs = EditToolInput & { file_path?: string };
-type EditCallRenderContext = { state: Record<string, never> };
+type EditCallRenderContext = { state: Record<string, never>; isPartial: boolean };
 type EditRenderContext = { args: EditRenderArgs; isError: boolean };
 
 function parseDiffLine(line: string) {
@@ -59,8 +59,10 @@ function countLines(text: string) {
 function getLineChangeCounts(oldText: string, newText: string) {
     let added = 0;
     let removed = 0;
+    const a = oldText.endsWith("\n") ? oldText : oldText + "\n";
+    const b = newText.endsWith("\n") ? newText : newText + "\n";
 
-    for (const part of Diff.diffLines(oldText, newText)) {
+    for (const part of Diff.diffLines(a, b)) {
         const lineCount = countLines(part.value);
         if (part.added) {
             added += lineCount;
@@ -422,17 +424,17 @@ export function createEditOverride(sandbox: SandboxAPI) {
                 ? theme.fg("accent", path)
                 : theme.fg("toolOutput", "...");
 
-            let counts = "";
-            if (typeof rawPath === "string" && Array.isArray(args.edits)) {
+            let suffix = "";
+            if (!context.isPartial && typeof rawPath === "string" && Array.isArray(args.edits)) {
                 const countState = getEditsLineChangeCounts(args.edits);
-                counts =
+                suffix =
                     " " +
                     theme.fg("toolDiffAdded", `+${countState.added}`) +
                     " " +
                     theme.fg("toolDiffRemoved", `-${countState.removed}`);
             }
 
-            const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}${counts}`;
+            const title = `${theme.fg("toolTitle", theme.bold("edit"))} ${display}${suffix}`;
             return component((width) => wrapTextWithAnsi(title, width));
         },
 
