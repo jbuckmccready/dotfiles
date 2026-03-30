@@ -1,6 +1,7 @@
 ---
 name: summarize
 description: "Fetch a URL or convert a local file (PDF/DOCX/HTML/etc.) into Markdown using `uvx markitdown`, optionally it can summarize"
+disable-model-invocation: true
 ---
 
 # Summarize Skill
