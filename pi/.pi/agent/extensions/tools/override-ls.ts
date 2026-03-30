@@ -107,6 +107,9 @@ export function createLsOverride(sandbox: SandboxAPI) {
                 context.state.lineCount = lineCount;
                 context.state.truncated = truncated;
                 context.invalidate();
+                // invalidate() synchronously re-renders, which already adds
+                // the result component. Return empty to avoid duplication.
+                return component(() => []);
             }
             const mode = getToolViewMode();
             if (details) {
