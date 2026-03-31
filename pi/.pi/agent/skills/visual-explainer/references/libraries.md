@@ -203,6 +203,16 @@ If you need multi-line labels or special characters, use a `flowchart` instead o
 
 Most Mermaid failures come from a few recurring issues. Follow these rules to avoid invalid diagrams:
 
+**For multi-line flowchart node labels, use `<br/>` (not `\n`).** Mermaid flowcharts interpret `<br/>` as a line break, but escaped `\n` in labels often renders as literal text:
+
+```
+%% WRONG — renders literal "\n" in node text
+A["Copilot Backend\n/api + /api/voicebot"] --> B["Redis"]
+
+%% RIGHT — renders on two lines
+A["Copilot Backend<br/>/api + /api/voicebot"] --> B["Redis"]
+```
+
 **Quote labels with special characters.** Parentheses, colons, commas, brackets, and ampersands break the parser when unquoted. Wrap any label containing special characters in double quotes:
 
 ```
@@ -363,6 +373,65 @@ mindmap
       Terraform
 </pre>
 ```
+
+**Class diagram:**
+```html
+<pre class="mermaid">
+classDiagram
+  class User {
+    +string email
+    +string name
+    +login()
+    +logout()
+  }
+  class Order {
+    +int id
+    +decimal total
+    +submit()
+  }
+  class Product {
+    +string name
+    +decimal price
+  }
+  User "1" --> "*" Order : places
+  Order "*" --> "*" Product : contains
+</pre>
+```
+
+**C4 architecture (flowchart-as-C4):**
+```html
+<pre class="mermaid">
+graph TD
+  user("👤 User<br/><small>Browser client</small>")
+  subgraph boundary["Web Platform"]
+    app["Web App<br/><small>Node.js</small>"]
+    db[("Database<br/><small>PostgreSQL</small>")]
+  end
+  email["📧 Email Service"]:::ext
+  payment["💳 Payment Gateway"]:::ext
+  user -->|"HTTPS"| app
+  app -->|"SQL"| db
+  app -->|"SMTP"| email
+  app -->|"API"| payment
+  classDef ext fill:none,stroke-dasharray:5 5
+</pre>
+```
+
+Do NOT use native `C4Context` / `C4Container` syntax — it hardcodes sharp corners, its own font, and inline colors that ignore `themeVariables`. Use `graph TD` + `subgraph` for C4 boundaries instead; it inherits all theme settings automatically.
+
+### Which Mermaid Diagram Type?
+
+Quick-reference for choosing the right Mermaid syntax:
+
+| You want to show... | Use | Syntax keyword |
+|---|---|---|
+| Process flow, decisions, pipelines | Flowchart | `graph TD` / `graph LR` |
+| Request/response, API calls, temporal interactions | Sequence diagram | `sequenceDiagram` |
+| Database tables and relationships | ER diagram | `erDiagram` |
+| OOP classes, domain models with methods | Class diagram | `classDiagram` |
+| System architecture at multiple zoom levels | C4 diagram | `graph TD` + `subgraph` (not native `C4Context`) |
+| State transitions, lifecycles | State diagram | `stateDiagram-v2` |
+| Hierarchical breakdowns, brainstorms | Mind map | `mindmap` |
 
 ### Dark Mode Handling
 

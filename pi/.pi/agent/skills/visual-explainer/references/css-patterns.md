@@ -437,17 +437,17 @@ Mermaid SVGs render at a fixed size based on content. Without explicit centering
 ```css
 /* WRONG — diagram hugs left edge */
 .mermaid-container {
-    padding: 24px;
-    border: 1px solid var(--border);
+  padding: 24px;
+  border: 1px solid var(--border);
 }
 
 /* RIGHT — diagram centers in container */
 .mermaid-wrap {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* or center for shorter diagrams */
-    padding: 24px;
-    border: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;  /* or center for shorter diagrams */
+  padding: 24px;
+  border: 1px solid var(--border);
 }
 ```
 
@@ -456,30 +456,27 @@ Mermaid SVGs render at a fixed size based on content. Without explicit centering
 Mermaid sizes diagrams based on content, not container. Complex diagrams with many nodes render small to fit everything, leaving the text nearly unreadable. Three fixes:
 
 **1. Increase fontSize in themeVariables** (most effective):
-
 ```javascript
 mermaid.initialize({
-    theme: "base",
-    themeVariables: {
-        fontSize: "18px", // default is 16px, bump to 18-20px for complex diagrams
-    },
+  theme: 'base',
+  themeVariables: {
+    fontSize: '18px',  // default is 16px, bump to 18-20px for complex diagrams
+  }
 });
 ```
 
 **2. CSS zoom** for diagrams that still render too small:
-
 ```css
 .mermaid-wrap--scaled .mermaid {
-    zoom: 1.3;
+  zoom: 1.3;
 }
 ```
 
 **3. Constrain container width** so the diagram doesn't float in dead space:
-
 ```css
 .mermaid-wrap--constrained {
-    max-width: 800px;
-    margin: 0 auto;
+  max-width: 800px;
+  margin: 0 auto;
 }
 ```
 
@@ -495,191 +492,192 @@ Add zoom controls to every `.mermaid-wrap` container for complex diagrams.
 
 ```css
 .mermaid-wrap {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 32px 24px;
-    overflow: auto;
-    /* CRITICAL: center the diagram both horizontally and vertically */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    /* Prevent vertical flowcharts from compressing into unreadable thumbnails */
-    min-height: 400px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-}
-.mermaid-wrap::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.mermaid-wrap::-webkit-scrollbar-track {
-    background: transparent;
-}
-.mermaid-wrap::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-}
-.mermaid-wrap::-webkit-scrollbar-thumb:hover {
-    background: var(--text-dim);
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px 24px;
+  overflow: auto;
+  /* CRITICAL: center the diagram both horizontally and vertically */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Prevent vertical flowcharts from compressing into unreadable thumbnails */
+  min-height: 400px;
 }
 
 /* For shorter diagrams that don't need the full height */
-.mermaid-wrap--compact {
-    min-height: 200px;
-}
+.mermaid-wrap--compact { min-height: 200px; }
 
 /* For very tall vertical flowcharts */
-.mermaid-wrap--tall {
-    min-height: 600px;
-}
-
-.mermaid-wrap .mermaid {
-    /* Use CSS zoom instead of transform: scale().
-     Zoom changes actual layout size, so overflow scrolls normally in all directions.
-     Transform only changes visual appearance — content expanding upward/leftward
-     goes into negative space which can't be scrolled to.
-     Supported in all browsers (Firefox added support in v126, June 2024).
-     Note: zoom is not animatable, so no transition. */
-    /* Optional: start at >1 for complex diagrams that render too small.
-     The diagram stays centered, renders larger, and zoom controls still work. */
-    zoom: 1.4;
-}
+.mermaid-wrap--tall { min-height: 600px; }
 
 .zoom-controls {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 2px;
-    z-index: 10;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 2px;
+  z-index: 10;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
 }
 
 .zoom-controls button {
-    width: 28px;
-    height: 28px;
-    border: none;
-    background: transparent;
-    color: var(--text-dim);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-        background 0.15s ease,
-        color 0.15s ease;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .zoom-controls button:hover {
-    background: var(--border);
-    color: var(--text);
+  background: var(--border);
+  color: var(--text);
 }
 
-.mermaid-wrap {
-    cursor: grab;
+.mermaid-wrap { cursor: grab; }
+.mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+/* Multi-diagram structure */
+.diagram-shell {
+  position: relative;
 }
-.mermaid-wrap.is-panning {
-    cursor: grabbing;
-    user-select: none;
+
+.diagram-shell__hint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.mermaid-viewport {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+.mermaid-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.zoom-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 0 6px;
+  white-space: nowrap;
 }
 ```
 
-**Why zoom instead of transform?**
+**How the new zoom/pan engine works:**
 
-CSS `transform: scale()` only changes visual appearance — the element's layout box stays the same size. When you scale from `center center`, content expands upward and leftward into negative coordinate space. Scroll containers can't scroll to negative positions, so the top and left of the zoomed content get clipped.
-
-CSS `zoom` actually changes the element's layout size. The content grows downward and rightward like any other growing element, staying fully scrollable.
+The SVG is rendered into `.mermaid-canvas` which is absolutely positioned inside `.mermaid-viewport`. Zooming sets the SVG's `width` and `height` styles directly. Panning applies `transform: translate()` to the canvas. The viewport has `overflow: hidden` to clip the panned content. This approach avoids CSS `zoom` (which had cross-browser quirks) and gives precise control over the diagram's size and position.
 
 ### HTML
 
 ```html
-<div class="mermaid-wrap">
+<section class="diagram-shell">
+  <p class="diagram-shell__hint">
+    Ctrl/Cmd + wheel to zoom. Scroll to pan. Drag to pan when zoomed. Double-click to fit.
+  </p>
+  <div class="mermaid-wrap">
     <div class="zoom-controls">
-        <button onclick="zoomDiagram(this, 1.2)" title="Zoom in">+</button>
-        <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">
-            &minus;
-        </button>
-        <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
+      <button type="button" data-action="zoom-in" title="Zoom in">+</button>
+      <button type="button" data-action="zoom-out" title="Zoom out">&minus;</button>
+      <button type="button" data-action="zoom-fit" title="Smart fit">&#8634;</button>
+      <button type="button" data-action="zoom-one" title="1:1 zoom">1:1</button>
+      <button type="button" data-action="zoom-expand" title="Open full size">&#x26F6;</button>
+      <span class="zoom-label">Loading...</span>
     </div>
-    <pre class="mermaid">
+    <div class="mermaid-viewport">
+      <div class="mermaid mermaid-canvas"></div>
+    </div>
+  </div>
+  <script type="text/plain" class="diagram-source">
     graph TD
       A --> B
-  </pre
-    >
-</div>
+  </script>
+</section>
 ```
+
+Use one `.diagram-shell` per diagram. The source Mermaid text lives in `<script type="text/plain" class="diagram-source">`, so multiple diagrams can coexist on a page without ID collisions.
 
 ### JavaScript
 
-Add once at the end of the page. Handles button clicks and scroll-to-zoom on all `.mermaid-wrap` containers:
+Use a closure-based initializer. Per-diagram state lives inside `initDiagram(shell)`, while shared drag listeners stay at module scope:
 
 ```javascript
-// Match this to the CSS zoom value (or 1 if not set)
-var INITIAL_ZOOM = 1.4;
+const config = { /* fitPadding, zoom bounds, readabilityFloor */ };
+const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+let activeDrag = null;
 
-function zoomDiagram(btn, factor) {
-    var wrap = btn.closest(".mermaid-wrap");
-    var target = wrap.querySelector(".mermaid");
-    var current = parseFloat(target.dataset.zoom || INITIAL_ZOOM);
-    var next = Math.min(Math.max(current * factor, 0.5), 5);
-    target.dataset.zoom = next;
-    target.style.zoom = next;
+addEventListener('mousemove', (e) => activeDrag?.onMove(e));
+addEventListener('mouseup', () => { activeDrag?.onEnd(); activeDrag = null; });
+
+function initDiagram(shell) {
+  const wrap = shell.querySelector('.mermaid-wrap');
+  const viewport = shell.querySelector('.mermaid-viewport');
+  const canvas = shell.querySelector('.mermaid-canvas');
+  const source = shell.querySelector('.diagram-source');
+  const label = shell.querySelector('.zoom-label');
+
+  if (!wrap || !viewport || !canvas || !source || !label) {
+    console.error('initDiagram: missing required elements in', shell);
+    return;
+  }
+
+  // Per-diagram state in closure
+  let zoom = 1;
+  let fitMode = 'contain';
+  let panX = 0;
+  let panY = 0;
+  let svgW = 0;
+  let svgH = 0;
+
+  async function render() {
+    try {
+      const code = source.textContent.trim();
+      if (!code) {
+        label.textContent = 'Error: Empty source';
+        return;
+      }
+
+      const id = 'diagram-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      const { svg } = await mermaid.render(id, code);
+      canvas.innerHTML = svg;
+
+      // readSvgNaturalSize(svgNode) + setAdaptiveHeight() + fitDiagram()
+      // wire controls from data-action attributes
+      // wire wheel/drag/touch handlers scoped to this shell
+    } catch (err) {
+      console.error('Mermaid render failed:', err);
+      label.textContent = 'Error: ' + (err.message || 'Render failed');
+    }
+  }
+
+  render();
 }
 
-function resetZoom(btn) {
-    var wrap = btn.closest(".mermaid-wrap");
-    var target = wrap.querySelector(".mermaid");
-    target.dataset.zoom = INITIAL_ZOOM;
-    target.style.zoom = INITIAL_ZOOM;
-}
-
-document.querySelectorAll(".mermaid-wrap").forEach(function (wrap) {
-    // Ctrl/Cmd + scroll to zoom
-    wrap.addEventListener(
-        "wheel",
-        function (e) {
-            if (!e.ctrlKey && !e.metaKey) return;
-            e.preventDefault();
-            var target = wrap.querySelector(".mermaid");
-            var current = parseFloat(target.dataset.zoom || INITIAL_ZOOM);
-            var factor = e.deltaY < 0 ? 1.1 : 0.9;
-            var next = Math.min(Math.max(current * factor, 0.5), 5);
-            target.dataset.zoom = next;
-            target.style.zoom = next;
-        },
-        { passive: false },
-    );
-
-    // Click-and-drag to pan
-    var startX, startY, scrollL, scrollT;
-    wrap.addEventListener("mousedown", function (e) {
-        if (e.target.closest(".zoom-controls")) return;
-        wrap.classList.add("is-panning");
-        startX = e.clientX;
-        startY = e.clientY;
-        scrollL = wrap.scrollLeft;
-        scrollT = wrap.scrollTop;
-    });
-    window.addEventListener("mousemove", function (e) {
-        if (!wrap.classList.contains("is-panning")) return;
-        wrap.scrollLeft = scrollL - (e.clientX - startX);
-        wrap.scrollTop = scrollT - (e.clientY - startY);
-    });
-    window.addEventListener("mouseup", function () {
-        wrap.classList.remove("is-panning");
-    });
-});
+document.querySelectorAll('.diagram-shell').forEach(initDiagram);
 ```
 
-Scroll-to-zoom requires Ctrl/Cmd+scroll to avoid hijacking normal page scroll. Cursor changes to `grab`/`grabbing` to signal pan mode. The zoom range is capped at 0.5x–5x.
+This pattern removes all hardcoded IDs and supports unlimited diagrams per page. For the full implementation (including smart fit, pinch zoom, and shared drag state), use `templates/mermaid-flowchart.html` as the canonical source.
 
 ## Grid Layouts
 

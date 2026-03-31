@@ -23,7 +23,7 @@ For prose accents, see "Prose Page Elements" in `./references/css-patterns.md`. 
 
 **Who is looking?** A developer understanding a system? A PM seeing the big picture? A team reviewing a proposal? This shapes information density and visual complexity.
 
-**What type of content?** Architecture, flowchart, sequence, data flow, schema/ER, state machine, mind map, data table, timeline, dashboard, or prose-first page. Each has distinct layout needs and rendering approaches (see Diagram Types below).
+**What type of content?** Architecture, flowchart, sequence, data flow, schema/ER, state machine, mind map, class diagram, C4 architecture, data table, timeline, dashboard, or prose-first page. Each has distinct layout needs and rendering approaches (see Diagram Types below).
 
 **What aesthetic?** Pick one and commit. The constrained aesthetics (Blueprint, Editorial, Paper/ink) are safer — they have specific requirements that prevent generic output. The flexible ones (IDE-inspired) require more discipline.
 
@@ -52,7 +52,7 @@ Vary the choice each time. If the last diagram was dark and technical, make the 
 **Read the reference material** before generating. Don't memorize it — read it each time to absorb the patterns.
 
 - For text-heavy architecture overviews (card content matters more than topology): read `./templates/architecture.html`
-- For flowcharts, sequence diagrams, ER, state machines, mind maps: read `./templates/mermaid-flowchart.html`
+- For flowcharts, sequence diagrams, ER, state machines, mind maps, class diagrams, C4: read `./templates/mermaid-flowchart.html`
 - For data tables, comparisons, audits, feature matrices: read `./templates/data-table.html`
 - For slide deck presentations (when `--slides` flag is present or `/generate-slides` is invoked): read `./templates/slide-deck.html` and `./references/slide-patterns.md`
 - For prose-heavy publishable pages (READMEs, articles, blog posts, essays): read the "Prose Page Elements" section in `./references/css-patterns.md` and "Typography by Content Voice" in `./references/libraries.md`
@@ -73,25 +73,25 @@ Vary the choice each time. If the last diagram was dark and technical, make the 
 | ER / schema diagram             | **Mermaid**                  | Relationship lines between many entities need auto-routing           |
 | State machine                   | **Mermaid**                  | State transitions with labeled edges need automatic layout           |
 | Mind map                        | **Mermaid**                  | Hierarchical branching needs automatic positioning                   |
+| Class diagram                   | **Mermaid**                  | Inheritance, composition, aggregation lines with automatic routing   |
+| C4 architecture                 | **Mermaid**                  | Use `graph TD` + `subgraph` for C4 (not native `C4Context` — it ignores themes) |
 | Data table                      | HTML `<table>`               | Semantic markup, accessibility, copy-paste behavior                  |
 | Timeline                        | CSS (central line + cards)   | Simple linear layout doesn't need a layout engine                    |
 | Dashboard                       | CSS Grid + Chart.js          | Card grid with embedded charts                                       |
 
 **Mermaid theming:** Always use `theme: 'base'` with custom `themeVariables` so colors match your page palette. Use `layout: 'elk'` for complex graphs (requires the `@mermaid-js/layout-elk` package — see `./references/libraries.md` for the CDN import). Override Mermaid's SVG classes with CSS for pixel-perfect control. See `./references/libraries.md` for full theming guide.
 
-**Mermaid containers:** Always center Mermaid diagrams with `display: flex; justify-content: center;`. Add zoom controls (+/−/reset) to every `.mermaid-wrap` container.
+**Mermaid containers:** Always center Mermaid diagrams with `display: flex; justify-content: center;`. Add zoom controls (+/−/reset/expand) to every `.mermaid-wrap` container. Include the click-to-expand JavaScript so clicking the diagram (or the ⛶ button) opens it full-size in a new tab.
 
-**Mermaid scaling:** Diagrams with 10+ nodes render too small by default. For 10-12 nodes, increase `fontSize` in themeVariables to 18-20px and set `INITIAL_ZOOM` to 1.5-1.6. For 15+ elements, don't try to scale — use the hybrid pattern instead (simple Mermaid overview + CSS Grid cards). See "Architecture / System Diagrams" below.
+**⚠️ For scrollable pages, never use bare `<pre class="mermaid">`.** It renders but has no zoom/pan controls — diagrams become tiny and unusable. Always use the full `diagram-shell` pattern from `./templates/mermaid-flowchart.html`: the HTML structure (`.diagram-shell` > `.mermaid-wrap` > `.zoom-controls` + `.mermaid-viewport` > `.mermaid-canvas`), the CSS, and the JavaScript for zoom/pan/fit. Copy it wholesale. For slide deck mode, follow `./templates/slide-deck.html` and `./references/slide-patterns.md` instead — slides use a different Mermaid container pattern.
+
+**Mermaid scaling:** Diagrams with 10+ nodes render too small by default. For 10-12 nodes, increase `fontSize` in `themeVariables` to 18-20px and tune the copied `diagram-shell` pattern's fit/zoom settings if needed. For 15+ elements, don't try to scale — use the hybrid pattern instead (simple Mermaid overview + CSS Grid cards). See "Architecture / System Diagrams" below.
 
 **Mermaid layout direction:** Prefer `flowchart TD` (top-down) over `flowchart LR` (left-to-right) for complex diagrams. LR spreads horizontally and makes labels unreadable when there are many nodes. Use LR only for simple 3-4 node linear flows. See `./references/libraries.md` "Layout Direction: TD vs LR".
 
+**Mermaid line breaks in flowchart labels:** Use `<br/>` inside quoted labels. Never use escaped newlines like `\n` (Mermaid renders them as literal text in HTML output). Example: `A["Copilot Backend<br/>/api + /api/voicebot"]`.
+
 **Mermaid CSS class collision constraint:** Never define `.node` as a page-level CSS class. Mermaid.js uses `.node` internally on SVG `<g>` elements with `transform: translate(x, y)` for positioning. Page-level `.node` styles (hover transforms, box-shadows) leak into diagrams and break layout. Use the namespaced `.ve-card` class for card components instead. The only safe way to style Mermaid's `.node` is scoped under `.mermaid` (e.g., `.mermaid .node rect`).
-
-See `./references/css-patterns.md` for image container styles (hero banners, inline illustrations, captions).
-
-**When to use:** Hero banners that establish the page's visual tone. Conceptual illustrations for abstract systems that Mermaid can't express (physical infrastructure, user journeys, mental models). Educational diagrams that benefit from artistic or photorealistic rendering. Decorative accents that reinforce the aesthetic.
-
-**When to skip:** Anything Mermaid or CSS handles well. Generic decoration that doesn't convey meaning. Data-heavy pages where images would distract. The page should stand on its own with CSS and typography alone.
 
 ### 3. Style
 
@@ -209,6 +209,16 @@ Three approaches depending on complexity:
 
 **Use Mermaid.** Use `mindmap` syntax for hierarchical branching from a root node. Mermaid handles the radial layout automatically. Style with `themeVariables` to control node colors at each depth level.
 
+### Class Diagrams
+
+**Use Mermaid.** Use `classDiagram` syntax for domain modeling, OOP design, and entity relationships with typed properties and methods. Supports relationships: association (`-->`), composition (`*--`), aggregation (`o--`), and inheritance (`<|--`). Add multiplicity labels (e.g., `"1" --> "*"`) and abstract/interface markers (`<<interface>>`, `<<abstract>>`). For simple entity boxes without OOP semantics (no methods, no inheritance), prefer `erDiagram` instead — it produces cleaner output for pure data modeling.
+
+### C4 Architecture Diagrams
+
+**Use Mermaid flowchart syntax — NOT native C4.** Use `graph TD` with `subgraph` blocks for C4 boundaries. Native `C4Context` hardcodes sharp corners, its own font, blue icons, and inline SVG colors that ignore `themeVariables` — it always clashes with custom palettes.
+
+**Flowchart-as-C4 pattern:** Persons → rounded nodes `(("Name"))`, systems → rectangles `["Name"]`, databases → cylinders `[("Name")]`, boundaries → `subgraph` blocks, relationships → labeled arrows `-->|"protocol"|`. Use `classDef` + `:::className` to visually differentiate external systems (e.g., dashed borders). This inherits `themeVariables`, `fontFamily`, and CSS overrides like every other Mermaid diagram.
+
 ### Data Tables / Comparisons / Audits
 
 Use a real `<table>` element — not CSS Grid pretending to be a table. Tables get accessibility, copy-paste behavior, and column alignment for free. The reference template at `./templates/data-table.html` demonstrates all patterns below.
@@ -306,7 +316,7 @@ An alternative output format for presenting content as a magazine-quality slide 
 
 **Slide types (10):** Title, Section Divider, Content, Split, Diagram, Dashboard, Table, Code, Quote, Full-Bleed. Each has a defined layout in `slide-patterns.md`. Content that exceeds a slide's density limit splits across multiple slides — never scrolls within a slide.
 
-**Visual richness:** See the Proactive Imagery section in `slide-patterns.md` for the workflow. Also use SVG decorative accents, per-slide background gradients, inline sparklines, and small Mermaid diagrams. Visual-first, text-second.
+**Visual richness:** Use SVG decorative accents, per-slide background gradients, inline sparklines, and small Mermaid diagrams where they make the story more compelling. Visual-first, text-second.
 
 **Compositional variety:** Consecutive slides must vary spatial approach — centered, left-heavy, right-heavy, split, edge-aligned, full-bleed. Three centered slides in a row means push one off-axis.
 
@@ -350,7 +360,7 @@ Before delivering, verify:
 - **Both themes**: Toggle your OS between light and dark mode. Both should look intentional, not broken.
 - **Information completeness**: Does the diagram actually convey what the user asked for? Pretty but incomplete is a failure.
 - **No overflow**: Resize the browser to different widths. No content should clip or escape its container. Every grid and flex child needs `min-width: 0`. Side-by-side panels need `overflow-wrap: break-word`. Never use `display: flex` on `<li>` for marker characters — it creates anonymous flex items that can't shrink, causing lines with many inline `<code>` badges to overflow. Use absolute positioning for markers instead. See the Overflow Protection section in `./references/css-patterns.md`.
-- **Mermaid zoom controls**: Every `.mermaid-wrap` container must have zoom controls (+/−/reset buttons), Ctrl/Cmd+scroll zoom, and click-and-drag panning. Complex diagrams render too small without them. The cursor should change to `grab` when zoomed in and `grabbing` while dragging. See `./references/css-patterns.md` for the full pattern.
+- **Mermaid zoom controls**: Every `.mermaid-wrap` container must have zoom controls (+/−/reset/expand buttons), Ctrl/Cmd+scroll zoom, click-and-drag panning, and click-to-expand (clicking without dragging opens the diagram full-size in a new tab). The expand button (⛶) provides the same functionality. See `./references/css-patterns.md` for the full pattern including the `openMermaidInNewTab()` function.
 - **File opens cleanly**: No console errors, no broken font loads, no layout shifts.
 
 ## Anti-Patterns (AI Slop)

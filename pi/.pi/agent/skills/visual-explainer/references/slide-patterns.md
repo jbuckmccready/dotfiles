@@ -512,7 +512,7 @@ Each type has a defined HTML structure and CSS layout. The agent can adapt color
 
 ### Title Slide
 
-Full-viewport hero. Background treatment via gradient, texture, or surf-generated image. 80–120px display type.
+Full-viewport hero. Background treatment via gradient, texture, or a background image. 80–120px display type.
 
 ```html
 <section class="slide slide--title">
@@ -676,7 +676,7 @@ Full-viewport Mermaid diagram. Max 8–10 nodes (presentation scale — fewer, l
 - **Use CSS Pipeline** (below) for simple linear flows: A → B → C → D sequences, build steps, deployment stages. CSS cards give full control over sizing, typography, and fill the viewport naturally.
 - **Never leave a small Mermaid diagram alone on a slide.** If the diagram is small, either switch to CSS, or pair it with supporting content (description cards, bullet annotations, a summary panel) in a split layout. A slide with a tiny diagram and empty space is a failed slide.
 
-**Mermaid centering fix.** When you do use Mermaid, add `display: flex; align-items: center; justify-content: center;` to `.mermaid-wrap` so the SVG centers within its container instead of hugging the top-left corner. Change `transform-origin` to `center center` so zoom radiates from the middle.
+**Mermaid centering fix.** When you do use Mermaid, add `display: flex; align-items: center; justify-content: center;` to `.mermaid-wrap` so the SVG centers within its container instead of hugging the top-left corner.
 
 ```html
 <section class="slide slide--diagram">
@@ -688,15 +688,17 @@ Full-viewport Mermaid diagram. Max 8–10 nodes (presentation scale — fewer, l
                 &minus;
             </button>
             <button onclick="resetZoom(this)" title="Reset">&#8634;</button>
+            <button onclick="openDiagramFullscreen(this)" title="Open full size in new tab">&#x26F6;</button>
         </div>
         <pre class="mermaid">
       graph TD
         A --> B
-    </pre
-        >
+        </pre>
     </div>
 </section>
 ```
+
+**Click to expand.** Clicking anywhere on the diagram (without dragging) opens it full-size in a new browser tab. The expand button (⛶) provides the same functionality for discoverability.
 
 ```css
 .slide--diagram {
@@ -713,10 +715,6 @@ Full-viewport Mermaid diagram. Max 8–10 nodes (presentation scale — fewer, l
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.slide--diagram .mermaid-wrap .mermaid {
-    transform-origin: center center;
 }
 ```
 
@@ -1065,7 +1063,7 @@ KPI cards at presentation scale (48–64px hero numbers). Mini-charts via Chart.
 
 ### Full-Bleed Slide
 
-Background image (surf-generated or CSS gradient) dominates the viewport. Text overlay with gradient scrim ensuring contrast. Zero slide padding.
+Background image or CSS gradient dominates the viewport. Text overlay with gradient scrim ensuring contrast. Zero slide padding.
 
 ```html
 <section class="slide slide--bleed">
@@ -1114,7 +1112,7 @@ Background image (surf-generated or CSS gradient) dominates the viewport. Text o
     padding: clamp(40px, 6vh, 80px) clamp(40px, 8vw, 120px);
 }
 
-/* When no generated image, use a bold CSS gradient background */
+/* When no background image is used, use a bold CSS gradient background */
 .slide__bg--gradient {
     background: linear-gradient(
         135deg,

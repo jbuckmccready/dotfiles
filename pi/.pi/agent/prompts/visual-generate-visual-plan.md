@@ -56,7 +56,7 @@ Follow the visual-explainer skill workflow. Read the reference template, CSS pat
 
 2. **The Problem** — side-by-side comparison panels showing current behavior vs. desired behavior. Use concrete examples, not abstract descriptions. Show what the user experiences or what the code does, step by step. _Visual treatment: two-column grid with rose-tinted "Before" header and sage-tinted "After" header. Numbered flow steps with arrows between them._
 
-3. **State Machine** — Mermaid flowchart or stateDiagram showing the states and transitions. Label edges with the triggers (commands, events, conditions). _Wrap in `.mermaid-wrap` with zoom controls. Use `flowchart TD` instead of `stateDiagram-v2` if labels need special characters like colons or parentheses. Add explanatory caption below the diagram._
+3. **State Machine** — Mermaid flowchart or stateDiagram showing the states and transitions. Label edges with the triggers (commands, events, conditions). _Wrap in `.mermaid-wrap` with zoom controls (+/−/reset/expand) and click-to-expand. Use `flowchart TD` instead of `stateDiagram-v2` if labels need special characters like colons or parentheses. Add explanatory caption below the diagram._
 
 4. **State Variables** — card grid showing new state and existing state (if modified). Use code blocks with proper `white-space: pre-wrap`. _Visual treatment: two cards side-by-side, elevated depth, monospace labels._
 
