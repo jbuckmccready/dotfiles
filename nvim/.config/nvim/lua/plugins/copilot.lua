@@ -52,16 +52,8 @@ return {
                 markdown = true,
                 gitcommit = true,
                 gitrebase = true,
-                -- Add codecompanion filetype
-                codecompanion = true,
             },
-            -- override default should_attach function for codecompanion
             should_attach = function(_, _)
-                -- override to always attach to codecompanion (despite vim.bo.buflisted == false)
-                if vim.bo.filetype == "codecompanion" then
-                    return true
-                end
-
                 if not vim.bo.buflisted then
                     return false
                 end
