@@ -1,9 +1,10 @@
--- Remove default kepmaps introduced in neovim 0.11
+-- Remove built-in LSP keymaps that conflict with custom `gr` mappings.
 vim.keymap.del("n", "gra")
 vim.keymap.del("n", "gri")
 vim.keymap.del("n", "grn")
 vim.keymap.del("n", "grr")
 vim.keymap.del("n", "grt")
+vim.keymap.del("n", "grx")
 
 require("config.lazy")
 require("config.patches")
