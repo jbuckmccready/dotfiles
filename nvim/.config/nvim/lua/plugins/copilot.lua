@@ -39,7 +39,8 @@ return {
                 auto_trigger = true,
                 keymap = {
                     next = "<C-f>",
-                    accept = "<Tab>",
+                    -- Handled in sidekick plugin
+                    accept = false,
                     accept_word = "<S-Tab>",
                     accept_line = "<C-Space>",
                 },

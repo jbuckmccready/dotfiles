@@ -10,15 +10,32 @@ return {
             desc = "Toggle Edit Suggestions",
         },
         {
+            "<leader>au",
+            function()
+                require("sidekick.nes").update()
+            end,
+            desc = "Update Next Edit Suggestion",
+        },
+        {
             "<tab>",
             function()
-                -- if there is a next edit, jump to it, otherwise apply it if any
-                if not require("sidekick").nes_jump_or_apply() then
-                    return "<Tab>" -- fallback to normal tab
+                if require("sidekick").nes_jump_or_apply() then
+                    return ""
                 end
+
+                if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+                    local suggestion = require("copilot.suggestion")
+                    if suggestion.is_visible() then
+                        suggestion.accept()
+                        return ""
+                    end
+                end
+
+                return "<Tab>"
             end,
             expr = true,
-            desc = "Goto/Apply Next Edit Suggestion",
+            mode = { "i", "n" },
+            desc = "Accept Sidekick NES or Copilot suggestion",
         },
         {
             "<leader>as",
@@ -120,7 +137,7 @@ return {
     },
     opts = {
         nes = {
-            enabled = false,
+            enabled = true,
         },
         cli = {
             watch = true, -- watch for file changes in CLI
