@@ -33,6 +33,18 @@ vim.keymap.set("n", "<leader>by", function()
     vim.notify("Copied: " .. path, vim.log.levels.INFO)
 end, { desc = "Yank relative file path to system clipboard" })
 
+-- Paste system clipboard into a new buffer
+vim.keymap.set("n", "<leader>bp", function()
+    local clipboard = vim.fn.getreg("+")
+    if clipboard == "" then
+        vim.notify("Clipboard is empty", vim.log.levels.WARN)
+        return
+    end
+
+    vim.cmd("enew")
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.fn.getreg("+", 1, true))
+end, { desc = "Paste system clipboard into new buffer" })
+
 -- Buffer navigation
 vim.keymap.set("n", "<leader>bd", function()
     require("snacks").bufdelete()
