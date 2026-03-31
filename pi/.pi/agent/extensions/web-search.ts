@@ -14,10 +14,7 @@ import {
     wrapTextWithAnsi,
 } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
-import {
-    getToolViewMode,
-    type ToolViewMode,
-} from "./tools/tool-view-mode";
+import { getToolViewMode, type ToolViewMode } from "./tools/tool-view-mode";
 
 // --- Constants ---
 
@@ -184,9 +181,7 @@ export default function (pi: ExtensionAPI) {
     });
 
     const params = Type.Object({
-        query: Type.Optional(
-            Type.String({ description: "The search query" }),
-        ),
+        query: Type.Optional(Type.String({ description: "The search query" })),
         url: Type.Optional(
             Type.String({
                 description:
@@ -245,9 +240,7 @@ export default function (pi: ExtensionAPI) {
                 originator: "pi",
             };
             if (!params.query && !params.url)
-                throw new Error(
-                    "Either query or url must be provided.",
-                );
+                throw new Error("Either query or url must be provided.");
             const instructions = params.url
                 ? "You are a web research assistant. Open the provided URL and read its contents. Provide a thorough summary of the page. Include the source URL."
                 : "You are a web research assistant. Search the web and provide a concise, well-sourced answer. Include full URLs for all sources.";
@@ -421,9 +414,7 @@ export default function (pi: ExtensionAPI) {
                 );
             }
 
-            const label = args.url
-                ? args.url
-                : `"${args.query ?? ""}"`;
+            const label = args.url ? args.url : `"${args.query ?? ""}"`;
             const mode = currentViewMode;
             const title =
                 theme.fg("toolTitle", theme.bold("web_search")) +
@@ -466,7 +457,7 @@ export default function (pi: ExtensionAPI) {
 
         renderResult(
             result: AgentToolResult<Details>,
-            { expanded, isPartial }: ToolRenderResultOptions,
+            { isPartial }: ToolRenderResultOptions,
             theme: Theme,
             context: RenderContext,
         ) {
