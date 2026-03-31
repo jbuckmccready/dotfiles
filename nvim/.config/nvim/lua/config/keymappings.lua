@@ -191,29 +191,6 @@ vim.keymap.set({ "n" }, "<C-w>+", "5<C-w>+", { noremap = true, desc = "Increase 
 vim.keymap.set({ "c" }, "<Up>", "<C-p>", { desc = "Select previous" })
 vim.keymap.set({ "c" }, "<Down>", "<C-n>", { desc = "Select next" })
 
--- Iron Repl
-vim.keymap.set({ "n" }, "<leader>rr", "<cmd>IronRepl<CR>", { desc = "Toggle Repl" })
-vim.keymap.set({ "n" }, "<leader>rz", "<cmd>IronRestart<CR>", { desc = "Restart Repl" })
-vim.keymap.set({ "n" }, "<leader>rq", function()
-    require("iron.core").send(nil, string.char(03))
-end, { desc = "Interrupt Repl" })
-vim.keymap.set({ "n" }, "<leader>ri", "<cmd>IronFocus<CR>", { desc = "Focus Repl" })
-vim.keymap.set({ "n", "v" }, "<leader>rF", function()
-    require("iron.core").send_file()
-end, { desc = "Send File" })
-vim.keymap.set({ "n", "v" }, "<leader>rl", function()
-    require("iron.core").send_line()
-end, { desc = "Send Line" })
-vim.keymap.set({ "n", "v" }, "<leader>rf", function()
-    local iron = require("iron.core")
-    iron.mark_visual()
-    iron.send_mark()
-    iron.mark_visual()
-end, { desc = "Send Selection" })
-vim.keymap.set({ "n", "v" }, "<leader>rb", function()
-    require("iron.core").send_code_block(true)
-end, { desc = "Send Code Block" })
-
 -- Ensure ctrl-c sends SIGINT in terminal mode
 vim.keymap.set("t", "<C-c>", "\x03", { desc = "Send SIGINT" })
 
