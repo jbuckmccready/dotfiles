@@ -25,15 +25,22 @@
 
 [include]
 	path = ~/.config/delta/themes/catppuccin.gitconfig
+	path = ~/.gitconfig.local
 
 [delta]
 	features = catppuccin-mocha
+
 [gpg]
 	format = ssh
+
 [commit]
 	gpgsign = true
+
 [gpg "ssh"]
 	allowedSignersFile = ~/.ssh/git_allowed_signers
 
-[include]
-	path = ~/.gitconfig.local
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
