@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 ## 1) Inspect comments needing attention
 
-- Run `{baseDir}/scripts/fetch_comments.py` which will print out all the comments and review threads on the PR
+- Run `python3 {baseDir}/scripts/fetch_comments.py` from root of the repository which will print out all the comments and review threads on the PR
 
 ## 2) Ask the user for clarification
 
