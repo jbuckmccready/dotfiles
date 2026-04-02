@@ -6,7 +6,7 @@ return {
         "folke/snacks.nvim",
     },
     keys = {
-        { "<leader>gN", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
+        { "<leader>gn", "<cmd>Neogit<CR>", mode = "n", desc = "Neogit" },
     },
     opts = {
         -- prettier log graph
