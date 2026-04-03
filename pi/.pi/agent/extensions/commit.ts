@@ -201,7 +201,6 @@ Do not output any text or explanation. Only use tools.`;
 
 export default function commitExtension(pi: ExtensionAPI) {
     pi.on("session_start", (_event, ctx) => applyCommitState(ctx));
-    pi.on("session_switch", (_event, ctx) => applyCommitState(ctx));
     pi.on("session_tree", (_event, ctx) => applyCommitState(ctx));
 
     pi.on("agent_end", async (_event, _ctx) => {
