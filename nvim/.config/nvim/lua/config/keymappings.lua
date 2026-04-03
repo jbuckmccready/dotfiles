@@ -14,6 +14,31 @@ vim.keymap.set({ "i", "s", "n" }, "<esc>", function()
     return "<esc>"
 end, { desc = "Escape and clear hlsearch", expr = true })
 
+--- "Incremental selection" mappings (treesitter + LSP fallback).
+vim.keymap.set({ "x" }, "[n", function()
+    require("vim.treesitter._select").select_prev(vim.v.count1)
+end, { desc = "Select previous node" })
+
+vim.keymap.set({ "x" }, "]n", function()
+    require("vim.treesitter._select").select_next(vim.v.count1)
+end, { desc = "Select next node" })
+
+vim.keymap.set({ "x", "o" }, "<CR>", function()
+    if vim.treesitter.get_parser(nil, nil, { error = false }) then
+        require("vim.treesitter._select").select_parent(vim.v.count1)
+    else
+        vim.lsp.buf.selection_range(vim.v.count1)
+    end
+end, { desc = "Select parent (outer) node" })
+
+vim.keymap.set({ "x", "o" }, "<BS>", function()
+    if vim.treesitter.get_parser(nil, nil, { error = false }) then
+        require("vim.treesitter._select").select_child(vim.v.count1)
+    else
+        vim.lsp.buf.selection_range(-vim.v.count1)
+    end
+end, { desc = "Select child (inner) node" })
+
 -- Reselect latest changed, put, or yanked text
 vim.keymap.set(
     "n",
