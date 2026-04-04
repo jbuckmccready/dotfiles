@@ -24,8 +24,12 @@ function vim.lsp.protocol.make_client_capabilities()
     return caps
 end
 
--- WSL Clipboard configuration
+-- WSL-specific configuration
 if vim.fn.has("wsl") == 1 then
+    vim.keymap.set("n", "gx", function()
+        local url = vim.fn.expand("<cfile>")
+        vim.fn.system({ "wslview", url })
+    end, { desc = "Open URL in Windows browser via wslview" })
     vim.g.clipboard = {
         name = "win32yank-wsl",
         copy = {
