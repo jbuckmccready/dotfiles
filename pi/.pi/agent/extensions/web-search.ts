@@ -8,11 +8,7 @@ import type {
 
 import { keyHint } from "@mariozechner/pi-coding-agent";
 import type { Component } from "@mariozechner/pi-tui";
-import {
-    truncateToWidth,
-    visibleWidth,
-    wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+import { truncateToWidth, wrapTextWithAnsi } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 import { getToolViewMode, type ToolViewMode } from "./tools/tool-view-mode";
 
@@ -23,6 +19,7 @@ const MODEL = "gpt-5.4-mini";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
+const CONDENSED_OUTPUT_LINES = 5;
 
 // --- Helpers ---
 
@@ -415,18 +412,18 @@ export default function (pi: ExtensionAPI) {
             }
 
             const label = args.url ? args.url : `"${args.query ?? ""}"`;
-            const mode = currentViewMode;
-            const title =
-                theme.fg("toolTitle", theme.bold("web_search")) +
-                (mode === "minimal" && label
-                    ? " " + theme.fg("accent", label)
-                    : "") +
-                activitySuffix +
-                timerSuffix;
 
             return component((width) => {
+                const mode = currentViewMode;
+                const title =
+                    theme.fg("toolTitle", theme.bold("web_search")) +
+                    (mode !== "expanded" && label
+                        ? " " + theme.fg("accent", label)
+                        : "") +
+                    activitySuffix +
+                    timerSuffix;
                 const lines = wrapTextWithAnsi(title, width);
-                if (mode === "minimal") return lines;
+                if (mode !== "expanded") return lines;
 
                 return [
                     ...lines,
@@ -435,21 +432,21 @@ export default function (pi: ExtensionAPI) {
                         args.query,
                         width,
                         theme,
-                        mode === "expanded",
+                        true,
                     ),
                     ...renderCallParameter(
                         "url",
                         args.url,
                         width,
                         theme,
-                        mode === "expanded",
+                        true,
                     ),
                     ...renderCallParameter(
                         "prompt",
                         args.prompt,
                         width,
                         theme,
-                        mode === "expanded",
+                        true,
                     ),
                 ];
             });
@@ -495,15 +492,37 @@ export default function (pi: ExtensionAPI) {
                 return component((width) => {
                     if (currentViewMode === "minimal") return [];
 
+                    const styledActivities: string[] = [];
+                    const styledOutput: string[] = [];
+                    for (const line of lines) {
+                        if (line.startsWith("🔍"))
+                            styledActivities.push(theme.fg("warning", line));
+                        else if (line.startsWith("✅"))
+                            styledActivities.push(theme.fg("success", line));
+                        else if (line.trim() === "") styledOutput.push("");
+                        else styledOutput.push(theme.fg("toolOutput", line));
+                    }
+
+                    const maxOutput =
+                        currentViewMode === "expanded"
+                            ? styledOutput.length
+                            : CONDENSED_OUTPUT_LINES;
+                    const display = styledOutput.slice(0, maxOutput);
+                    const remaining = styledOutput.length - maxOutput;
+
                     return wrapLines(
-                        lines.map((line) => {
-                            if (line.startsWith("🔍"))
-                                return theme.fg("warning", line);
-                            if (line.startsWith("✅"))
-                                return theme.fg("success", line);
-                            if (line.trim() === "") return "";
-                            return theme.fg("toolOutput", line);
-                        }),
+                        [
+                            ...styledActivities,
+                            ...display,
+                            ...(remaining > 0
+                                ? [
+                                      theme.fg(
+                                          "muted",
+                                          `... (${remaining} more lines)`,
+                                      ),
+                                  ]
+                                : []),
+                        ],
                         width,
                     );
                 });
@@ -540,26 +559,25 @@ export default function (pi: ExtensionAPI) {
                     }
 
                     // condensed
-                    const firstLine =
-                        rawText.split("\n").find((l) => l.trim()) || "";
-                    const hint = ` (${keyHint("app.tools.expand", "to expand")})`;
-                    const hintText = theme.fg("muted", hint);
-                    const previewText = truncateToWidth(
-                        theme.fg(
-                            "toolOutput",
-                            firstLine.length > 200
-                                ? firstLine.slice(0, 200) + "…"
-                                : firstLine,
-                        ),
-                        Math.max(0, width - visibleWidth(hintText)),
+                    const preview = outputLines.slice(
+                        0,
+                        CONDENSED_OUTPUT_LINES,
                     );
-                    const previewLine = truncateToWidth(
-                        previewText + hintText,
-                        width,
-                    );
+                    const remaining =
+                        outputLines.length - CONDENSED_OUTPUT_LINES;
+                    const hint =
+                        remaining > 0
+                            ? [
+                                  theme.fg(
+                                      "muted",
+                                      `... (${remaining} more lines, ${keyHint("app.tools.expand", "to expand")})`,
+                                  ),
+                              ]
+                            : [];
+                    const content = [...preview, ...hint];
                     return activityLines.length
-                        ? [...activityLines, previewLine]
-                        : [previewLine];
+                        ? [...activityLines, "", ...content]
+                        : content;
                 },
             } as Component;
         },
