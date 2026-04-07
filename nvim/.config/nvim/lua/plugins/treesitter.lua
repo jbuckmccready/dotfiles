@@ -4,8 +4,8 @@ return {
     branch = "main",
     lazy = false,
     build = ":TSUpdate",
-    init = function()
-        local parsers_installed = {
+    config = function()
+        local parsers = {
             "bash",
             "c",
             "cpp",
@@ -30,9 +30,17 @@ return {
             "zig",
         }
 
-        vim.defer_fn(function()
-            require("nvim-treesitter").install(parsers_installed)
-        end, 1000)
+        -- Install missing parsers on startup. Checks for actual .so files
+        -- rather than relying on nvim-treesitter's get_installed(), which
+        -- incorrectly considers a parser installed if only its query dir exists.
+        local parser_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "site", "parser")
+        local missing = vim.tbl_filter(function(lang)
+            return vim.fn.filereadable(vim.fs.joinpath(parser_dir, lang .. ".so")) == 0
+        end, parsers)
+
+        if #missing > 0 then
+            require("nvim-treesitter.install").install(missing, { force = true })
+        end
 
         -- auto-start highlights
         vim.api.nvim_create_autocmd("FileType", {
