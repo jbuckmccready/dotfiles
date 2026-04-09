@@ -101,8 +101,8 @@ async function selectExtractionModel(
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
-        { provider: "anthropic", modelId: HAIKU_MODEL_ID },
         { provider: "openai-codex", modelId: CODEX_MODEL_ID },
+        { provider: "anthropic", modelId: HAIKU_MODEL_ID },
         { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
     ];
 
@@ -555,7 +555,7 @@ export default function (pi: ExtensionAPI) {
                             systemPrompt: SYSTEM_PROMPT,
                             messages: [userMessage],
                         },
-                        { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "medium" },
+                        { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "low" },
                     );
 
                     if (response.stopReason === "aborted") {

@@ -28,8 +28,8 @@ const CODEX_MODEL_ID = "gpt-5.4-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
-    { provider: "anthropic", modelId: HAIKU_MODEL_ID },
     { provider: "openai-codex", modelId: CODEX_MODEL_ID },
+    { provider: "anthropic", modelId: HAIKU_MODEL_ID },
     { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
 ];
 
@@ -239,7 +239,7 @@ async function handleCommitStaged(
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
-                    { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "high" },
+                    { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "medium" },
                 );
 
                 if (response.stopReason === "aborted") return null;
