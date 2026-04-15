@@ -1,6 +1,6 @@
 ## Sandbox Context
 
-You are running in a sandboxed environment that has restrictions. You may encounter permission errors or enable to find files that you expect to be there. If you encounter such issues, report them clearly and ask for guidance on how to proceed.
+You are running in a sandboxed environment that has restrictions. You may encounter permission errors, or be unable to find files that you expect to be there. If you encounter such issues, report them clearly and ask for guidance on how to proceed.
 
 ## Tools
 
