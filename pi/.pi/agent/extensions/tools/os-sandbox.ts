@@ -45,7 +45,6 @@ import { existsSync, realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, basename } from "node:path";
-import { globSync } from "glob";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
 import type {
@@ -63,6 +62,7 @@ import type {
     SandboxOps,
 } from "./sandbox-shared";
 import { detectImageMimeFromBytes } from "./shared";
+import { buildFdFindArgs } from "./sandbox-tools";
 
 const SANDBOX_CACHE_ROOT = join(homedir(), ".pi", "sandbox-cache");
 
@@ -370,43 +370,16 @@ function createFindOps(denyReadResolved: string[]): FindOperations {
         ): Promise<string[]> {
             // Intentionally rely on the sandbox runtime for deny-read enforcement here
             // so fd emits its native denial behavior for glob searches.
-            const args = [
-                "fd",
-                "--glob",
-                "--color=never",
-                "--hidden",
-                "--max-results",
-                String(options.limit),
-            ];
+            void options.ignore;
 
-            const gitignoreFiles = new Set<string>();
-            const rootGitignore = join(cwd, ".gitignore");
-            if (existsSync(rootGitignore)) {
-                gitignoreFiles.add(rootGitignore);
-            }
-
-            try {
-                const nestedGitignores = globSync("**/.gitignore", {
-                    cwd,
-                    dot: true,
-                    absolute: true,
-                    ignore: options.ignore,
-                });
-                for (const file of nestedGitignores) {
-                    gitignoreFiles.add(file);
-                }
-            } catch {
-                // Ignore glob errors
-            }
-
-            for (const gitignorePath of gitignoreFiles) {
-                args.push("--ignore-file", shellQuote(gitignorePath));
-            }
-
-            args.push(shellQuote(pattern), shellQuote(cwd));
+            const args = buildFdFindArgs({
+                pattern,
+                cwd,
+                limit: options.limit,
+            });
 
             const { stdout, stderr, exitCode } = await execSandboxed(
-                args.join(" "),
+                ["fd", ...args.map((arg) => shellQuote(arg))].join(" "),
             );
             if (exitCode !== 0) {
                 const message = stderr.trim();

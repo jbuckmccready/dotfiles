@@ -13,6 +13,40 @@ function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
 }
 
+export function buildFdFindArgs(opts: {
+    pattern: string;
+    cwd: string;
+    limit: number;
+}): string[] {
+    const args = [
+        "--glob",
+        "--color=never",
+        "--hidden",
+        "--no-require-git",
+        "--max-results",
+        String(opts.limit),
+    ];
+
+    // fd --glob matches against the basename unless --full-path is set; in
+    // --full-path mode it matches against the candidate path, so a
+    // path-containing pattern like 'src/**/*.spec.ts' needs a leading '**/'
+    // to match anything below cwd.
+    let effectivePattern = opts.pattern;
+    if (opts.pattern.includes("/")) {
+        args.push("--full-path");
+        if (
+            !opts.pattern.startsWith("/") &&
+            !opts.pattern.startsWith("**/") &&
+            opts.pattern !== "**"
+        ) {
+            effectivePattern = `**/${opts.pattern}`;
+        }
+    }
+
+    args.push(effectivePattern, opts.cwd);
+    return args;
+}
+
 // ---------------------------------------------------------------------------
 // Grep
 // ---------------------------------------------------------------------------
@@ -278,20 +312,16 @@ export async function sandboxedFdGlob(opts: {
     limit: number;
     exec: StreamingExec;
 }): Promise<string[]> {
-    const args = [
-        "fd",
-        "--glob",
-        "--color=never",
-        "--hidden",
-        "--max-results",
-        String(opts.limit),
-        shQuote(opts.pattern),
-        shQuote(opts.guestCwd),
-    ];
+    const args = buildFdFindArgs({
+        pattern: opts.pattern,
+        cwd: opts.guestCwd,
+        limit: opts.limit,
+    });
+    const cmd = ["fd", ...args.map((arg) => shQuote(arg))].join(" ");
 
     let stdout = "";
     let stderr = "";
-    const result = await opts.exec(args.join(" "), {
+    const result = await opts.exec(cmd, {
         onStdout: (data) => {
             stdout += data;
         },
