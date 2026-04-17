@@ -397,6 +397,8 @@ export function createEditOverride(sandbox: SandboxAPI) {
     const diffTextCache = new WeakMap<object, DiffText>();
 
     return {
+        renderShell: "default",
+
         execute(
             toolCallId: string,
             params: EditToolInput,
