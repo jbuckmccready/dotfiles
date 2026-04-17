@@ -278,7 +278,7 @@ function applyModesPatch(target: ModesFile, patch: ModesPatch): void {
         }
 
         const targetSpec: Record<string, unknown> =
-            ((target.modes[mode] ??= {}) as any) ?? {};
+            (target.modes[mode] ??= {}) as any;
         for (const [k, v] of Object.entries(specPatch)) {
             if (v === null || v === undefined) {
                 delete targetSpec[k];

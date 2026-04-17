@@ -413,6 +413,53 @@ function createLsOps(denyReadResolved: string[]): LsOperations {
     };
 }
 
+function wrapMacOsMktempCompat(command: string): string {
+    if (process.platform !== "darwin") return command;
+
+    return [
+        "mktemp() {",
+        '    local pi_mktemp_args=("$@")',
+        '    local pi_mktemp_flags=()',
+        '    local pi_mktemp_prefix=""',
+        '    while [ "$#" -gt 0 ]; do',
+        '        case "$1" in',
+        '            -p|--tmpdir|--tmpdir=*)',
+        '                command mktemp "${pi_mktemp_args[@]}"',
+        '                return $? ',
+        '                ;;',
+        '            -t)',
+        '                if [ "$#" -lt 2 ]; then',
+        '                    command mktemp "${pi_mktemp_args[@]}"',
+        '                    return $? ',
+        '                fi',
+        '                pi_mktemp_prefix="$2"',
+        '                shift 2',
+        '                ;;',
+        '            --)',
+        '                command mktemp "${pi_mktemp_args[@]}"',
+        '                return $? ',
+        '                ;;',
+        '            -*)',
+        '                pi_mktemp_flags+=("$1")',
+        '                shift',
+        '                ;;',
+        '            *)',
+        '                command mktemp "${pi_mktemp_args[@]}"',
+        '                return $? ',
+        '                ;;',
+        '        esac',
+        '    done',
+        '    local pi_tmpdir="${TMPDIR:-/tmp}"',
+        '    mkdir -p -- "$pi_tmpdir" || return $? ',
+        '    local pi_mktemp_template="${pi_mktemp_prefix:-tmp}.XXXXXXXXXX"',
+        '    command mktemp "${pi_mktemp_flags[@]}" -p "$pi_tmpdir" "$pi_mktemp_template"',
+        '}',
+        command,
+    ].join("\n");
+}
+
+export { wrapMacOsMktempCompat };
+
 function createSandboxedBashOps(osConfig: OsSandboxConfig): BashOperations {
     const commandEnv = getSandboxCommandEnv(osConfig);
 
@@ -422,8 +469,9 @@ function createSandboxedBashOps(osConfig: OsSandboxConfig): BashOperations {
                 throw new Error(`Working directory does not exist: ${cwd}`);
             }
 
-            const wrappedCommand =
-                await SandboxManager.wrapWithSandbox(command);
+            const wrappedCommand = await SandboxManager.wrapWithSandbox(
+                wrapMacOsMktempCompat(command),
+            );
 
             return new Promise((resolve, reject) => {
                 const child = spawn("bash", ["-c", wrappedCommand], {

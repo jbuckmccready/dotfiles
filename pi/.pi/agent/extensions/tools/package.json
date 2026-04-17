@@ -13,16 +13,16 @@
         ]
     },
     "dependencies": {
-        "@anthropic-ai/sandbox-runtime": "^0.0.26",
-        "@earendil-works/gondolin": "^0.5.0",
-        "@mariozechner/pi-coding-agent": "0.66.0",
-        "@mariozechner/pi-tui": "0.66.0",
-        "diff": "^8.0.4",
+        "@anthropic-ai/sandbox-runtime": "^0.0.49",
+        "@earendil-works/gondolin": "^0.7.0",
+        "@mariozechner/pi-coding-agent": "0.67.6",
+        "@mariozechner/pi-tui": "0.67.6",
+        "diff": "^9.0.0",
         "glob": "^13.0.6",
-        "strip-ansi": "^7.1.2"
+        "strip-ansi": "^7.2.0"
     },
     "devDependencies": {
         "tsx": "^4.21.0",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.3"
     }
 }

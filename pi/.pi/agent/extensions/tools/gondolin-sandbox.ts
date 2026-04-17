@@ -438,6 +438,7 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             ui.setStatus("sandbox", ui.theme.fg("accent", startLabel));
 
             vm = await vmPromise;
+            const activeVm = vm!;
 
             const excludeCount = excludePaths.length;
             const totalSecretCount = Object.keys(config.secrets ?? {}).length;
@@ -455,15 +456,15 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             ui.setStatus("sandbox", ui.theme.fg("accent", parts.join(", ")));
 
             ops = {
-                bash: createGondolinBashOps(vm, localCwd),
-                read: createGondolinReadOps(vm, localCwd),
-                write: createGondolinWriteOps(vm, localCwd),
-                edit: createGondolinEditOps(vm, localCwd),
+                bash: createGondolinBashOps(activeVm, localCwd),
+                read: createGondolinReadOps(activeVm, localCwd),
+                write: createGondolinWriteOps(activeVm, localCwd),
+                edit: createGondolinEditOps(activeVm, localCwd),
                 // NOTE: override grepExecute so it uses rg inside the VM sandbox
-                grepExecute: createGondolinGrepExecute(vm, localCwd),
-                findExecute: createGondolinFindExecute(vm, localCwd),
-                find: createGondolinFindOps(vm, localCwd),
-                ls: createGondolinLsOps(vm, localCwd),
+                grepExecute: createGondolinGrepExecute(activeVm, localCwd),
+                findExecute: createGondolinFindExecute(activeVm, localCwd),
+                find: createGondolinFindOps(activeVm, localCwd),
+                ls: createGondolinLsOps(activeVm, localCwd),
             };
         },
 
