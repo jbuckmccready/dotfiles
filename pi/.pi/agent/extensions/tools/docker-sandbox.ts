@@ -54,6 +54,7 @@ import type {
 } from "./sandbox-shared";
 import {
     type StreamingExec,
+    createSandboxedFindExecute,
     createSandboxedGrepExecute,
     sandboxedFdGlob,
 } from "./sandbox-tools";
@@ -828,6 +829,22 @@ function createDockerGrepExecute(
     });
 }
 
+function createDockerFindExecute(
+    shell: DockerPersistentShell,
+    mounts: Record<string, string>,
+): SandboxOps["findExecute"] {
+    return createSandboxedFindExecute({
+        resolveSearchPath: (userPath) =>
+            hostToGuestPath(
+                path.isAbsolute(userPath)
+                    ? userPath
+                    : path.resolve(process.cwd(), userPath),
+                mounts,
+            ),
+        exec: createShellStreamingExec(shell),
+    });
+}
+
 function createDockerFindOps(
     shell: DockerPersistentShell,
     mounts: Record<string, string>,
@@ -971,6 +988,7 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
                 write: createDockerWriteOps(shell, mounts),
                 edit: createDockerEditOps(shell, mounts),
                 grepExecute: createDockerGrepExecute(shell, mounts),
+                findExecute: createDockerFindExecute(shell, mounts),
                 find: createDockerFindOps(shell, mounts),
                 ls: createDockerLsOps(shell, mounts),
             };

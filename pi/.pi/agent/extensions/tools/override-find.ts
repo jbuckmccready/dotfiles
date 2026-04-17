@@ -17,7 +17,7 @@ import {
     replaceTabs,
     countRenderedLinesWithoutNotice,
 } from "./shared";
-import type { SandboxAPI } from "./sandbox-shared";
+import type { FindExecuteResult, SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 type CompCache = Partial<Record<ToolViewMode, Component>>;
@@ -52,8 +52,18 @@ export function createFindOverride(sandbox: SandboxAPI) {
                 | undefined,
             ctx: ExtensionContext,
         ): Promise<AgentToolResult<FindToolDetails | undefined>> {
+            const ops = sandbox.getOps();
+            if (ops.findExecute) {
+                return ops.findExecute(
+                    params,
+                    signal,
+                ) as Promise<
+                    FindExecuteResult &
+                        AgentToolResult<FindToolDetails | undefined>
+                >;
+            }
             return createFindTool(sandbox.translatePath(ctx.cwd), {
-                operations: sandbox.getOps().find,
+                operations: ops.find,
             }).execute(toolCallId, params, signal, onUpdate);
         },
 

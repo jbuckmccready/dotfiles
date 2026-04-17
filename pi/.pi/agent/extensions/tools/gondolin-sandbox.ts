@@ -77,6 +77,7 @@ import type {
 } from "./sandbox-shared";
 import {
     type StreamingExec,
+    createSandboxedFindExecute,
     createSandboxedGrepExecute,
     sandboxedFdGlob,
 } from "./sandbox-tools";
@@ -256,12 +257,22 @@ function createGondolinExec(vm: VM): StreamingExec {
     };
 }
 
-function createGondolinGrepExecute(vm: VM): SandboxOps["grepExecute"] {
+function createGondolinGrepExecute(
+    vm: VM,
+    localCwd: string,
+): SandboxOps["grepExecute"] {
     return createSandboxedGrepExecute({
-        resolveSearchPath: (userPath) =>
-            path.posix.isAbsolute(userPath)
-                ? userPath
-                : path.posix.join(GUEST_WORKSPACE, userPath),
+        resolveSearchPath: (userPath) => hostToGuestPath(localCwd, userPath),
+        exec: createGondolinExec(vm),
+    });
+}
+
+function createGondolinFindExecute(
+    vm: VM,
+    localCwd: string,
+): SandboxOps["findExecute"] {
+    return createSandboxedFindExecute({
+        resolveSearchPath: (userPath) => hostToGuestPath(localCwd, userPath),
         exec: createGondolinExec(vm),
     });
 }
@@ -449,7 +460,8 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 write: createGondolinWriteOps(vm, localCwd),
                 edit: createGondolinEditOps(vm, localCwd),
                 // NOTE: override grepExecute so it uses rg inside the VM sandbox
-                grepExecute: createGondolinGrepExecute(vm),
+                grepExecute: createGondolinGrepExecute(vm, localCwd),
+                findExecute: createGondolinFindExecute(vm, localCwd),
                 find: createGondolinFindOps(vm, localCwd),
                 ls: createGondolinLsOps(vm, localCwd),
             };

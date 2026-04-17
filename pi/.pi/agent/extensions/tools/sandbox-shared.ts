@@ -11,6 +11,7 @@ import type {
     FindOperations,
     LsOperations,
     GrepToolInput,
+    FindToolInput,
 } from "@mariozechner/pi-coding-agent";
 import type { SandboxRuntimeConfig } from "@anthropic-ai/sandbox-runtime";
 
@@ -193,6 +194,11 @@ export interface GrepExecuteResult {
     details: Record<string, unknown> | undefined;
 }
 
+export interface FindExecuteResult {
+    content: Array<{ type: "text"; text: string }>;
+    details: Record<string, unknown> | undefined;
+}
+
 export interface SandboxOps {
     bash?: BashOperations;
     read?: ReadOperations;
@@ -206,6 +212,11 @@ export interface SandboxOps {
         params: GrepToolInput,
         signal?: AbortSignal,
     ) => Promise<GrepExecuteResult>;
+    /** Full find execute override (bypasses core tool's host-side find path) */
+    findExecute?: (
+        params: FindToolInput,
+        signal?: AbortSignal,
+    ) => Promise<FindExecuteResult>;
 }
 
 export interface SandboxProvider<TConfig = SandboxConfig> {

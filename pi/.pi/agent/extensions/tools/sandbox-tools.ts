@@ -6,7 +6,13 @@
  */
 
 import path from "node:path";
-import type { GrepToolInput } from "@mariozechner/pi-coding-agent";
+import {
+    DEFAULT_MAX_BYTES,
+    type FindToolInput,
+    formatSize,
+    type GrepToolInput,
+    truncateHead,
+} from "@mariozechner/pi-coding-agent";
 import type { SandboxOps } from "./sandbox-shared";
 
 function shQuote(value: string): string {
@@ -92,6 +98,11 @@ interface GrepExecuteDetails extends Record<string, unknown> {
     };
     matchLimitReached?: number;
     linesTruncated?: boolean;
+}
+
+interface FindExecuteDetails extends Record<string, unknown> {
+    truncation?: ReturnType<typeof truncateHead>;
+    resultLimitReached?: number;
 }
 
 const MAX_LINE_LENGTH = 500;
@@ -299,50 +310,23 @@ export function createSandboxedGrepExecute(opts: {
 // Find
 // ---------------------------------------------------------------------------
 
-/**
- * Run `fd` inside a sandbox via the provided streaming exec callback.
- * Builds the fd command, collects output, handles errors, and converts
- * guest paths into paths prefixed with `searchPath` so the find tool's
- * relativization (`p.slice(searchPath.length + 1)`) produces correct results.
- */
-export async function sandboxedFdGlob(opts: {
-    pattern: string;
+function toPosixPath(value: string): string {
+    return value.replace(/\\/g, "/");
+}
+
+function mapSandboxedFindPaths(opts: {
+    stdout: string;
     guestCwd: string;
     searchPath: string;
-    limit: number;
-    exec: StreamingExec;
-}): Promise<string[]> {
-    const args = buildFdFindArgs({
-        pattern: opts.pattern,
-        cwd: opts.guestCwd,
-        limit: opts.limit,
-    });
-    const cmd = ["fd", ...args.map((arg) => shQuote(arg))].join(" ");
+}): string[] {
+    if (!opts.stdout.trim()) return [];
 
-    let stdout = "";
-    let stderr = "";
-    const result = await opts.exec(cmd, {
-        onStdout: (data) => {
-            stdout += data;
-        },
-        onStderr: (data) => {
-            stderr += data;
-        },
-    });
-
-    if (result.exitCode !== 0 && !stdout.trim()) {
-        const msg = stderr.trim();
-        if (msg) throw new Error(`find failed (${result.exitCode}): ${msg}`);
-        return [];
-    }
-
-    if (!stdout.trim()) return [];
     // The find tool relativizes results via p.slice(searchPath.length + 1),
     // which assumes a "/" separator after searchPath. When searchPath is "/",
     // this strips 2 chars instead of 1. Work around by prepending an extra
     // "/" so the "//..." prefix gets correctly stripped to the relative path.
     const rootPrefix = opts.searchPath === "/" ? "/" : "";
-    return stdout
+    return opts.stdout
         .trim()
         .split("\n")
         .map((line) => line.replace(/\r$/, ""))
@@ -369,4 +353,139 @@ export async function sandboxedFdGlob(opts: {
                 )
             );
         });
+}
+
+/**
+ * Create a `findExecute` implementation that runs `fd` via the provided
+ * streaming exec callback and formats results like the built-in find tool.
+ */
+export function createSandboxedFindExecute(opts: {
+    resolveSearchPath: (userPath: string) => string;
+    exec: StreamingExec;
+}): SandboxOps["findExecute"] {
+    return async (params: FindToolInput, signal?: AbortSignal) => {
+        if (signal?.aborted) throw new Error("Operation aborted");
+
+        const searchPath = opts.resolveSearchPath(params.path || ".");
+        const effectiveLimit = Math.max(1, params.limit ?? DEFAULT_LIMIT);
+
+        let results: string[];
+        try {
+            results = await sandboxedFdGlob({
+                pattern: params.pattern,
+                guestCwd: searchPath,
+                searchPath,
+                limit: effectiveLimit,
+                exec: opts.exec,
+                signal,
+            });
+        } catch (err) {
+            if (signal?.aborted) throw new Error("Operation aborted");
+            throw err;
+        }
+
+        if (results.length === 0) {
+            return {
+                content: [
+                    {
+                        type: "text" as const,
+                        text: "No files found matching pattern",
+                    },
+                ],
+                details: undefined,
+            };
+        }
+
+        const relativized = results.map((resultPath) => {
+            if (resultPath.startsWith(searchPath)) {
+                return toPosixPath(
+                    resultPath.slice(searchPath.length + 1),
+                );
+            }
+            return toPosixPath(path.relative(searchPath, resultPath));
+        });
+
+        const resultLimitReached = relativized.length >= effectiveLimit;
+        const rawOutput = relativized.join("\n");
+        const truncation = truncateHead(rawOutput, {
+            maxLines: Number.MAX_SAFE_INTEGER,
+        });
+        let output = truncation.content;
+
+        const details: FindExecuteDetails = {};
+        const notices: string[] = [];
+        if (resultLimitReached) {
+            notices.push(
+                `${effectiveLimit} results limit reached. Use limit=${effectiveLimit * 2} for more, or refine pattern`,
+            );
+            details.resultLimitReached = effectiveLimit;
+        }
+        if (truncation.truncated) {
+            notices.push(`${formatSize(DEFAULT_MAX_BYTES)} limit reached`);
+            details.truncation = truncation;
+        }
+        if (notices.length > 0) {
+            output += `\n\n[${notices.join(". ")}]`;
+        }
+
+        return {
+            content: [{ type: "text" as const, text: output }],
+            details: Object.keys(details).length > 0 ? details : undefined,
+        };
+    };
+}
+
+/**
+ * Run `fd` inside a sandbox via the provided streaming exec callback.
+ * Builds the fd command, collects output, handles errors, and converts
+ * guest paths into paths prefixed with `searchPath` so the find tool's
+ * relativization (`p.slice(searchPath.length + 1)`) produces correct results.
+ */
+export async function sandboxedFdGlob(opts: {
+    pattern: string;
+    guestCwd: string;
+    searchPath: string;
+    limit: number;
+    exec: StreamingExec;
+    signal?: AbortSignal;
+}): Promise<string[]> {
+    if (opts.signal?.aborted) throw new Error("Operation aborted");
+
+    const args = buildFdFindArgs({
+        pattern: opts.pattern,
+        cwd: opts.guestCwd,
+        limit: opts.limit,
+    });
+    const cmd = ["fd", ...args.map((arg) => shQuote(arg))].join(" ");
+
+    let stdout = "";
+    let stderr = "";
+    let result: { exitCode: number };
+    try {
+        result = await opts.exec(cmd, {
+            signal: opts.signal,
+            onStdout: (data) => {
+                stdout += data;
+            },
+            onStderr: (data) => {
+                stderr += data;
+            },
+        });
+    } catch (err) {
+        if (opts.signal?.aborted) throw new Error("Operation aborted");
+        throw err;
+    }
+
+    if (result.exitCode !== 0 && !stdout.trim()) {
+        if (opts.signal?.aborted) throw new Error("Operation aborted");
+        const msg = stderr.trim();
+        if (msg) throw new Error(`find failed (${result.exitCode}): ${msg}`);
+        return [];
+    }
+
+    return mapSandboxedFindPaths({
+        stdout,
+        guestCwd: opts.guestCwd,
+        searchPath: opts.searchPath,
+    });
 }
