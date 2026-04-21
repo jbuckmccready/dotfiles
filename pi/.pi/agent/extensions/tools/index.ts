@@ -103,7 +103,7 @@ export default function (pi: ExtensionAPI) {
         },
     });
 
-    pi.registerShortcut("ctrl+o", {
+    pi.registerShortcut("ctrl+shift+e", {
         description: "Cycle tool view mode (minimal → condensed → expanded)",
         handler: async (ctx) => {
             cycleToolViewMode();
