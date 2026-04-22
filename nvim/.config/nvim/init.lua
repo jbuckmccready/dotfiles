@@ -108,6 +108,6 @@ require("mason-lspconfig").setup({
         "rust_analyzer",
         "terraformls",
         "ts_ls",
-        "zls",
+        "zls@0.15.1",
     },
 })
