@@ -17,7 +17,7 @@ import type {
   AgentToolUpdateCallback,
   ExtensionAPI,
 } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+import { Type } from "typebox";
 import { type AgentConfig, discoverAgents } from "./agents";
 import { renderCall, renderResult, setViewMode } from "./render";
 import type { ToolViewMode } from "../tools/tool-view-mode";
