@@ -86,12 +86,11 @@ Example output:
   ]
 }`;
 
-const GEMINI_MODEL_ID = "gemini-3-flash-preview";
 const CODEX_MODEL_ID = "gpt-5.4-mini";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 /**
- * Prefer OpenAI Codex GPT-5.4 mini for extraction, then Haiku, then Gemini Flash, otherwise fallback to the current model.
+ * Prefer OpenAI Codex GPT-5.4 mini for extraction, then Haiku, otherwise fallback to the current model.
  */
 async function selectExtractionModel(
     currentModel: Model<Api>,
@@ -103,7 +102,6 @@ async function selectExtractionModel(
     const candidates: Array<{ provider: string; modelId: string }> = [
         { provider: "openai-codex", modelId: CODEX_MODEL_ID },
         { provider: "anthropic", modelId: HAIKU_MODEL_ID },
-        { provider: "google-gemini-cli", modelId: GEMINI_MODEL_ID },
     ];
 
     for (const candidate of candidates) {

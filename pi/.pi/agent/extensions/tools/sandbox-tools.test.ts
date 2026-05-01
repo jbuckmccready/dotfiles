@@ -3,6 +3,7 @@ import test from "node:test";
 import {
     buildFdFindArgs,
     createSandboxedFindExecute,
+    createSandboxedGrepExecute,
     sandboxedFdGlob,
 } from "./sandbox-tools.ts";
 
@@ -30,6 +31,7 @@ test("buildFdFindArgs keeps basename-only glob in basename mode", () => {
         "--no-require-git",
         "--max-results",
         "100",
+        "--",
         "*.spec.ts",
         "/workspace",
     ]);
@@ -52,6 +54,7 @@ test("buildFdFindArgs enables full-path mode and prefixes path globs", () => {
         "--max-results",
         "100",
         "--full-path",
+        "--",
         "**/src/**/*.spec.ts",
         "/workspace",
     ]);
@@ -72,6 +75,7 @@ test("buildFdFindArgs prefixes subtree globs that do not already start with **/"
         "--max-results",
         "100",
         "--full-path",
+        "--",
         "**/some/parent/child/**",
         "/workspace",
     ]);
@@ -92,6 +96,7 @@ test("buildFdFindArgs leaves leading ** path glob unchanged", () => {
         "--max-results",
         "100",
         "--full-path",
+        "--",
         "**/parent/child/*",
         "/workspace",
     ]);
@@ -111,10 +116,41 @@ test("buildFdFindArgs leaves bare ** in basename mode", () => {
         "--no-require-git",
         "--max-results",
         "100",
+        "--",
         "**",
         "/workspace",
     ]);
     assert.ok(!args.includes("--full-path"));
+});
+
+test("buildFdFindArgs protects flag-like patterns with option delimiter", () => {
+    const args = buildFdFindArgs({
+        pattern: "--definitely-not-a-flag",
+        cwd: "/workspace",
+        limit: 100,
+    });
+
+    assert.deepEqual(args.slice(-3), [
+        "--",
+        "--definitely-not-a-flag",
+        "/workspace",
+    ]);
+});
+
+test("sandboxedGrepExecute protects flag-like patterns with option delimiter", async () => {
+    let command = "";
+    const grepExecute = createSandboxedGrepExecute({
+        resolveSearchPath: () => "/workspace",
+        exec: async (cmd, { onStdout }) => {
+            command = cmd;
+            onStdout("");
+            return { exitCode: 1 };
+        },
+    })!;
+
+    await grepExecute({ pattern: "--definitely-not-a-flag", path: "." });
+
+    assert.match(command, / '--' '--definitely-not-a-flag' '\/workspace'$/);
 });
 
 test("sandboxedFdGlob executes fd with normalized arguments", async () => {
@@ -134,7 +170,7 @@ test("sandboxedFdGlob executes fd with normalized arguments", async () => {
 
     assert.equal(
         command,
-        "fd '--glob' '--color=never' '--hidden' '--no-require-git' '--max-results' '25' '--full-path' '**/src/**/*.spec.ts' '/guest/workspace'",
+        "fd '--glob' '--color=never' '--hidden' '--no-require-git' '--max-results' '25' '--full-path' '--' '**/src/**/*.spec.ts' '/guest/workspace'",
     );
 });
 

@@ -49,7 +49,7 @@ export function buildFdFindArgs(opts: {
         }
     }
 
-    args.push(effectivePattern, opts.cwd);
+    args.push("--", effectivePattern, opts.cwd);
     return args;
 }
 
@@ -147,7 +147,7 @@ export function createSandboxedGrepExecute(opts: {
         if (params.literal) args.push("--fixed-strings");
         if (params.glob) args.push("--glob", params.glob);
         if (contextValue > 0) args.push("-C", String(contextValue));
-        args.push(params.pattern, searchPath);
+        args.push("--", params.pattern, searchPath);
 
         const cmd = ["rg", ...args.map((arg) => shQuote(arg))].join(" ");
 
