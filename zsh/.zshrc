@@ -42,9 +42,7 @@ export PATH="/opt/homebrew/opt/e2fsprogs/sbin:$PATH"
 
 . "$HOME/.local/bin/env"
 
-# Execute fish if it's not the parent process.
-if ! ps -p $PPID | grep -q fish; then
-  fish
-  # automatically exit zsh once fish exits
-  exit
+# Replace zsh with fish after zsh has populated the environment.
+if [[ -z "$FISH_VERSION" ]]; then
+  exec fish -l
 fi
