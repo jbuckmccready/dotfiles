@@ -1,5 +1,5 @@
 [default_session]
-startup_command = "nvim -c ':lua Snacks.picker.files()'"
+startup_command = "nvim -c ':lua Snacks.picker.files()'; exec $SHELL -i"
 preview_command = "lsd --blocks=size --blocks=date --blocks=name --icon=always --color=always {}"
 
 [[session]]
@@ -11,7 +11,7 @@ preview_command = "bat --color=always ~/dotfiles/tmux/.tmux.conf"
 [[session]]
 name = "dotfiles"
 path = "~/dotfiles"
-startup_command = "nvim -c ':lua Snacks.picker.files({hidden = true})'"
+startup_command = "nvim -c ':lua Snacks.picker.files({hidden = true})'; exec $SHELL -i"
 
 [[session]]
 name = "k9s"
