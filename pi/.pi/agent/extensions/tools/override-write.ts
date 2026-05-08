@@ -5,9 +5,9 @@ import {
     type ExtensionContext,
     type Theme,
     type WriteToolInput,
-} from "@mariozechner/pi-coding-agent";
-import type { Component } from "@mariozechner/pi-tui";
-import { wrapTextWithAnsi } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import type { Component } from "@earendil-works/pi-tui";
+import { wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import { component, shortenPath } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";
 import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";

@@ -12,7 +12,7 @@ import {
     formatSize,
     type GrepToolInput,
     truncateHead,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type { SandboxOps } from "./sandbox-shared";
 
 function shQuote(value: string): string {

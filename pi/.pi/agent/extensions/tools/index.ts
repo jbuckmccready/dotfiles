@@ -1,7 +1,7 @@
 import type {
     ExtensionAPI,
     ToolDefinition,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
     createReadToolDefinition,
     createGrepToolDefinition,
@@ -10,7 +10,7 @@ import {
     createLsToolDefinition,
     createEditToolDefinition,
     createBashToolDefinition,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { initSandbox } from "./sandbox";
 import { createReadOverride } from "./override-read";
 import { createGrepOverride } from "./override-grep";

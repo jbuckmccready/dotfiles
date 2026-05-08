@@ -2,14 +2,14 @@
  * TUI rendering for subagent tool calls and results.
  */
 
-import type { ThemeColor } from "@mariozechner/pi-coding-agent";
+import type { ThemeColor } from "@earendil-works/pi-coding-agent";
 import {
 	Markdown,
 	type MarkdownTheme,
 	type Component,
 	visibleWidth,
 	wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import {
 	type DelegationMode,
 	type DisplayItem,

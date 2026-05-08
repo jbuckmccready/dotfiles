@@ -9,13 +9,13 @@ import {
     type ExtensionContext,
     type Theme,
     type ToolRenderResultOptions,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
     Text,
     visibleWidth,
     truncateToWidth,
     wrapTextWithAnsi,
-} from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-tui";
 import * as Diff from "diff";
 import { shortenPath, component, getSanitizedTextOutput } from "./shared";
 import type { SandboxAPI } from "./sandbox-shared";

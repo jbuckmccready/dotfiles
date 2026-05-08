@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     SandboxConfig,
     SandboxProvider,

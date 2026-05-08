@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import {
     stripFrontmatter,
     type ExtensionAPI,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
     loadConfig,
     type SandboxProvider,

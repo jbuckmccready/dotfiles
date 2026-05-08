@@ -46,7 +46,7 @@ import * as fs from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, basename } from "node:path";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
-import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -55,7 +55,7 @@ import type {
     GrepOperations,
     FindOperations,
     LsOperations,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type {
     OsSandboxConfig,
     SandboxProvider,

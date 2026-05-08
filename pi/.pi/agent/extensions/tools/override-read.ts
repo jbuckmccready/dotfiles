@@ -9,9 +9,9 @@ import {
     type ReadToolInput,
     type Theme,
     type ToolRenderResultOptions,
-} from "@mariozechner/pi-coding-agent";
-import type { Component } from "@mariozechner/pi-tui";
-import { Text, wrapTextWithAnsi } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import type { Component } from "@earendil-works/pi-tui";
+import { Text, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 import {
     component,
     shortenPath,

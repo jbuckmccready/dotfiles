@@ -38,7 +38,7 @@ import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -46,7 +46,7 @@ import type {
     EditOperations,
     FindOperations,
     LsOperations,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import type {
     DockerSandboxConfig,
     SandboxProvider,

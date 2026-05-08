@@ -52,7 +52,7 @@
 import { constants, realpathSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import type { ExtensionUIContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
@@ -60,7 +60,7 @@ import type {
     EditOperations,
     FindOperations,
     LsOperations,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
     VM,
     VmCheckpoint,
