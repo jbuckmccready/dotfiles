@@ -3,10 +3,6 @@
     "private": true,
     "version": "1.0.0",
     "type": "module",
-    "scripts": {
-        "check": "tsc --noEmit -p tsconfig.json",
-        "test": "node --import tsx --test *.test.ts"
-    },
     "pi": {
         "extensions": [
             "./index.ts"
@@ -15,14 +11,12 @@
     "dependencies": {
         "@anthropic-ai/sandbox-runtime": "^0.0.49",
         "@earendil-works/gondolin": "^0.7.0",
-        "@earendil-works/pi-coding-agent": "0.74.0",
-        "@earendil-works/pi-tui": "0.74.0",
         "diff": "^9.0.0",
         "glob": "^13.0.6",
         "strip-ansi": "^7.2.0"
     },
-    "devDependencies": {
-        "tsx": "^4.21.0",
-        "typescript": "^6.0.3"
+    "peerDependencies": {
+        "@earendil-works/pi-coding-agent": "*",
+        "@earendil-works/pi-tui": "*"
     }
 }
