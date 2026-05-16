@@ -43,7 +43,6 @@ import type {
     BashOperations,
     ReadOperations,
     WriteOperations,
-    EditOperations,
     FindOperations,
     LsOperations,
 } from "@earendil-works/pi-coding-agent";
@@ -51,6 +50,7 @@ import type {
     DockerSandboxConfig,
     SandboxProvider,
     SandboxOps,
+    SandboxEditOperations,
 } from "./sandbox-shared";
 import {
     type StreamingExec,
@@ -807,10 +807,57 @@ function createDockerWriteOps(
 function createDockerEditOps(
     shell: DockerPersistentShell,
     mounts: Record<string, string>,
-): EditOperations {
+): SandboxEditOperations {
     const r = createDockerReadOps(shell, mounts);
     const w = createDockerWriteOps(shell, mounts);
-    return { readFile: r.readFile, access: r.access, writeFile: w.writeFile };
+    return {
+        readFile: r.readFile,
+        writeFile: w.writeFile,
+        mkdir: w.mkdir,
+        async checkWriteAccess(p) {
+            const guestPath = hostToGuestPath(p, mounts);
+            const result = await shell.exec(
+                [
+                    `target=${shQuote(guestPath)}`,
+                    `if [ -e "$target" ]; then test -w "$target"; exit $?; fi`,
+                    `dir=$(dirname -- "$target")`,
+                    `while [ ! -e "$dir" ] && [ "$dir" != / ]; do dir=$(dirname -- "$dir"); done`,
+                    `test -w "$dir"`,
+                ].join("\n"),
+            );
+            if (result.exitCode !== 0) {
+                throw new Error(`EACCES: permission denied, write '${guestPath}'`);
+            }
+        },
+        async checkDeleteAccess(p) {
+            const guestPath = hostToGuestPath(p, mounts);
+            const result = await shell.exec(
+                [
+                    `target=${shQuote(guestPath)}`,
+                    `dir=$(dirname -- "$target")`,
+                    `while [ ! -e "$dir" ] && [ "$dir" != / ]; do dir=$(dirname -- "$dir"); done`,
+                    `test -w "$dir"`,
+                ].join("\n"),
+            );
+            if (result.exitCode !== 0) {
+                throw new Error(`EACCES: permission denied, delete '${guestPath}'`);
+            }
+        },
+        async deleteFile(p) {
+            const guestPath = hostToGuestPath(p, mounts);
+            const result = await shell.exec(`rm -- ${shQuote(guestPath)}`);
+            if (result.exitCode !== 0) {
+                throw new Error(
+                    `Failed to delete: ${guestPath}${result.stdout ? "\n" + result.stdout.trim() : ""}`,
+                );
+            }
+        },
+        async exists(p) {
+            const guestPath = hostToGuestPath(p, mounts);
+            const result = await shell.exec(`test -e ${shQuote(guestPath)}`);
+            return result.exitCode === 0;
+        },
+    };
 }
 
 function createDockerGrepExecute(

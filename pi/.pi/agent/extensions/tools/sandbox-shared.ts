@@ -6,7 +6,6 @@ import type {
     BashOperations,
     ReadOperations,
     WriteOperations,
-    EditOperations,
     GrepOperations,
     FindOperations,
     LsOperations,
@@ -199,11 +198,21 @@ export interface FindExecuteResult {
     details: Record<string, unknown> | undefined;
 }
 
+export interface SandboxEditOperations {
+    readFile: (absolutePath: string) => Promise<Buffer>;
+    writeFile: (absolutePath: string, content: string) => Promise<void>;
+    mkdir: (dir: string) => Promise<void>;
+    deleteFile: (absolutePath: string) => Promise<void>;
+    exists: (absolutePath: string) => Promise<boolean>;
+    checkWriteAccess: (absolutePath: string) => Promise<void>;
+    checkDeleteAccess: (absolutePath: string) => Promise<void>;
+}
+
 export interface SandboxOps {
     bash?: BashOperations;
     read?: ReadOperations;
     write?: WriteOperations;
-    edit?: EditOperations;
+    edit?: SandboxEditOperations;
     grep?: GrepOperations;
     find?: FindOperations;
     ls?: LsOperations;

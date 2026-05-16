@@ -57,7 +57,6 @@ import type {
     BashOperations,
     ReadOperations,
     WriteOperations,
-    EditOperations,
     FindOperations,
     LsOperations,
 } from "@earendil-works/pi-coding-agent";
@@ -74,6 +73,7 @@ import type {
     GondolinSandboxConfig,
     SandboxProvider,
     SandboxOps,
+    SandboxEditOperations,
 } from "./sandbox-shared";
 import {
     type StreamingExec,
@@ -191,10 +191,75 @@ function createGondolinWriteOps(vm: VM, localCwd: string): WriteOperations {
     };
 }
 
-function createGondolinEditOps(vm: VM, localCwd: string): EditOperations {
+function createGondolinEditOps(vm: VM, localCwd: string): SandboxEditOperations {
     const r = createGondolinReadOps(vm, localCwd);
     const w = createGondolinWriteOps(vm, localCwd);
-    return { readFile: r.readFile, access: r.access, writeFile: w.writeFile };
+    return {
+        readFile: r.readFile,
+        writeFile: w.writeFile,
+        mkdir: w.mkdir,
+        async checkWriteAccess(p) {
+            const guestPath = hostToGuestPath(localCwd, p);
+            const result = await vm.exec([
+                "/bin/sh",
+                "-c",
+                [
+                    `target="$1"`,
+                    `if [ -e "$target" ]; then test -w "$target"; exit $?; fi`,
+                    `dir=$(dirname -- "$target")`,
+                    `while [ ! -e "$dir" ] && [ "$dir" != / ]; do dir=$(dirname -- "$dir"); done`,
+                    `test -w "$dir"`,
+                ].join("\n"),
+                "sh",
+                guestPath,
+            ]);
+            if (!result.ok) {
+                throw new Error(`EACCES: permission denied, write '${guestPath}'`);
+            }
+        },
+        async checkDeleteAccess(p) {
+            const guestPath = hostToGuestPath(localCwd, p);
+            const result = await vm.exec([
+                "/bin/sh",
+                "-c",
+                [
+                    `target="$1"`,
+                    `dir=$(dirname -- "$target")`,
+                    `while [ ! -e "$dir" ] && [ "$dir" != / ]; do dir=$(dirname -- "$dir"); done`,
+                    `test -w "$dir"`,
+                ].join("\n"),
+                "sh",
+                guestPath,
+            ]);
+            if (!result.ok) {
+                throw new Error(`EACCES: permission denied, delete '${guestPath}'`);
+            }
+        },
+        async deleteFile(p) {
+            const guestPath = hostToGuestPath(localCwd, p);
+            const fsWithUnlink = vm.fs as typeof vm.fs & {
+                unlink?: (path: string) => Promise<void>;
+            };
+            if (fsWithUnlink.unlink) {
+                await fsWithUnlink.unlink(guestPath);
+                return;
+            }
+
+            const result = await vm.exec(["/bin/rm", "--", guestPath]);
+            if (!result.ok) {
+                throw new Error(`Failed to delete: ${guestPath}`);
+            }
+        },
+        async exists(p) {
+            const guestPath = hostToGuestPath(localCwd, p);
+            try {
+                await vm.fs.access(guestPath);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+    };
 }
 
 function createGondolinBashOps(vm: VM, localCwd: string): BashOperations {

@@ -41,17 +41,16 @@
  *   commandEnv                  — env overrides for sandboxed bash commands (supports ~).
  */
 import { spawn } from "node:child_process";
-import { existsSync, realpathSync } from "node:fs";
+import { constants, existsSync, realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, basename } from "node:path";
+import { join, basename, dirname } from "node:path";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     BashOperations,
     ReadOperations,
     WriteOperations,
-    EditOperations,
     GrepOperations,
     FindOperations,
     LsOperations,
@@ -60,6 +59,7 @@ import type {
     OsSandboxConfig,
     SandboxProvider,
     SandboxOps,
+    SandboxEditOperations,
 } from "./sandbox-shared";
 import { detectImageMimeFromBytes } from "./shared";
 import { buildFdFindArgs } from "./sandbox-tools";
@@ -297,11 +297,59 @@ function createWriteOps(
 function createEditOps(
     readOps: ReadOperations,
     writeOps: WriteOperations,
-): EditOperations {
+    allowWriteResolved: string[],
+    denyWritePatterns: string[],
+): SandboxEditOperations {
+    async function checkParentWriteAccess(absolutePath: string): Promise<void> {
+        let parent = dirname(absolutePath);
+        while (!(await pathExists(parent))) {
+            const next = dirname(parent);
+            if (next === parent) break;
+            parent = next;
+        }
+        await fs.access(parent, constants.W_OK);
+    }
+
     return {
         readFile: readOps.readFile,
-        access: readOps.access,
         writeFile: writeOps.writeFile,
+        mkdir: writeOps.mkdir,
+        async checkWriteAccess(absolutePath: string): Promise<void> {
+            assertWriteAllowed(
+                absolutePath,
+                allowWriteResolved,
+                denyWritePatterns,
+            );
+            if (await pathExists(absolutePath)) {
+                await fs.access(absolutePath, constants.W_OK);
+                return;
+            }
+            await checkParentWriteAccess(absolutePath);
+        },
+        async checkDeleteAccess(absolutePath: string): Promise<void> {
+            assertWriteAllowed(
+                absolutePath,
+                allowWriteResolved,
+                denyWritePatterns,
+            );
+            await checkParentWriteAccess(absolutePath);
+        },
+        async deleteFile(absolutePath: string): Promise<void> {
+            assertWriteAllowed(
+                absolutePath,
+                allowWriteResolved,
+                denyWritePatterns,
+            );
+            await fs.unlink(absolutePath);
+        },
+        async exists(absolutePath: string): Promise<boolean> {
+            try {
+                await fs.access(absolutePath);
+                return true;
+            } catch {
+                return false;
+            }
+        },
     };
 }
 
@@ -584,7 +632,12 @@ export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
                 bash: createSandboxedBashOps(config),
                 read: readOps,
                 write: writeOps,
-                edit: createEditOps(readOps, writeOps),
+                edit: createEditOps(
+                    readOps,
+                    writeOps,
+                    allowWriteResolved,
+                    denyWritePatterns,
+                ),
                 grep: createGrepOps(denyReadResolved),
                 find: createFindOps(denyReadResolved),
                 ls: createLsOps(denyReadResolved),
