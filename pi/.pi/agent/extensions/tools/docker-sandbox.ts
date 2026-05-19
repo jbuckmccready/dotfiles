@@ -36,6 +36,7 @@
 
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
@@ -66,6 +67,33 @@ import { detectImageMimeFromBytes } from "./shared";
 
 function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
+}
+
+// Canonicalize host paths before mount-prefix matching. Docker inspect may
+// report bind sources as realpaths while tool results preserve a symlinked
+// spelling. On macOS this commonly shows up as /var/... vs /private/var/...
+// for TMPDIR-backed files, which are the same location but would not match
+// with plain string prefix checks.
+function canonicalizeHostPath(hostPath: string): string {
+    if (!path.isAbsolute(hostPath)) return hostPath;
+
+    const normalized = hostPath.replace(/\/+$/, "") || "/";
+    let current = normalized;
+    const suffix: string[] = [];
+
+    while (!existsSync(current)) {
+        const parent = path.dirname(current);
+        if (parent === current) return normalized;
+        suffix.unshift(path.basename(current));
+        current = parent;
+    }
+
+    try {
+        const resolved = realpathSync.native(current);
+        return suffix.length > 0 ? path.join(resolved, ...suffix) : resolved;
+    } catch {
+        return normalized;
+    }
 }
 
 const PYTHON_STREAM_HELPER = String.raw`
@@ -168,31 +196,36 @@ export function hostToGuestPath(
     hostPath: string,
     mounts: Record<string, string>,
 ): string {
+    const canonicalHostPath = canonicalizeHostPath(hostPath);
     let bestHost = "";
     let bestContainer = "";
 
     for (const [hostMount, containerMount] of Object.entries(mounts)) {
+        const canonicalMount = canonicalizeHostPath(hostMount);
         if (
-            (hostPath === hostMount || hostPath.startsWith(hostMount + "/")) &&
-            hostMount.length > bestHost.length
+            (canonicalHostPath === canonicalMount ||
+                canonicalHostPath.startsWith(canonicalMount + "/")) &&
+            canonicalMount.length > bestHost.length
         ) {
-            bestHost = hostMount;
+            bestHost = canonicalMount;
             bestContainer = containerMount;
         }
     }
 
     if (!bestHost) return hostPath;
-    if (hostPath === bestHost) return bestContainer;
-    return bestContainer + hostPath.slice(bestHost.length);
+    if (canonicalHostPath === bestHost) return bestContainer;
+    return bestContainer + canonicalHostPath.slice(bestHost.length);
 }
 
 function isPathCoveredByMounts(
     hostPath: string,
     mounts: Record<string, string>,
 ): boolean {
+    const canonicalHostPath = canonicalizeHostPath(hostPath);
     return Object.keys(mounts).some(
         (hostMount) =>
-            hostPath === hostMount || hostPath.startsWith(hostMount + "/"),
+            canonicalHostPath === hostMount ||
+            canonicalHostPath.startsWith(hostMount + "/"),
     );
 }
 
@@ -229,7 +262,9 @@ function autoDetectMounts(container: string): Record<string, string> {
         for (const m of mountList) {
             if (m.Type === "bind") {
                 // Strip trailing slashes to normalise paths like /var/folders/.../T/
-                const src = m.Source.replace(/\/+$/, "") || "/";
+                const src = canonicalizeHostPath(
+                    m.Source.replace(/\/+$/, "") || "/",
+                );
                 result[src] = m.Destination;
             }
         }

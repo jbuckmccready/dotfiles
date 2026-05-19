@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
     findMatchingSentinel,
+    hostToGuestPath,
     parseStreamingFrameHeader,
 } from "./docker-sandbox.ts";
 
@@ -85,4 +89,24 @@ test("parseStreamingFrameHeader rejects malformed frames", () => {
         () => parseStreamingFrameHeader("oops"),
         /Malformed streaming frame header/,
     );
+});
+
+test("hostToGuestPath resolves symlinked host paths against mounted real paths", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "pi-docker-sandbox-test-"));
+
+    try {
+        const realDir = path.join(root, "real-tmp");
+        const symlinkDir = path.join(root, "link-tmp");
+        mkdirSync(realDir);
+        symlinkSync(realDir, symlinkDir);
+
+        const translated = hostToGuestPath(
+            path.join(symlinkDir, "pi-bash-output.log"),
+            { [realDir]: "/tmp/pi-host-tmp" },
+        );
+
+        assert.equal(translated, "/tmp/pi-host-tmp/pi-bash-output.log");
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
 });

@@ -41,6 +41,33 @@ function formatDuration(ms: number): string {
     return `${m}m ${rs}s`;
 }
 
+function translateBashResultPaths(
+    result: AgentToolResult<BashToolDetails | undefined>,
+    sandbox: SandboxAPI,
+): AgentToolResult<BashToolDetails | undefined> {
+    const fullOutputPath = result.details?.fullOutputPath;
+    if (!fullOutputPath) return result;
+
+    const translatedPath = sandbox.translatePath(fullOutputPath);
+    if (translatedPath === fullOutputPath) return result;
+
+    const content = result.content.map((block) =>
+        block.type === "text"
+            ? {
+                  ...block,
+                  text: block.text.split(fullOutputPath).join(translatedPath),
+              }
+            : block,
+    );
+
+    const details = {
+        ...result.details,
+        fullOutputPath: translatedPath,
+    };
+
+    return { ...result, content, details };
+}
+
 export function createBashOverride(sandbox: SandboxAPI) {
     const bashCache = new WeakMap<object, CompCache>();
 
@@ -55,9 +82,29 @@ export function createBashOverride(sandbox: SandboxAPI) {
             ctx: ExtensionContext,
         ): Promise<AgentToolResult<BashToolDetails | undefined>> {
             const localCwd = process.cwd();
-            return createBashToolDefinition(localCwd, {
+            const translatedOnUpdate = onUpdate
+                ? (update: {
+                      content:
+                          AgentToolResult<BashToolDetails | undefined>["content"];
+                      details?: BashToolDetails;
+                  }) => {
+                      onUpdate(
+                          translateBashResultPaths(
+                              {
+                                  content: update.content,
+                                  details: update.details,
+                              },
+                              sandbox,
+                          ),
+                      );
+                  }
+                : undefined;
+
+            const result = await createBashToolDefinition(localCwd, {
                 operations: sandbox.getOps().bash,
-            }).execute(id, params, signal, onUpdate, ctx);
+            }).execute(id, params, signal, translatedOnUpdate, ctx);
+
+            return translateBashResultPaths(result, sandbox);
         },
 
         renderCall(
