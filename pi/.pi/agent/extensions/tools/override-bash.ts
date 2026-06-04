@@ -68,6 +68,13 @@ function translateBashResultPaths(
     return { ...result, content, details };
 }
 
+function translateBashErrorMessage(message: string, sandbox: SandboxAPI): string {
+    return message.replace(/Full output: ([^\]\s]+)/g, (_match, filePath) => {
+        const translatedPath = sandbox.translatePath(filePath);
+        return `Full output: ${translatedPath}`;
+    });
+}
+
 export function createBashOverride(sandbox: SandboxAPI) {
     const bashCache = new WeakMap<object, CompCache>();
 
@@ -100,11 +107,18 @@ export function createBashOverride(sandbox: SandboxAPI) {
                   }
                 : undefined;
 
-            const result = await createBashToolDefinition(localCwd, {
-                operations: sandbox.getOps().bash,
-            }).execute(id, params, signal, translatedOnUpdate, ctx);
+            try {
+                const result = await createBashToolDefinition(localCwd, {
+                    operations: sandbox.getOps().bash,
+                }).execute(id, params, signal, translatedOnUpdate, ctx);
 
-            return translateBashResultPaths(result, sandbox);
+                return translateBashResultPaths(result, sandbox);
+            } catch (err) {
+                if (err instanceof Error) {
+                    err.message = translateBashErrorMessage(err.message, sandbox);
+                }
+                throw err;
+            }
         },
 
         renderCall(
