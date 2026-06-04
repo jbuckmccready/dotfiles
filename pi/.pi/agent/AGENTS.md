@@ -27,6 +27,8 @@ You are running in a sandboxed environment that has restrictions. You may encoun
 
 ## Coding
 
+- Read files in full before wide-ranging changes, before editing files you have not fully inspected, and when asked to investigate or audit. Do not rely on search snippets for broad changes.
+- Inline single-line helpers that have only one call site.
 - When editing comments, or documentation, never refer to previous versions of the code that no longer exist - only describe the current state.
 - You are working on a greenfield project, do not implement things to avoid breaking API changes, focus on code quality and simplicity.
 - Keep your changes focused on the task at hand:
