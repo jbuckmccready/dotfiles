@@ -228,6 +228,11 @@ export interface SandboxOps {
     ) => Promise<FindExecuteResult>;
 }
 
+export interface SharedTempDir {
+    hostPath: string;
+    agentPath: string;
+}
+
 export interface SandboxProvider<TConfig = SandboxConfig> {
     init(cwd: string, ui: ExtensionUIContext, config: TConfig): Promise<void>;
     shutdown(): Promise<void>;
@@ -239,6 +244,8 @@ export interface SandboxProvider<TConfig = SandboxConfig> {
     patchSystemPrompt(systemPrompt: string): string;
     /** Translate a host-absolute path to its guest equivalent. Identity when not applicable. */
     translatePath(hostPath: string): string;
+    /** Return a host directory whose files are readable by the agent at agentPath. */
+    getSharedTempDir(name: string): SharedTempDir;
 }
 
 export interface SandboxAPI {
@@ -246,4 +253,6 @@ export interface SandboxAPI {
     getOps(): SandboxOps;
     /** Translate a host-absolute path to its guest equivalent. Identity when not applicable. */
     translatePath(hostPath: string): string;
+    /** Return a host directory whose files are readable by the agent at agentPath. */
+    getSharedTempDir(name: string): SharedTempDir;
 }

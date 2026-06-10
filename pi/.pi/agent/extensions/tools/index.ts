@@ -19,6 +19,7 @@ import { createFindOverride } from "./override-find";
 import { createLsOverride } from "./override-ls";
 import { createEditOverride } from "./override-edit";
 import { createBashOverride } from "./override-bash";
+import { registerWebSearchTool } from "./web-search";
 import {
     type ToolViewMode,
     getToolViewMode,
@@ -63,6 +64,8 @@ type ToolViewModeContext = {
 export default function (pi: ExtensionAPI) {
     const sandbox = initSandbox(pi);
     const cwd = process.cwd();
+
+    registerWebSearchTool(pi, sandbox);
 
     // --- Tool view mode: command + shortcut + status ---
 

@@ -28,6 +28,10 @@ function createLocalEdit(cwd: string) {
         isActive: () => false,
         getOps: () => ({}),
         translatePath: (hostPath) => hostPath,
+        getSharedTempDir: (name) => {
+            const dir = path.join(tmpdir(), name);
+            return { hostPath: dir, agentPath: dir };
+        },
     };
     const edit = createEditOverride(sandbox);
     const ctx = { cwd } as ExtensionContext;
@@ -40,6 +44,10 @@ function renderCallText(args: Parameters<ReturnType<typeof createEditOverride>["
         isActive: () => false,
         getOps: () => ({}),
         translatePath: (hostPath) => hostPath,
+        getSharedTempDir: (name) => {
+            const dir = path.join(tmpdir(), name);
+            return { hostPath: dir, agentPath: dir };
+        },
     };
     const edit = createEditOverride(sandbox);
     const theme = {

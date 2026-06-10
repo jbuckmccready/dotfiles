@@ -591,5 +591,13 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
         translatePath(hostPath: string) {
             return hostToGuestPath(localCwd, hostPath);
         },
+
+        getSharedTempDir(name: string) {
+            const hostPath = path.join(HOST_TMPDIR, name);
+            return {
+                hostPath,
+                agentPath: hostToGuestPath(localCwd, hostPath),
+            };
+        },
     };
 }

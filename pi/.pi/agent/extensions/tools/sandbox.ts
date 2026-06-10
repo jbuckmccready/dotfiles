@@ -172,5 +172,8 @@ export function initSandbox(pi: ExtensionAPI): SandboxAPI {
         translatePath(hostPath: string) {
             return provider.translatePath(hostPath);
         },
+        getSharedTempDir(name: string) {
+            return provider.getSharedTempDir(name);
+        },
     };
 }

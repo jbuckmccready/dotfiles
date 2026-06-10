@@ -9,8 +9,12 @@ import type {
 import { keyHint } from "@earendil-works/pi-coding-agent";
 import type { Component } from "@earendil-works/pi-tui";
 import { truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { spawn } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { Type } from "typebox";
-import { getToolViewMode, type ToolViewMode } from "./tools/tool-view-mode";
+import type { SandboxAPI } from "./sandbox-shared";
+import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 
 // --- Constants ---
 
@@ -20,6 +24,13 @@ const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 const CONDENSED_OUTPUT_LINES = 5;
+const MARKDOWN_TMP_FILE_THRESHOLD_CHARS = 100_000;
+const MARKDOWN_PREVIEW_CHARS = 20_000;
+const MARKITDOWN_PYTHON = "3.12";
+const MARKITDOWN_TIMEOUT_MS = 15_000;
+const MARKITDOWN_COMMAND_LABEL = `uvx --python ${MARKITDOWN_PYTHON} markitdown`;
+
+type SearchMode = "search" | "fetch" | "answer_url";
 
 // --- Helpers ---
 
@@ -38,6 +49,211 @@ function decodeJwtAccountId(jwt: string): string | undefined {
 
 function isRetryable(status: number): boolean {
     return status === 429 || status >= 500;
+}
+
+function isHttpUrl(value: string): boolean {
+    try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
+function isSearchMode(value: string): value is SearchMode {
+    return value === "search" || value === "fetch" || value === "answer_url";
+}
+
+function safeName(value: string | undefined): string {
+    return (value || "document").replace(/[^a-z0-9._-]+/gi, "_");
+}
+
+type MarkdownTmpPath = {
+    hostPath: string;
+    agentPath: string;
+};
+
+function makeTmpMarkdownPath(
+    input: string,
+    sandbox: SandboxAPI,
+): MarkdownTmpPath {
+    const dir = sandbox.getSharedTempDir("pi-web-search-out");
+    mkdirSync(dir.hostPath, { recursive: true });
+
+    const url = new URL(input);
+    const base = safeName(basename(url.pathname) || url.hostname);
+    const stamp = Date.now().toString(36);
+    const rand = Math.random().toString(16).slice(2, 8);
+    const filename = `${base}-${stamp}-${rand}.md`;
+
+    return {
+        hostPath: join(dir.hostPath, filename),
+        agentPath: join(dir.agentPath, filename),
+    };
+}
+
+async function writeTmpMarkdownIfLarge(
+    input: string,
+    markdown: string,
+    sandbox: SandboxAPI,
+): Promise<string | undefined> {
+    if (markdown.length <= MARKDOWN_TMP_FILE_THRESHOLD_CHARS) return undefined;
+
+    const path = makeTmpMarkdownPath(input, sandbox);
+    writeFileSync(path.hostPath, markdown, "utf-8");
+
+    if (sandbox.isActive()) {
+        const readOps = sandbox.getOps().read;
+        if (!readOps) {
+            throw new Error("Sandbox does not provide read operations");
+        }
+        await readOps.access(path.agentPath);
+    }
+
+    return path.agentPath;
+}
+
+function formatFetchedMarkdown(
+    url: string,
+    markdown: string,
+    markdownPath: string | undefined,
+): string {
+    const preview = markdownPath
+        ? markdown.slice(0, MARKDOWN_PREVIEW_CHARS).trimEnd()
+        : markdown;
+
+    return [
+        `Source URL: ${url}`,
+        "Fetched with: markitdown",
+        ...(markdownPath
+            ? [
+                  `Full Markdown saved to: ${markdownPath}`,
+                  `Returned preview: first ${preview.length} of ${markdown.length} characters`,
+              ]
+            : []),
+        "",
+        "---",
+        "",
+        preview,
+        ...(markdownPath
+            ? [
+                  "",
+                  `[Preview truncated. Full Markdown saved to: ${markdownPath}]`,
+              ]
+            : []),
+    ].join("\n");
+}
+
+async function runMarkitdown(
+    input: string,
+    signal?: AbortSignal,
+): Promise<string> {
+    if (signal?.aborted) throw new Error("Request was aborted");
+
+    return await new Promise<string>((resolve, reject) => {
+        const child = spawn(
+            "uvx",
+            ["--python", MARKITDOWN_PYTHON, "markitdown", input],
+            {
+                shell: false,
+                stdio: ["ignore", "pipe", "pipe"],
+            },
+        );
+
+        let stdout = "";
+        let stderr = "";
+        let wasAborted = false;
+        let timedOut = false;
+        let settled = false;
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+
+        const finish = (error: Error | null, output?: string) => {
+            if (settled) return;
+            settled = true;
+            if (timeout) clearTimeout(timeout);
+            signal?.removeEventListener("abort", abort);
+            if (error) reject(error);
+            else resolve(output ?? "");
+        };
+
+        const abort = () => {
+            wasAborted = true;
+            child.kill("SIGTERM");
+        };
+
+        timeout = setTimeout(() => {
+            timedOut = true;
+            child.kill("SIGTERM");
+        }, MARKITDOWN_TIMEOUT_MS);
+
+        signal?.addEventListener("abort", abort, { once: true });
+
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk: string) => {
+            stdout += chunk;
+        });
+
+        child.stderr.setEncoding("utf8");
+        child.stderr.on("data", (chunk: string) => {
+            stderr += chunk;
+        });
+
+        child.on("error", (error: NodeJS.ErrnoException) => {
+            if (wasAborted || signal?.aborted) {
+                finish(new Error("Request was aborted"));
+                return;
+            }
+
+            if (timedOut) {
+                finish(
+                    new Error(
+                        `${MARKITDOWN_COMMAND_LABEL} timed out after ${MARKITDOWN_TIMEOUT_MS / 1000}s for ${input}`,
+                    ),
+                );
+                return;
+            }
+
+            const hint =
+                error.code === "ENOENT"
+                    ? "\nInstall uv or ensure uvx is on PATH."
+                    : "";
+            finish(
+                new Error(
+                    `Failed to run ${MARKITDOWN_COMMAND_LABEL}: ${error.message}${hint}`,
+                ),
+            );
+        });
+
+        child.on("close", (code) => {
+            if (wasAborted || signal?.aborted) {
+                finish(new Error("Request was aborted"));
+                return;
+            }
+
+            if (timedOut) {
+                finish(
+                    new Error(
+                        `${MARKITDOWN_COMMAND_LABEL} timed out after ${MARKITDOWN_TIMEOUT_MS / 1000}s for ${input}`,
+                    ),
+                );
+                return;
+            }
+
+            if (code === 0) {
+                finish(null, stdout);
+                return;
+            }
+
+            const message = stderr.trim();
+            finish(
+                new Error(
+                    `${MARKITDOWN_COMMAND_LABEL} failed for ${input}${
+                        message ? `\n${message}` : ""
+                    }`,
+                ),
+            );
+        });
+    });
 }
 
 async function* parseSSE(response: Response): AsyncGenerator<any> {
@@ -138,9 +354,11 @@ function renderCallParameter(
     expanded: boolean,
 ): string[] {
     if (!value) return [];
-    const line =
-        theme.fg("muted", `${name}: `) +
-        theme.fg(name === "prompt" ? "toolOutput" : "accent", value);
+    const valueColor =
+        name === "query" || name === "url" || name === "mode"
+            ? "accent"
+            : "toolOutput";
+    const line = theme.fg("muted", `${name}: `) + theme.fg(valueColor, value);
     return expanded
         ? wrapTextWithAnsi(line, width)
         : [truncateToWidth(line, width)];
@@ -162,7 +380,14 @@ type RenderContext = {
     isError: boolean;
 };
 
-type Details = { query?: string; model: string; activities?: string[] };
+type Details = {
+    query?: string;
+    url?: string;
+    mode?: SearchMode;
+    model: string;
+    activities?: string[];
+    markdownPath?: string;
+};
 
 let currentViewMode: ToolViewMode = getToolViewMode();
 
@@ -172,37 +397,63 @@ function setViewMode(mode: ToolViewMode) {
 
 // --- Extension ---
 
-export default function (pi: ExtensionAPI) {
+export function registerWebSearchTool(pi: ExtensionAPI, sandbox: SandboxAPI) {
     pi.events.on("tool-view-mode", (mode: unknown) => {
         setViewMode(mode as ToolViewMode);
     });
 
     const params = Type.Object({
-        query: Type.Optional(Type.String({ description: "The search query" })),
+        query: Type.Optional(
+            Type.String({
+                description:
+                    "The query to search for. With url and answer_url, this can be the question about the page.",
+            }),
+        ),
         url: Type.Optional(
             Type.String({
                 description:
-                    "A specific URL to fetch and read. When provided, the assistant reads this page directly instead of searching.",
+                    "A specific http:// or https:// URL to fetch or answer questions about.",
             }),
         ),
-        prompt: Type.Optional(
+        mode: Type.Optional(
+            Type.Union(
+                [
+                    Type.Literal("search"),
+                    Type.Literal("fetch"),
+                    Type.Literal("answer_url"),
+                ],
+                {
+                    description:
+                        "Operation mode. search uses web search for query. fetch returns Markdown for url using markitdown. Large pages return a preview and save full Markdown to a temp file. answer_url reads url with web search and answers a question.",
+                },
+            ),
+        ),
+        question: Type.Optional(
             Type.String({
                 description:
-                    "Optional instructions for the search assistant, e.g. what to focus on, how to format the answer, or what details to extract.",
+                    "Specific question to answer about url when mode is answer_url.",
+            }),
+        ),
+        instructions: Type.Optional(
+            Type.String({
+                description:
+                    "Optional instructions for search or answer_url responses, e.g. what to focus on or how to format the answer.",
             }),
         ),
     });
     pi.registerTool<typeof params, Details, WebSearchRenderState>({
         name: "web_search",
-        label: "Web Search",
+        label: "Web",
         description:
-            "Search the web for current information, or fetch a specific URL. Use when the user asks about recent events, current data, or anything that may have changed after your training cutoff. Pass url to read a specific page directly. Returns a synthesized answer with source URLs.",
+            "Search the web, fetch URL content as Markdown, or answer questions about a URL. Use when the user asks about recent events, live data, or a page whose content is needed.",
         promptSnippet:
-            "Search the web for current information, or fetch a specific URL, and return a synthesized answer with sources",
+            "Use web_search to search the web, fetch URL content as Markdown, or answer questions about a URL",
         promptGuidelines: [
             "Use web_search when the user asks about current events, recent releases, live data, or anything potentially after your training cutoff.",
-            "Prefer a single, well-crafted query over multiple searches. Include relevant context in the query.",
-            "When the user provides a specific URL, pass it as the url parameter to fetch that page directly.",
+            "Use mode search with query for broad web research. Prefer a single, well-crafted query with relevant context.",
+            "Use mode fetch with url when page content is needed. It returns Markdown converted by markitdown. Large pages return a preview and save full Markdown to a temp file.",
+            "Use mode answer_url with url and question when asking a specific question about a page, or when complete content is not needed.",
+            "If mode is omitted, url plus question, instructions, or query uses answer_url, url alone uses fetch, and query alone uses search.",
             "Do not use web_search for questions you can confidently answer from training data.",
         ],
         parameters: params,
@@ -214,6 +465,98 @@ export default function (pi: ExtensionAPI) {
             onUpdate,
             ctx: ExtensionContext,
         ) {
+            const query = params.query?.trim();
+            const url = params.url?.trim();
+            const requestedMode = params.mode?.trim();
+            const explicitQuestion = params.question?.trim();
+            const explicitInstructions = params.instructions?.trim();
+
+            if (!query && !url)
+                throw new Error("Either query or url must be provided.");
+            if (url && !isHttpUrl(url))
+                throw new Error("url must be an http:// or https:// URL.");
+            let explicitMode: SearchMode | undefined;
+            if (requestedMode) {
+                if (!isSearchMode(requestedMode)) {
+                    throw new Error(
+                        'mode must be one of "search", "fetch", or "answer_url".',
+                    );
+                }
+                explicitMode = requestedMode;
+            }
+
+            const mode: SearchMode =
+                explicitMode ??
+                (url
+                    ? explicitQuestion || explicitInstructions || query
+                        ? "answer_url"
+                        : "fetch"
+                    : "search");
+            const question =
+                explicitQuestion ?? (mode === "answer_url" ? query : undefined);
+            const extraInstructions = explicitInstructions;
+
+            if (mode === "search" && !query)
+                throw new Error("query must be provided when mode is search.");
+            if ((mode === "fetch" || mode === "answer_url") && !url) {
+                throw new Error(
+                    "url must be provided when mode is fetch or answer_url.",
+                );
+            }
+
+            if (mode === "fetch") {
+                const activities = [`🔍 Converting ${url} to Markdown`];
+                onUpdate?.({
+                    content: [{ type: "text", text: activities.join("\n") }],
+                    details: undefined as any,
+                });
+
+                let markdown: string;
+                try {
+                    markdown = (await runMarkitdown(url!, signal)).trimEnd();
+                } catch (error) {
+                    const message =
+                        error instanceof Error ? error.message : String(error);
+                    throw new Error(
+                        `Complete URL fetch failed via markitdown for ${url}. Use mode "answer_url" with a question if a synthesized answer is acceptable.\n${message}`,
+                    );
+                }
+
+                if (!markdown.trim())
+                    throw new Error("markitdown returned no content");
+
+                activities[0] = `✅ Converted ${url} to Markdown`;
+                const markdownPath = await writeTmpMarkdownIfLarge(
+                    url!,
+                    markdown,
+                    sandbox,
+                );
+                if (markdownPath) {
+                    activities.push(`✅ Saved Markdown to ${markdownPath}`);
+                }
+
+                return {
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: formatFetchedMarkdown(
+                                url!,
+                                markdown,
+                                markdownPath,
+                            ),
+                        },
+                    ],
+                    details: {
+                        query: params.query,
+                        url,
+                        mode,
+                        model: "markitdown",
+                        activities,
+                        markdownPath,
+                    },
+                };
+            }
+
             // 1. Auth
             const apiKey =
                 await ctx.modelRegistry.getApiKeyForProvider("openai-codex");
@@ -236,26 +579,28 @@ export default function (pi: ExtensionAPI) {
                 "content-type": "application/json",
                 originator: "pi",
             };
-            if (!params.query && !params.url)
-                throw new Error("Either query or url must be provided.");
-            const instructions = params.url
-                ? "You are a web research assistant. Open the provided URL and read its contents. Provide a thorough summary of the page. Include the source URL."
-                : "You are a web research assistant. Search the web and provide a concise, well-sourced answer. Include full URLs for all sources.";
-            const userContent = params.url
-                ? `Read this page: ${params.url}${params.query ? `\n\nContext: ${params.query}` : ""}`
-                : params.query!;
+            const codexInstructions =
+                mode === "answer_url"
+                    ? "You are a web research assistant. Open the provided URL and answer the user's question using that page. Include the source URL."
+                    : "You are a web research assistant. Search the web and provide a concise, well-sourced answer. Include full URLs for all sources.";
+            const userContent =
+                mode === "answer_url"
+                    ? `Read this page: ${url}\n\nQuestion: ${
+                          question ?? "Provide a thorough summary of the page."
+                      }`
+                    : query!;
             const body = JSON.stringify({
                 model: MODEL,
                 store: false,
                 stream: true,
-                instructions,
+                instructions: codexInstructions,
                 input: [
                     { role: "user", content: userContent },
-                    ...(params.prompt
+                    ...(extraInstructions
                         ? [
                               {
                                   role: "user",
-                                  content: params.prompt,
+                                  content: `Additional instructions:\n${extraInstructions}`,
                               },
                           ]
                         : []),
@@ -376,6 +721,8 @@ export default function (pi: ExtensionAPI) {
                 content: [{ type: "text" as const, text: finalText }],
                 details: {
                     query: params.query,
+                    url,
+                    mode,
                     model: MODEL,
                     activities: searchActivities,
                 },
@@ -383,7 +730,13 @@ export default function (pi: ExtensionAPI) {
         },
 
         renderCall(
-            args: { query?: string; url?: string; prompt?: string },
+            args: {
+                query?: string;
+                url?: string;
+                mode?: SearchMode;
+                question?: string;
+                instructions?: string;
+            },
             theme: Theme,
             context: RenderContext,
         ) {
@@ -411,7 +764,9 @@ export default function (pi: ExtensionAPI) {
                 );
             }
 
-            const label = args.url ? args.url : `"${args.query ?? ""}"`;
+            const label = args.url
+                ? `${args.mode ?? "url"} ${args.url}`
+                : `"${args.query ?? ""}"`;
 
             return component((width) => {
                 const mode = currentViewMode;
@@ -423,10 +778,36 @@ export default function (pi: ExtensionAPI) {
                     activitySuffix +
                     timerSuffix;
                 const lines = wrapTextWithAnsi(title, width);
+                if (mode === "condensed") {
+                    return [
+                        ...lines,
+                        ...renderCallParameter(
+                            "question",
+                            args.question,
+                            width,
+                            theme,
+                            false,
+                        ),
+                        ...renderCallParameter(
+                            "instructions",
+                            args.instructions,
+                            width,
+                            theme,
+                            false,
+                        ),
+                    ];
+                }
                 if (mode !== "expanded") return lines;
 
                 return [
                     ...lines,
+                    ...renderCallParameter(
+                        "mode",
+                        args.mode,
+                        width,
+                        theme,
+                        true,
+                    ),
                     ...renderCallParameter(
                         "query",
                         args.query,
@@ -442,8 +823,15 @@ export default function (pi: ExtensionAPI) {
                         true,
                     ),
                     ...renderCallParameter(
-                        "prompt",
-                        args.prompt,
+                        "question",
+                        args.question,
+                        width,
+                        theme,
+                        true,
+                    ),
+                    ...renderCallParameter(
+                        "instructions",
+                        args.instructions,
                         width,
                         theme,
                         true,

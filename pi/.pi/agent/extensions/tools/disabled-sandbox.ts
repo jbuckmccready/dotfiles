@@ -1,4 +1,6 @@
 import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
     SandboxConfig,
@@ -49,6 +51,11 @@ export function createDisabledSandbox(): SandboxProvider<SandboxConfig> {
 
         translatePath(hostPath: string) {
             return hostPath;
+        },
+
+        getSharedTempDir(name: string) {
+            const dir = join(tmpdir(), name);
+            return { hostPath: dir, agentPath: dir };
         },
     };
 }

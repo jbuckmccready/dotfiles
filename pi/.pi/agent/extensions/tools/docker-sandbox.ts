@@ -37,7 +37,7 @@
 import { spawn, execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, realpathSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import type {
@@ -1142,6 +1142,17 @@ export function createDockerSandbox(): SandboxProvider<DockerSandboxConfig> {
 
         translatePath(hostPath: string) {
             return hostToGuestPath(hostPath, savedMounts);
+        },
+
+        getSharedTempDir(name: string) {
+            const hostTmpPath = path.join(tmpdir(), name);
+            const hostPath = isPathCoveredByMounts(hostTmpPath, savedMounts)
+                ? hostTmpPath
+                : path.join(savedCwd, ".pi", "tmp", name);
+            return {
+                hostPath,
+                agentPath: hostToGuestPath(hostPath, savedMounts),
+            };
         },
     };
 }

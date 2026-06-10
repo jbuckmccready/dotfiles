@@ -43,7 +43,7 @@
 import { spawn } from "node:child_process";
 import { constants, existsSync, realpathSync } from "node:fs";
 import * as fs from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, basename, dirname } from "node:path";
 import { SandboxManager } from "@anthropic-ai/sandbox-runtime";
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
@@ -699,6 +699,11 @@ export function createOsSandbox(): SandboxProvider<OsSandboxConfig> {
 
         translatePath(hostPath: string) {
             return hostPath;
+        },
+
+        getSharedTempDir(name: string) {
+            const dir = join(tmpdir(), name);
+            return { hostPath: dir, agentPath: dir };
         },
     };
 }

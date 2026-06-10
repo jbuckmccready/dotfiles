@@ -17,6 +17,10 @@ test("createFindOverride prefers sandbox findExecute when available", async () =
     const override = createFindOverride({
         isActive: () => true,
         translatePath: (hostPath) => `/guest${hostPath}`,
+        getSharedTempDir: (name) => ({
+            hostPath: `/tmp/${name}`,
+            agentPath: `/tmp/${name}`,
+        }),
         getOps: () => ({
             findExecute: async (params) => ({
                 content: [
@@ -57,6 +61,10 @@ test("createFindOverride falls back to built-in find tool operations", async () 
             translatedCwd = `/guest${hostPath}`;
             return translatedCwd;
         },
+        getSharedTempDir: (name) => ({
+            hostPath: `/tmp/${name}`,
+            agentPath: `/tmp/${name}`,
+        }),
         getOps: () => ({
             find: {
                 exists: async () => true,
