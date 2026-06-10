@@ -468,6 +468,13 @@ function combineDiffs(results: Array<{ path: string; diff?: string }>): string {
         .join("\n\n");
 }
 
+function combinePatches(results: Array<{ patch?: string }>): string {
+    return results
+        .map((result) => result.patch)
+        .filter((patch): patch is string => typeof patch === "string" && patch.length > 0)
+        .join("\n");
+}
+
 function getRenderClassicItems(args: EditRenderArgs): EditItem[] {
     try {
         return buildClassicEdits(args as MultiEditInput).filter(
@@ -660,6 +667,7 @@ export function createEditOverride(sandbox: SandboxAPI) {
                         ],
                         details: {
                             diff: combineDiffs(applied),
+                            patch: combinePatches(applied),
                             firstChangedLine,
                         },
                     };
@@ -699,6 +707,7 @@ export function createEditOverride(sandbox: SandboxAPI) {
                         content: [{ type: "text" as const, text: result.message }],
                         details: {
                             diff: result.diff ?? "",
+                            patch: result.patch ?? "",
                             firstChangedLine: result.firstChangedLine,
                         },
                     };
@@ -719,6 +728,7 @@ export function createEditOverride(sandbox: SandboxAPI) {
                     ],
                     details: {
                         diff: combineDiffs(results),
+                        patch: combinePatches(results),
                         firstChangedLine,
                     },
                 };

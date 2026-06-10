@@ -18,6 +18,7 @@ export interface EditResult {
     success: boolean;
     message: string;
     diff?: string;
+    patch?: string;
     firstChangedLine?: number;
 }
 
@@ -44,6 +45,7 @@ export interface PatchOpResult {
     path: string;
     message: string;
     diff?: string;
+    patch?: string;
     firstChangedLine?: number;
 }
 
@@ -76,6 +78,23 @@ function resolvePatchPath(cwd: string, filePath: string): string {
     if (!trimmed) throw new Error("Patch path cannot be empty");
     const expanded = expandPath(trimmed);
     return isAbsolute(expanded) ? resolvePath(expanded) : resolvePath(cwd, expanded);
+}
+
+function generateUnifiedPatch(
+    path: string,
+    oldContent: string,
+    newContent: string,
+    contextLines = 4,
+): string {
+    return Diff.createTwoFilesPatch(
+        path,
+        path,
+        oldContent,
+        newContent,
+        undefined,
+        undefined,
+        { context: contextLines, headerOptions: Diff.FILE_HEADERS_ONLY },
+    );
 }
 
 export function generateDiffString(
@@ -657,6 +676,7 @@ export async function applyPatchOperations(
             if (collectDiff) {
                 const diffResult = generateDiffString(oldText, newText);
                 result.diff = diffResult.diff;
+                result.patch = generateUnifiedPatch(op.path, oldText, newText);
                 result.firstChangedLine = diffResult.firstChangedLine;
             }
             results.push(result);
@@ -679,6 +699,7 @@ export async function applyPatchOperations(
             if (collectDiff) {
                 const diffResult = generateDiffString(oldText, "");
                 result.diff = diffResult.diff;
+                result.patch = generateUnifiedPatch(op.path, oldText, "");
                 result.firstChangedLine = diffResult.firstChangedLine;
             }
             results.push(result);
@@ -694,6 +715,7 @@ export async function applyPatchOperations(
         if (collectDiff) {
             const diffResult = generateDiffString(sourceText, updated);
             result.diff = diffResult.diff;
+            result.patch = generateUnifiedPatch(op.path, sourceText, updated);
             result.firstChangedLine = diffResult.firstChangedLine;
         }
         results.push(result);
@@ -792,6 +814,11 @@ export async function applyClassicEdits(
             const diffResult = generateDiffString(originalContent, content);
             const firstIdx = group[0].index;
             results[firstIdx].diff = diffResult.diff;
+            results[firstIdx].patch = generateUnifiedPatch(
+                group[0].edit.path,
+                originalContent,
+                content,
+            );
             results[firstIdx].firstChangedLine = diffResult.firstChangedLine;
         }
     }
