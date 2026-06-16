@@ -58,6 +58,18 @@ vim.keymap.set("n", "<leader>by", function()
     vim.notify("Copied: " .. path, vim.log.levels.INFO)
 end, { desc = "Yank relative file path to system clipboard" })
 
+-- Yank relative file path and current line to system clipboard
+vim.keymap.set("n", "<leader>bl", function()
+    local path = vim.fn.expand("%:.")
+    if path == "" then
+        vim.notify("No file", vim.log.levels.WARN)
+        return
+    end
+    local location = string.format("%s:%d", path, vim.fn.line("."))
+    vim.fn.setreg("+", location)
+    vim.notify("Copied: " .. location, vim.log.levels.INFO)
+end, { desc = "Yank relative file path and line to system clipboard" })
+
 -- Paste system clipboard into a new buffer
 vim.keymap.set("n", "<leader>bp", function()
     local clipboard = vim.fn.getreg("+")
