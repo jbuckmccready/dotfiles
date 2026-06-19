@@ -4,7 +4,7 @@ font-style = Regular
 font-style-bold = Medium
 font-style-italic = Italic
 font-style-bold-italic = Medium Italic
-font-size = 15
+font-size = 13
 
 # MacOS only font thickening
 font-thicken = true
@@ -22,3 +22,15 @@ window-decoration = false
 window-save-state = always
 mouse-hide-while-typing = true
 theme = Catppuccin Mocha
+
+# Omarchy universal copy/paste support
+shell-integration-features = no-cursor,ssh-env
+keybind = shift+insert=paste_from_clipboard
+keybind = control+insert=copy_to_clipboard
+
+# Let terminal apps use these shortcuts instead of Ghostty splits
+keybind = ctrl+shift+e=unbind
+keybind = ctrl+shift+o=unbind
+
+# Fix general slowness on hyprland (https://github.com/ghostty-org/ghostty/discussions/3224)
+async-backend = epoll

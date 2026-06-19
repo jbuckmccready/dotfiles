@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+
+rm -f "$HOME/.pi/agent/extensions/omarchy-system-theme.ts"
