@@ -40,16 +40,17 @@ Some settings are machine-specific and not tracked in this repo. Git is configur
 
 **nvim-treesitter**:
 Requires `tree-sitter` CLI to be installed:
+
 ```sh
 cargo install --locked tree-sitter-cli
 ```
 
 **snacks.nvim**:
 Image preview in the file picker requires ImageMagick (`magick`/`identify`):
+
 ```sh
 brew install imagemagick
 ```
-
 
 ### Fish
 
@@ -62,16 +63,14 @@ stow fish
 Install:
 
 ```sh
+# macOS
 brew install fish
+
+# Omarchy/Arch
+omarchy pkg add fish
 ```
 
-Set default shell (NOTE: using zsh for easier compatibility with some tools):
-
-```sh
-which zsh
-# /bin/zsh
-chsh -s /bin/zsh
-```
+Do not change the account shell on Omarchy. Keep bash as the default shell and launch fish from Ghostty instead.
 
 Init completions:
 
@@ -79,16 +78,19 @@ Init completions:
 fish_update_completions
 ```
 
-Install Fisher:
+Install Fisher and plugins from `~/.config/fish/fish_plugins`:
 
-```sh
-curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source && fisher install jorgebucaran/fisher
+```fish
+curl -sL https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish | source
+fisher install jorgebucaran/fisher
+fisher update
 ```
 
-Install hydro prompt:
+Currently tracked fish plugins:
 
-```sh
-fisher install jorgebucaran/hydro
+```text
+jorgebucaran/fisher
+jorgebucaran/hydro
 ```
 
 ### Tmux
@@ -103,11 +105,11 @@ Windows Terminal doesn't natively send CSI-u key sequences for modified keys lik
 
 ```json
 {
-    "command": {
-        "action": "sendInput",
-        "input": "\u001b[13;2u"
-    },
-    "keys": "shift+enter"
+  "command": {
+    "action": "sendInput",
+    "input": "\u001b[13;2u"
+  },
+  "keys": "shift+enter"
 }
 ```
 

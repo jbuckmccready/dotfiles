@@ -41,8 +41,3 @@ export PATH="/opt/homebrew/bin:$PATH"
 export PATH="/opt/homebrew/opt/e2fsprogs/sbin:$PATH"
 
 . "$HOME/.local/bin/env"
-
-# Replace zsh with fish after zsh has populated the environment.
-if [[ -z "$FISH_VERSION" ]]; then
-  exec fish -l
-fi

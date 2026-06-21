@@ -62,12 +62,23 @@ abbr -a lgt "lazygit --use-config-file ~/.config/lazygit/difftastic-config.yml"
 # Remove the greeting message.
 set -U fish_greeting
 
+# mise integration
+if command -q mise
+    mise activate fish | source
+end
+
 # zoxide integration
-zoxide init fish | source
-abbr -a cd "z"
+if command -q zoxide
+    zoxide init fish | source
+    abbr -a cd "z"
+end
 
 # fzf shell integration
-fzf --fish | source
+if command -q fzf
+    fzf --fish | source
+end
 
 # direnv integration
-direnv hook fish | source
+if command -q direnv
+    direnv hook fish | source
+end
