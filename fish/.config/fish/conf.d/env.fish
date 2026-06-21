@@ -31,8 +31,8 @@ switch (uname)
             fish_add_path /Applications/Docker.app/Contents/Resources/bin
         end
 
-        if test -d /opt/homebrew/bin
-            fish_add_path /opt/homebrew/bin
+        if test -x /opt/homebrew/bin/brew
+            env SHELL=(status fish-path) /opt/homebrew/bin/brew shellenv | source
         end
 
         if test -d /opt/homebrew/opt/node@22/bin
@@ -56,4 +56,10 @@ switch (uname)
             set -gx OMARCHY_PATH $HOME/.local/share/omarchy
             fish_add_path $OMARCHY_PATH/bin
         end
+end
+
+if command -q fish
+    set -gx SHELL (command -v fish)
+else
+    set -gx SHELL (status fish-path)
 end

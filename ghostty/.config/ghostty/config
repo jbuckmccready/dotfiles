@@ -1,5 +1,5 @@
 # shell
-command = shell:for fish in /opt/homebrew/bin/fish /usr/local/bin/fish /usr/bin/fish; do [ -x "$fish" ] && exec "$fish" -l; done; exec fish -l
+command = /bin/sh -c 'for fish in /opt/homebrew/bin/fish /usr/local/bin/fish /usr/bin/fish; do [ -x "$fish" ] && exec "$fish"; done; exec fish'
 
 # font
 font-family = "Lilex Nerd Font"

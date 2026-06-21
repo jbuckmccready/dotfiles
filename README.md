@@ -95,8 +95,28 @@ jorgebucaran/hydro
 
 ### Tmux
 
+Create the config directory before stowing so GNU Stow links `tmux.conf` into a real local directory. This keeps TPM plugins out of the dotfiles repo.
+
 ```sh
-stow tmux
+mkdir -p ~/.config/tmux
+stow --no-folding tmux
+```
+
+Install TPM under the XDG tmux config directory:
+
+```sh
+mkdir -p ~/.config/tmux/plugins
+git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
+```
+
+Install plugins from inside tmux with prefix + I. The prefix is ctrl-a:
+
+```sh
+tmux
+```
+
+```text
+ctrl-a I
 ```
 
 #### Windows Terminal (WSL)
@@ -111,19 +131,6 @@ Windows Terminal doesn't natively send CSI-u key sequences for modified keys lik
   },
   "keys": "shift+enter"
 }
-```
-
-Follow instructions [here](https://github.com/tmux-plugins/tpm)
-
-```sh
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-```
-
-Install plugins (from in tmux run prefix + I):
-
-```sh
-tmux
-ctrl-a I
 ```
 
 ### Bat

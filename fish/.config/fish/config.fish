@@ -1,10 +1,7 @@
-
 # Nothing to do if not running interactively
 if not status is-interactive
 	return 0
 end
-
-set -gx SHELL (command -v fish)
 
 # Ghostty's shell integration
 if test -n "$GHOSTTY_RESOURCES_DIR"
