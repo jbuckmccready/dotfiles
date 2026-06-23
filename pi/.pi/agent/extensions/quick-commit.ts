@@ -9,12 +9,8 @@
  * asks the model for a commit message, lets you review/edit it, then commits.
  */
 
-import {
-    completeSimple,
-    type Model,
-    type Api,
-    type UserMessage,
-} from "@earendil-works/pi-ai";
+import { type Model, type Api, type UserMessage } from "@earendil-works/pi-ai";
+import { completeSimple } from "@earendil-works/pi-ai/compat";
 import type {
     ExtensionAPI,
     ExtensionContext,
@@ -105,7 +101,7 @@ async function selectModel(
     currentModel: Model<Api>,
     modelRegistry: {
         find: (provider: string, modelId: string) => Model<Api> | undefined;
-        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string> } | { ok: false; error: string }>;
+        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string>; env?: Record<string, string> } | { ok: false; error: string }>;
     },
 ): Promise<Model<Api>> {
     for (const candidate of MODEL_CANDIDATES) {
@@ -237,7 +233,7 @@ async function handleCommitStaged(
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
-                    { apiKey: auth.apiKey, headers: auth.headers, signal: loader.signal, reasoning: "medium" },
+                    { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal, reasoning: "medium" },
                 );
 
                 if (response.stopReason === "aborted") return null;
