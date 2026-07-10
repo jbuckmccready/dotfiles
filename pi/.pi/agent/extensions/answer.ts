@@ -82,11 +82,11 @@ Example output:
   ]
 }`;
 
-const CODEX_MODEL_ID = "gpt-5.4-mini";
+const CODEX_MODEL_ID = "gpt-5.6-luna";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 /**
- * Prefer OpenAI Codex GPT-5.4 mini for extraction, then Haiku, otherwise fallback to the current model.
+ * Prefer OpenAI Codex GPT-5.6 luna for extraction, then Haiku, otherwise fallback to the current model.
  */
 async function selectExtractionModel(
     currentModel: Model<Api>,
@@ -517,7 +517,7 @@ export default function (pi: ExtensionAPI) {
             return;
         }
 
-        // Select the best model for extraction (prefer OpenAI Codex GPT-5.4 mini, then Haiku, then Gemini Flash)
+        // Select the best model for extraction (prefer OpenAI Codex GPT-5.6 luna, then Haiku, then the current model)
         const extractionModel = await selectExtractionModel(
             ctx.model,
             ctx.modelRegistry,

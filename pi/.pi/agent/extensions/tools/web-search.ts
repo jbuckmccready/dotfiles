@@ -19,7 +19,7 @@ import { getToolViewMode, type ToolViewMode } from "./tool-view-mode";
 // --- Constants ---
 
 const ENDPOINT = "https://chatgpt.com/backend-api/codex/responses";
-const MODEL = "gpt-5.4-mini";
+const MODEL = "gpt-5.6-luna";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
@@ -815,13 +815,7 @@ export function registerWebSearchTool(pi: ExtensionAPI, sandbox: SandboxAPI) {
                         theme,
                         true,
                     ),
-                    ...renderCallParameter(
-                        "url",
-                        args.url,
-                        width,
-                        theme,
-                        true,
-                    ),
+                    ...renderCallParameter("url", args.url, width, theme, true),
                     ...renderCallParameter(
                         "question",
                         args.question,

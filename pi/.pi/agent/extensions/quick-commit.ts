@@ -19,7 +19,7 @@ import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 
 // --- Model fallback chain (edit these to change preference) ---
 
-const CODEX_MODEL_ID = "gpt-5.4-mini";
+const CODEX_MODEL_ID = "gpt-5.6-luna";
 const HAIKU_MODEL_ID = "claude-haiku-4-5";
 
 const MODEL_CANDIDATES: Array<{ provider: string; modelId: string }> = [
@@ -101,7 +101,17 @@ async function selectModel(
     currentModel: Model<Api>,
     modelRegistry: {
         find: (provider: string, modelId: string) => Model<Api> | undefined;
-        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string>; env?: Record<string, string> } | { ok: false; error: string }>;
+        getApiKeyAndHeaders: (
+            model: Model<Api>,
+        ) => Promise<
+            | {
+                  ok: true;
+                  apiKey?: string;
+                  headers?: Record<string, string>;
+                  env?: Record<string, string>;
+              }
+            | { ok: false; error: string }
+        >;
     },
 ): Promise<Model<Api>> {
     for (const candidate of MODEL_CANDIDATES) {
@@ -233,7 +243,13 @@ async function handleCommitStaged(
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
-                    { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal, reasoning: "medium" },
+                    {
+                        apiKey: auth.apiKey,
+                        headers: auth.headers,
+                        env: auth.env,
+                        signal: loader.signal,
+                        reasoning: "medium",
+                    },
                 );
 
                 if (response.stopReason === "aborted") return null;
