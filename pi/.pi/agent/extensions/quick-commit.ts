@@ -211,7 +211,7 @@ async function handleCommitStaged(
     const model = await selectModel(ctx.model, ctx.modelRegistry);
 
     // 3. Generate commit message with loader UI
-    const commitMessage = await ctx.ui.custom<string | null>(
+    const commitMessage = await ctx.ui.custom<string | null | undefined>(
         (tui, theme, _kb, done) => {
             const loader = new BorderedLoader(
                 tui,
@@ -248,11 +248,17 @@ async function handleCommitStaged(
                         headers: auth.headers,
                         env: auth.env,
                         signal: loader.signal,
+                        sessionId: ctx.sessionManager.getSessionId(),
                         reasoning: "medium",
                     },
                 );
 
                 if (response.stopReason === "aborted") return null;
+                if (response.stopReason === "error") {
+                    throw new Error(
+                        response.errorMessage || "Model request failed",
+                    );
+                }
 
                 const text = response.content
                     .filter(
@@ -263,7 +269,8 @@ async function handleCommitStaged(
                     .join("\n")
                     .trim();
 
-                return text || null;
+                if (!text) throw new Error("Model returned no commit message");
+                return text;
             };
 
             doGenerate()
@@ -273,14 +280,16 @@ async function handleCommitStaged(
                         `Generation failed: ${err instanceof Error ? err.message : String(err)}`,
                         "error",
                     );
-                    done(null);
+                    done(undefined);
                 });
 
             return loader;
         },
     );
 
-    if (!commitMessage) {
+    if (commitMessage === undefined) return;
+
+    if (commitMessage === null) {
         ctx.ui.notify("Cancelled", "info");
         return;
     }
