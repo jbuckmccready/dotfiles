@@ -65,7 +65,7 @@ export default function (pi: ExtensionAPI) {
     const sandbox = initSandbox(pi);
     const cwd = process.cwd();
 
-    registerWebSearchTool(pi, sandbox);
+    registerWebSearchTool(pi);
 
     // --- Tool view mode: command + shortcut + status ---
 
