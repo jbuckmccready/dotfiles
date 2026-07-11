@@ -139,3 +139,22 @@ Windows Terminal doesn't natively send CSI-u key sequences for modified keys lik
 stow bat
 bat cache --build
 ```
+
+### Voxtype
+
+Use Handy on macOS and Windows, and Voxtype on Linux.
+
+Voxtype uses the `parakeet-unified-en-0.6b` model, configured for streaming output. It requires the ONNX AVX2 backend.
+
+```sh
+stow voxtype
+voxtype setup --download --model parakeet-unified-en-0.6b
+sudo voxtype setup onnx --enable
+systemctl --user restart voxtype
+```
+
+Verify the active backend:
+
+```sh
+voxtype setup gpu --status
+```
