@@ -25,6 +25,7 @@ const FALLBACK_MODEL = "gpt-5.6-luna";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_OUTPUT_TOKENS = 10_000;
 const CONDENSED_OUTPUT_LINES = 5;
 
@@ -505,6 +506,10 @@ export function registerWebSearchTool(pi: ExtensionAPI) {
             };
             const body = JSON.stringify(request);
             const searchActivity = searchCommandActivity(commands);
+            const requestSignal = AbortSignal.any([
+                ...(signal ? [signal] : []),
+                AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+            ]);
 
             onUpdate?.({
                 content: [{ type: "text", text: searchActivity }],
@@ -519,7 +524,7 @@ export function registerWebSearchTool(pi: ExtensionAPI) {
                     method: "POST",
                     headers,
                     body,
-                    signal,
+                    signal: requestSignal,
                 });
                 if (response.ok) break;
                 const errorText = await response.text();

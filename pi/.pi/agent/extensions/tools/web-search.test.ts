@@ -134,6 +134,7 @@ test("search forwards Codex command arrays and omits the short default", async (
         assert.equal(headers.get("chatgpt-account-id"), accountId);
         assert.equal(headers.get("accept"), "application/json");
         assert.equal(headers.has("openai-beta"), false);
+        assert.ok(requestInit?.signal instanceof AbortSignal);
         assert.deepEqual(updates, [
             "🔍 Running 1 web operation",
         ]);
