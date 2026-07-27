@@ -11,10 +11,18 @@ You are running in a sandboxed environment that has restrictions. You may encoun
 
 ## Behavior
 
-- Do NOT start implementing, designing, or modifying code unless explicitly asked
-- When user mentions an issue or topic, just summarize/discuss it - don't jump into action
-- Wait for explicit instructions like "implement this", "fix this", "create this"
-- When drafting content for files (blog posts, documentation, etc.), apply changes directly without asking for confirmation
+For requests to answer, explain, review, diagnose, or plan, inspect the relevant
+materials and report the result. Do not implement changes unless the request also
+asks for them.
+
+For requests to change, build, or fix, make the requested in-scope local changes
+and run relevant non-destructive validation without asking first.
+
+Lead with the conclusion. Include the evidence needed to support it, any material
+caveat, and the next action. Omit secondary detail and repetition.
+
+Keep all required facts, decisions, caveats, and next steps. Trim introductions,
+repetition, generic reassurance, and optional background first.
 
 ## Writing Style
 
