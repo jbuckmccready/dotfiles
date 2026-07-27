@@ -81,6 +81,7 @@ import {
     createSandboxedGrepExecute,
     sandboxedFdGlob,
 } from "./sandbox-tools";
+import { assertReadSize } from "./sandbox-shared";
 import { detectImageMimeFromBytes } from "./shared";
 
 const GUEST_WORKSPACE = "/workspace";
@@ -150,6 +151,8 @@ function createGondolinReadOps(vm: VM, localCwd: string): ReadOperations {
     return {
         async readFile(p) {
             const guestPath = hostToGuestPath(localCwd, p);
+            const { size } = await vm.fs.stat(guestPath);
+            assertReadSize(guestPath, size);
             return vm.fs.readFile(guestPath);
         },
         async access(p) {

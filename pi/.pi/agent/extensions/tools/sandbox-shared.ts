@@ -59,6 +59,19 @@ export type SandboxConfig =
     | DockerSandboxConfig
     | DisabledSandboxConfig;
 
+export const MAX_READ_BYTES = 10 * 1024 * 1024;
+
+export function assertReadSize(absolutePath: string, size: number): void {
+    if (size <= MAX_READ_BYTES) return;
+
+    const sizeMb = (size / (1024 * 1024)).toFixed(1);
+    const maxSizeMb = (MAX_READ_BYTES / (1024 * 1024)).toFixed(1);
+    throw new Error(
+        `File is too large to read (${sizeMb} MB, maximum ${maxSizeMb} MB): ${absolutePath}. ` +
+            "Use bash with a tool such as head or sed to read a portion of the file.",
+    );
+}
+
 export const DEFAULT_OS_CONFIG: OsSandboxConfig = {
     enabled: true,
     network: {

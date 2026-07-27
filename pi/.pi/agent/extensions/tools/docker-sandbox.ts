@@ -60,6 +60,7 @@ import {
     sandboxedFdGlob,
 } from "./sandbox-tools";
 import { detectImageMimeFromBytes } from "./shared";
+import { assertReadSize } from "./sandbox-shared";
 
 // ---------------------------------------------------------------------------
 // Utilities
@@ -769,6 +770,20 @@ function createDockerReadOps(
     return {
         async readFile(p) {
             const guestPath = hostToGuestPath(p, mounts);
+            const sizeResult = await shell.exec(
+                `stat -c %s -- ${shQuote(guestPath)}`,
+            );
+            const sizeText = sizeResult.stdout.trim();
+            const size = Number(sizeText);
+            if (
+                sizeResult.exitCode !== 0 ||
+                !Number.isSafeInteger(size) ||
+                size < 0
+            ) {
+                throw new Error(`Failed to determine file size: ${guestPath}`);
+            }
+            assertReadSize(guestPath, size);
+
             const r = await shell.exec(`base64 < ${shQuote(guestPath)}`);
             if (r.exitCode !== 0) {
                 throw new Error(

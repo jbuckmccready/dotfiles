@@ -61,6 +61,7 @@ import type {
     SandboxOps,
     SandboxEditOperations,
 } from "./sandbox-shared";
+import { assertReadSize } from "./sandbox-shared";
 import { detectImageMimeFromBytes } from "./shared";
 import { buildFdFindArgs } from "./sandbox-tools";
 
@@ -248,6 +249,8 @@ function createReadOps(denyReadResolved: string[]): ReadOperations {
     return {
         async readFile(absolutePath: string): Promise<Buffer> {
             assertReadAllowed(absolutePath, denyReadResolved);
+            const { size } = await fs.stat(absolutePath);
+            assertReadSize(absolutePath, size);
             return fs.readFile(absolutePath);
         },
         async access(absolutePath: string): Promise<void> {
