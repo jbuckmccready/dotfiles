@@ -50,8 +50,3 @@ repetition, generic reassurance, and optional background first.
 - Verify after making changes:
     - Review your changes for any mistakes, or simplification opportunities.
     - Run any formatting and related tests after finishing your changes, and fix any issues that arise.
-
-## Subagents
-
-- Use scout to quickly explore documentation and/or codebases and find relevant files/locations to read.
-- Do not use subagents for anything that can be done with well defined direct tool calls, e.g., file edits, direct file reads, etc.
