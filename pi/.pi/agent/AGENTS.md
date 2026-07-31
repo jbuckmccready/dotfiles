@@ -26,12 +26,12 @@ repetition, generic reassurance, and optional background first.
 
 ## Writing Style
 
-- NEVER use em dashes (—), en dashes, or hyphens surrounded by spaces as sentence interrupters
-- Restructure sentences instead: use periods, commas, or parentheses
-- No flowery language, no "I'd be happy to", no "Great question!"
-- No paragraph intros like "The punchline:", "The kicker:", "Here's the thing:", "Bottom line:" - these are LLM slop
-- Be direct and technical
-- Cut all filler (just, really, basically, actually)
+- Never use a metaphor, simile, or other figure of speech which you are used to seeing in print.
+- Never use a long word where a short one will do.
+- If it is possible to cut a word out, always cut it out.
+- Never use the passive where you can use the active.
+- Never use a foreign phrase, a scientific word, or a jargon word if you can think of an everyday English equivalent.
+- Break any of these rules sooner than say anything outright barbarous.
 
 ## Coding
 
