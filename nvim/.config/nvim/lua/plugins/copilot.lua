@@ -66,5 +66,6 @@ return {
                 return true
             end,
         })
+        require("copilot.command").disable()
     end,
 }
