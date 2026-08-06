@@ -9,8 +9,7 @@
  * asks the model for a commit message, lets you review/edit it, then commits.
  */
 
-import { type Model, type Api, type UserMessage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai/compat";
+import { type Model, type Api, type ProviderHeaders, type UserMessage } from "@earendil-works/pi-ai";
 import type {
     ExtensionAPI,
     ExtensionContext,
@@ -107,7 +106,7 @@ async function selectModel(
             | {
                   ok: true;
                   apiKey?: string;
-                  headers?: Record<string, string>;
+                  headers?: ProviderHeaders;
                   env?: Record<string, string>;
               }
             | { ok: false; error: string }
@@ -221,8 +220,6 @@ async function handleCommitStaged(
             loader.onAbort = () => done(null);
 
             const doGenerate = async () => {
-                const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-                if (!auth.ok) throw new Error(auth.error);
                 const userMessage: UserMessage = {
                     role: "user",
                     content: [
@@ -237,16 +234,13 @@ async function handleCommitStaged(
                     timestamp: Date.now(),
                 };
 
-                const response = await completeSimple(
+                const response = await ctx.modelRegistry.complete(
                     model,
                     {
                         systemPrompt: SYSTEM_PROMPT,
                         messages: [userMessage],
                     },
                     {
-                        apiKey: auth.apiKey,
-                        headers: auth.headers,
-                        env: auth.env,
                         signal: loader.signal,
                         sessionId: ctx.sessionManager.getSessionId(),
                         reasoning: "medium",

@@ -13,7 +13,6 @@
  */
 
 import { type Message } from "@earendil-works/pi-ai";
-import { complete } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI, SessionEntry } from "@earendil-works/pi-coding-agent";
 import {
     BorderedLoader,
@@ -94,11 +93,6 @@ export default function (pi: ExtensionAPI) {
                     loader.onAbort = () => done(null);
 
                     const doGenerate = async () => {
-                        const auth = await ctx.modelRegistry.getApiKeyAndHeaders(
-                            ctx.model!,
-                        );
-                        if (!auth.ok) throw new Error(auth.error);
-
                         const userMessage: Message = {
                             role: "user",
                             content: [
@@ -110,13 +104,13 @@ export default function (pi: ExtensionAPI) {
                             timestamp: Date.now(),
                         };
 
-                        const response = await complete(
+                        const response = await ctx.modelRegistry.complete(
                             ctx.model!,
                             {
                                 systemPrompt: SYSTEM_PROMPT,
                                 messages: [userMessage],
                             },
-                            { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal },
+                            { signal: loader.signal },
                         );
 
                         if (response.stopReason === "aborted") {

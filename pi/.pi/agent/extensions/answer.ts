@@ -21,8 +21,7 @@
  * 4. Submits the compiled answers when done
  */
 
-import { type Model, type Api, type UserMessage } from "@earendil-works/pi-ai";
-import { completeSimple } from "@earendil-works/pi-ai/compat";
+import { type Model, type Api, type ProviderHeaders, type UserMessage } from "@earendil-works/pi-ai";
 import type {
     ExtensionAPI,
     ExtensionContext,
@@ -92,7 +91,7 @@ async function selectExtractionModel(
     currentModel: Model<Api>,
     modelRegistry: {
         find: (provider: string, modelId: string) => Model<Api> | undefined;
-        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: Record<string, string>; env?: Record<string, string> } | { ok: false; error: string }>;
+        getApiKeyAndHeaders: (model: Model<Api>) => Promise<{ ok: true; apiKey?: string; headers?: ProviderHeaders; env?: Record<string, string> } | { ok: false; error: string }>;
     },
 ): Promise<Model<Api>> {
     const candidates: Array<{ provider: string; modelId: string }> = [
@@ -534,22 +533,19 @@ export default function (pi: ExtensionAPI) {
                 loader.onAbort = () => done(null);
 
                 const doExtract = async () => {
-                    const auth =
-                        await ctx.modelRegistry.getApiKeyAndHeaders(extractionModel);
-                    if (!auth.ok) throw new Error(auth.error);
                     const userMessage: UserMessage = {
                         role: "user",
                         content: [{ type: "text", text: lastAssistantText! }],
                         timestamp: Date.now(),
                     };
 
-                    const response = await completeSimple(
+                    const response = await ctx.modelRegistry.complete(
                         extractionModel,
                         {
                             systemPrompt: SYSTEM_PROMPT,
                             messages: [userMessage],
                         },
-                        { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal, reasoning: "low" },
+                        { signal: loader.signal, reasoning: "low" },
                     );
 
                     if (response.stopReason === "aborted") {
