@@ -56,6 +56,7 @@ function syncMode(pi: ExtensionAPI) {
 
 type ToolViewModeContext = {
     ui: {
+        getToolsExpanded: () => boolean;
         setToolsExpanded: (expanded: boolean) => void;
         setStatus: (key: string, value: string) => void;
     };
@@ -64,6 +65,7 @@ type ToolViewModeContext = {
 export default function (pi: ExtensionAPI) {
     const sandbox = initSandbox(pi);
     const cwd = process.cwd();
+    let lastAppliedToolViewMode: ToolViewMode | undefined;
 
     registerWebSearchTool(pi);
 
@@ -71,9 +73,24 @@ export default function (pi: ExtensionAPI) {
 
     function applyMode(ctx: ToolViewModeContext) {
         const mode = getToolViewMode();
+        const expanded = toolViewModeExpanded();
+
+        // Pi 0.84 skips setToolsExpanded(false) when rows are already
+        // collapsed. Toggle first so switching minimal <-> condensed still
+        // re-renders custom tool results.
+        if (
+            lastAppliedToolViewMode !== undefined &&
+            lastAppliedToolViewMode !== mode &&
+            !expanded &&
+            !ctx.ui.getToolsExpanded()
+        ) {
+            ctx.ui.setToolsExpanded(true);
+        }
+
         syncMode(pi);
-        ctx.ui.setToolsExpanded(toolViewModeExpanded());
+        ctx.ui.setToolsExpanded(expanded);
         ctx.ui.setStatus("tool-view", MODE_LABELS[mode]);
+        lastAppliedToolViewMode = mode;
     }
 
     pi.on("session_start", async (_event, ctx) => {
