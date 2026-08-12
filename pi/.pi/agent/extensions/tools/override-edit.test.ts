@@ -5,8 +5,8 @@ import path from "node:path";
 import test from "node:test";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { createEditOverride } from "./override-edit.ts";
-import { setToolViewMode } from "./tool-view-mode.ts";
 import type { SandboxAPI, SandboxEditOperations } from "./sandbox-shared.ts";
+import { setToolViewMode } from "./tool-view-mode.ts";
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
 	const dir = await mkdtemp(path.join(tmpdir(), "pi-edit-test-"));
@@ -17,7 +17,10 @@ async function withTempDir<T>(fn: (dir: string) => Promise<T>): Promise<T> {
 	}
 }
 
-function createSandbox(editOps?: SandboxEditOperations, translatePath = (value: string) => value): SandboxAPI {
+function createSandbox(
+	editOps?: SandboxEditOperations,
+	translatePath = (value: string) => value,
+): SandboxAPI {
 	return {
 		isActive: () => editOps !== undefined,
 		getOps: () => (editOps ? { edit: editOps } : {}),
@@ -32,14 +35,8 @@ function createSandbox(editOps?: SandboxEditOperations, translatePath = (value: 
 function createLocalEdit(cwd: string) {
 	const edit = createEditOverride(createSandbox());
 	const ctx = { cwd } as ExtensionContext;
-	return (params: Parameters<typeof edit.execute>[1]) =>
-		edit.execute("test", params, undefined, undefined, ctx);
-}
-
-function getText(result: Awaited<ReturnType<ReturnType<typeof createLocalEdit>>>): string {
-	const entry = result.content[0];
-	assert.equal(entry.type, "text");
-	return entry.text;
+	return (text: string) =>
+		edit.execute("test", { text }, undefined, undefined, ctx);
 }
 
 async function exists(filePath: string): Promise<boolean> {
@@ -51,184 +48,214 @@ async function exists(filePath: string): Promise<boolean> {
 	}
 }
 
-test("edit exposes the unified one-text API", () => {
+test("edit exposes only one required patch text field", () => {
 	const edit = createEditOverride(createSandbox());
 	const schema = edit.parameters as any;
 
 	assert.deepEqual(schema.required, ["text"]);
 	assert.deepEqual(Object.keys(schema.properties), ["text"]);
 	assert.equal(schema.additionalProperties, false);
-	assert.match(edit.description, /marked row edit script/);
+	assert.equal("prepareArguments" in edit, false);
+	assert.match(edit.description, /Codex-style patch/);
+	assert.doesNotMatch(edit.description, /marked row edit script/);
 	assert.equal(edit.renderShell, "self");
+	assert.equal(edit.constrainedSampling.type, "grammar");
+	assert.match(
+		edit.constrainedSampling.variants.openai_lark,
+		/^start: begin_patch file_operation\+ end_patch/m,
+	);
+	assert.match(
+		edit.constrainedSampling.variants.openai_lark,
+		/"\*\*\* Update File: "/,
+	);
+	assert.match(
+		edit.constrainedSampling.variants.openai_lark,
+		/"\*\*\* Move to: "/,
+	);
 });
 
-test("edit prepares raw strings and alternate string fields as text", () => {
-	const edit = createEditOverride(createSandbox());
-	const prepare = edit.prepareArguments;
-
-	assert.deepEqual(prepare("[a.txt]\n@APPEND\n+x"), { text: "[a.txt]\n@APPEND\n+x" });
-	assert.deepEqual(prepare({ patch: "patch text" }), { text: "patch text" });
-	assert.deepEqual(prepare({ input: "input text" }), { text: "input text" });
-	assert.deepEqual(prepare({ content: "content text" }), { text: "content text" });
-});
-
-test("row scripts apply replacements to multiple files", async () => {
+test("edit rejects row scripts", async () => {
 	await withTempDir(async (dir) => {
-		await writeFile(path.join(dir, "a.txt"), "one\ntwo\n", "utf-8");
-		await writeFile(path.join(dir, "b.txt"), "red\nblue\n", "utf-8");
+		await writeFile(path.join(dir, "a.txt"), "old\n", "utf-8");
 		const edit = createLocalEdit(dir);
 
-		const result = await edit({
-			text: [
-				"[a.txt]",
-				"@REPLACE",
-				"-two",
-				"+TWO",
-				"",
-				"[b.txt]",
-				"@REPLACE",
-				"-red",
-				"+RED",
-			].join("\n"),
-		});
-
-		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "one\nTWO\n");
-		assert.equal(await readFile(path.join(dir, "b.txt"), "utf-8"), "RED\nblue\n");
-		assert.match(getText(result), /Applied unified edit to 2 file\(s\)/);
-		assert.match(result.details.diff, /^File: a\.txt/m);
-		assert.match(result.details.diff, /^File: b\.txt/m);
+		await assert.rejects(
+			edit("[a.txt]\n@REPLACE\n-old\n+new"),
+			/The first line of the patch must be '\*\*\* Begin Patch'/,
+		);
+		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "old\n");
 	});
 });
 
-test("row replacement uses unique whole-line fuzzy matching", async () => {
+test("patch updates multiple files and hunks", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "a.txt"), "one\ntwo\nthree\nfour\n", "utf-8");
+		await writeFile(path.join(dir, "b.txt"), "red\nblue\n", "utf-8");
+		const edit = createLocalEdit(dir);
+
+		const result = await edit([
+			"*** Begin Patch",
+			"*** Update File: a.txt",
+			"@@",
+			" one",
+			"-two",
+			"+TWO",
+			"@@",
+			" three",
+			"-four",
+			"+FOUR",
+			"*** Update File: b.txt",
+			"@@",
+			"-red",
+			"+RED",
+			" blue",
+			"*** End Patch",
+		].join("\n"));
+
+		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "one\nTWO\nthree\nFOUR\n");
+		assert.equal(await readFile(path.join(dir, "b.txt"), "utf-8"), "RED\nblue\n");
+		assert.equal(result.details.files.length, 2);
+		assert.match(result.details.diff, /^Edit: a\.txt/m);
+		assert.match(result.details.diff, /^Edit: b\.txt/m);
+	});
+});
+
+test("patch adds and deletes files", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "gone.txt"), "gone\n", "utf-8");
+		const edit = createLocalEdit(dir);
+
+		const result = await edit([
+			"*** Begin Patch",
+			"*** Add File: nested/new.txt",
+			"+new",
+			"+file",
+			"*** Delete File: gone.txt",
+			"*** End Patch",
+		].join("\n"));
+
+		assert.equal(await readFile(path.join(dir, "nested/new.txt"), "utf-8"), "new\nfile\n");
+		assert.equal(await exists(path.join(dir, "gone.txt")), false);
+	});
+});
+
+test("patch add overwrites an existing file", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "a.txt"), "\uFEFFkeep\r\n", "utf-8");
+		const edit = createLocalEdit(dir);
+
+		const result = await edit(
+			"*** Begin Patch\n*** Add File: a.txt\n+replace\n*** End Patch",
+		);
+		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "replace\n");
+		assert.match(result.details.diff, /^Add \(overwrite\): a\.txt/m);
+	});
+});
+
+test("patch moves and updates a file", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "old.txt"), "\uFEFFold\r\n", "utf-8");
+		const edit = createLocalEdit(dir);
+
+		await edit([
+			"*** Begin Patch",
+			"*** Update File: old.txt",
+			"*** Move to: nested/new.txt",
+			"@@",
+			"-old",
+			"+new",
+			"*** End Patch",
+		].join("\n"));
+
+		assert.equal(await exists(path.join(dir, "old.txt")), false);
+		assert.equal(
+			await readFile(path.join(dir, "nested/new.txt"), "utf-8"),
+			"\uFEFFnew\r\n",
+		);
+	});
+});
+
+test("patch move overwrites an existing destination", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "old.txt"), "old\n", "utf-8");
+		await writeFile(path.join(dir, "new.txt"), "destination\n", "utf-8");
+		const edit = createLocalEdit(dir);
+
+		const result = await edit([
+			"*** Begin Patch",
+			"*** Update File: old.txt",
+			"*** Move to: new.txt",
+			"@@",
+			"-old",
+			"+moved",
+			"*** End Patch",
+		].join("\n"));
+
+		assert.equal(await exists(path.join(dir, "old.txt")), false);
+		assert.equal(await readFile(path.join(dir, "new.txt"), "utf-8"), "moved\n");
+		assert.match(
+			result.details.diff,
+			/^Move \(overwrite\): old\.txt → new\.txt/m,
+		);
+	});
+});
+
+test("patch update uses fuzzy line matching", async () => {
 	await withTempDir(async (dir) => {
 		await writeFile(path.join(dir, "a.txt"), "const value = “old”;   \n", "utf-8");
 		const edit = createLocalEdit(dir);
 
-		await edit({
-			text: "[a.txt]\n@REPLACE\n-const value = \"old\";\n+const value = \"new\";",
-		});
+		await edit([
+			"*** Begin Patch",
+			"*** Update File: a.txt",
+			"@@",
+			"-const value = \"old\";",
+			"+const value = \"new\";",
+			"*** End Patch",
+		].join("\n"));
 
 		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "const value = \"new\";\n");
 	});
 });
 
-test("row replacement rejects duplicate anchors", async () => {
-	await withTempDir(async (dir) => {
-		await writeFile(path.join(dir, "a.txt"), "same\nsame\n", "utf-8");
-		const edit = createLocalEdit(dir);
-
-		await assert.rejects(
-			edit({ text: "[a.txt]\n@REPLACE\n-same\n+changed" }),
-			/Found 2 occurrences/,
-		);
-		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "same\nsame\n");
-	});
-});
-
-test("row operations run sequentially", async () => {
-	await withTempDir(async (dir) => {
-		await writeFile(path.join(dir, "a.txt"), "one\ntwo\nthree\n", "utf-8");
-		const edit = createLocalEdit(dir);
-
-		await edit({
-			text: [
-				"[a.txt]",
-				"@INS.PRE 1",
-				"+zero",
-				"@INS.POST 2",
-				"+one-and-a-half",
-				"@INS.BEFORE",
-				"-three",
-				"+before-three",
-				"@INS.AFTER",
-				"-three",
-				"+after-three",
-				"@DEL 4",
-				"@APPEND",
-				"+last",
-			].join("\n"),
-		});
-
-		assert.equal(
-			await readFile(path.join(dir, "a.txt"), "utf-8"),
-			"zero\none\none-and-a-half\nbefore-three\nthree\nafter-three\nlast\n",
-		);
-	});
-});
-
-test("context rows and hunk separators support several replacements", async () => {
-	await withTempDir(async (dir) => {
-		await writeFile(path.join(dir, "a.txt"), "start\none\nmiddle\ntwo\nend\n", "utf-8");
-		const edit = createLocalEdit(dir);
-
-		await edit({
-			text: [
-				"[a.txt]",
-				"@REPLACE",
-				" start",
-				"-one",
-				"+ONE",
-				"@@",
-				" middle",
-				"-two",
-				"+TWO",
-			].join("\n"),
-		});
-
-		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "start\nONE\nmiddle\nTWO\nend\n");
-	});
-});
-
-test("patch payloads add, update, and delete files", async () => {
-	await withTempDir(async (dir) => {
-		await writeFile(path.join(dir, "a.txt"), "one\ntwo\n", "utf-8");
-		await writeFile(path.join(dir, "gone.txt"), "gone\n", "utf-8");
-		const edit = createLocalEdit(dir);
-
-		const result = await edit({
-			text: [
-				"*** Begin Patch",
-				"*** Update File: a.txt",
-				"@@",
-				" one",
-				"-two",
-				"+TWO",
-				"*** Add File: nested/new.txt",
-				"+new",
-				"*** Delete File: gone.txt",
-				"*** End Patch",
-			].join("\n"),
-		});
-
-		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "one\nTWO\n");
-		assert.equal(await readFile(path.join(dir, "nested/new.txt"), "utf-8"), "new\n");
-		assert.equal(await exists(path.join(dir, "gone.txt")), false);
-		assert.equal(result.details.files.length, 3);
-	});
-});
-
-test("planning failure leaves every target unchanged", async () => {
+test("patch planning failure leaves every file unchanged", async () => {
 	await withTempDir(async (dir) => {
 		await writeFile(path.join(dir, "a.txt"), "one\n", "utf-8");
 		const edit = createLocalEdit(dir);
 
 		await assert.rejects(
-			edit({
-				text: "[a.txt]\n@REPLACE\n-one\n+ONE\n[missing.txt]\n@APPEND\n+x",
-			}),
-			/Could not read missing\.txt/,
+			edit([
+				"*** Begin Patch",
+				"*** Update File: a.txt",
+				"@@",
+				"-one",
+				"+ONE",
+				"*** Update File: missing.txt",
+				"@@",
+				"-missing",
+				"+changed",
+				"*** End Patch",
+			].join("\n")),
+			/file does not exist/,
 		);
 		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "one\n");
 	});
 });
 
-test("row updates preserve a BOM and CRLF line endings", async () => {
+test("patch updates preserve a BOM and CRLF line endings", async () => {
 	await withTempDir(async (dir) => {
 		await writeFile(path.join(dir, "a.txt"), "\uFEFFone\r\ntwo\r\n", "utf-8");
 		const edit = createLocalEdit(dir);
 
-		await edit({ text: "[a.txt]\n@REPLACE\n-two\n+TWO" });
+		await edit([
+			"*** Begin Patch",
+			"*** Update File: a.txt",
+			"@@",
+			" one",
+			"-two",
+			"+TWO",
+			"*** End Patch",
+		].join("\n"));
 
 		assert.equal(await readFile(path.join(dir, "a.txt"), "utf-8"), "\uFEFFone\r\nTWO\r\n");
 	});
@@ -261,12 +288,16 @@ test("sandbox edit operations receive translated paths", async () => {
 			checked.push(filePath);
 		},
 	};
-	const sandbox = createSandbox(ops, (value) => value.replace("/host/project", "/guest/project"));
+	const sandbox = createSandbox(ops, (value) =>
+		value.replace("/host/project", "/guest/project"),
+	);
 	const edit = createEditOverride(sandbox);
 
 	await edit.execute(
 		"test",
-		{ text: "[a.txt]\n@REPLACE\n-one\n+ONE" },
+		{
+			text: "*** Begin Patch\n*** Update File: a.txt\n@@\n-one\n+ONE\n*** End Patch",
+		},
 		undefined,
 		undefined,
 		{ cwd: "/host/project" },
@@ -279,16 +310,16 @@ test("sandbox edit operations receive translated paths", async () => {
 test("minimal mode stays header-only and streamed arguments do not build previews", async () => {
 	await withTempDir(async (dir) => {
 		await writeFile(path.join(dir, "a.txt"), "old\n", "utf-8");
-		const edit = createEditOverride(createSandbox());
-		const state: Record<string, unknown> = {};
-		let invalidations = 0;
-		const args = { text: "[a.txt]\n@REPLACE\n-old\n+new" };
+		const args = {
+			text: "*** Begin Patch\n*** Update File: a.txt\n@@\n-old\n+new\n*** End Patch",
+		};
 		const theme = {
 			fg: (_color: string, text: string) => text,
 			bold: (text: string) => text,
 			bg: (_color: string, text: string) => text,
 		};
-		const context = (argsComplete: boolean) => ({
+		let invalidations = 0;
+		const context = (state: Record<string, unknown>, argsComplete: boolean) => ({
 			state,
 			cwd: dir,
 			invalidate: () => invalidations++,
@@ -299,42 +330,265 @@ test("minimal mode stays header-only and streamed arguments do not build preview
 
 		try {
 			setToolViewMode("minimal");
-			const call = edit.renderCall(args, theme, context(true));
+			const edit = createEditOverride(createSandbox());
+			const state = {};
+			const call = edit.renderCall(args, theme, context(state, true));
 			await new Promise((resolve) => setImmediate(resolve));
 			assert.equal(invalidations, 0);
-
-			edit.renderResult(
-				{
-					content: [{ type: "text", text: "Edited a.txt." }],
-					details: {
-						diff: "-1 old\n+1 new",
-						patch: "",
-						files: [
-							{
-								path: "a.txt",
-								kind: "update",
-								details: { diff: "-1 old\n+1 new", patch: "" },
-							},
-						],
-					},
-				},
-				{},
-				theme,
-				context(true),
-			);
 			assert.doesNotMatch(call.render(120).join("\n"), /[-+]1 (?:old|new)/);
 
 			setToolViewMode("condensed");
 			invalidations = 0;
 			const streamedEdit = createEditOverride(createSandbox());
-			streamedEdit.renderCall(args, theme, {
-				...context(false),
-				state: {},
-			});
+			streamedEdit.renderCall(args, theme, context({}, false));
 			await new Promise((resolve) => setImmediate(resolve));
 			assert.equal(invalidations, 0);
 		} finally {
 			setToolViewMode("minimal");
 		}
+	});
+});
+
+test("minimal mode headline shows colored line change counts after editing", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "a.txt"), "old\n", "utf-8");
+		const args = {
+			text: "*** Begin Patch\n*** Update File: a.txt\n@@\n-old\n+new\n*** End Patch",
+		};
+		const theme = {
+			fg: (color: string, text: string) =>
+				color === "toolDiffAdded"
+					? `GREEN(${text})`
+					: color === "toolDiffRemoved"
+						? `RED(${text})`
+						: text,
+			bold: (text: string) => text,
+			bg: (_color: string, text: string) => text,
+		};
+		const state = {};
+		const context = {
+			state,
+			cwd: dir,
+			invalidate: () => {},
+			argsComplete: true,
+			isError: false,
+			args,
+		};
+
+		try {
+			setToolViewMode("minimal");
+			const edit = createEditOverride(createSandbox());
+			const call = edit.renderCall(args, theme, context);
+			const result = await edit.execute(
+				"test",
+				args,
+				undefined,
+				undefined,
+				{ cwd: dir },
+			);
+			edit.renderResult(result, {}, theme, context);
+
+			assert.match(
+				call.render(120).join("\n"),
+				/edit a\.txt 1 edit GREEN\(\+1\) RED\(-1\)/,
+			);
+		} finally {
+			setToolViewMode("minimal");
+		}
+	});
+});
+
+test("minimal mode headline summarizes patch operation totals", () => {
+	const args = {
+		text: [
+			"*** Begin Patch",
+			"*** Add File: added.txt",
+			"+added",
+			"*** Update File: edited.txt",
+			"@@",
+			"-old",
+			"+new",
+			"*** Update File: old.txt",
+			"*** Move to: moved.txt",
+			"@@",
+			"-before",
+			"+after",
+			"*** Delete File: deleted.txt",
+			"*** End Patch",
+		].join("\n"),
+	};
+	const theme = {
+		fg: (_color: string, text: string) => text,
+		bold: (text: string) => text,
+		bg: (_color: string, text: string) => text,
+	};
+
+	try {
+		setToolViewMode("minimal");
+		const edit = createEditOverride(createSandbox());
+		const call = edit.renderCall(args, theme, {
+			state: {},
+			cwd: "/project",
+			invalidate: () => {},
+			argsComplete: true,
+			isError: false,
+			args,
+		});
+
+		assert.match(
+			call.render(120).join("\n"),
+			/edit 4 files 1 add, 1 edit, 1 move, 1 delete/,
+		);
+	} finally {
+		setToolViewMode("minimal");
+	}
+});
+
+test("move headline counts only content edits, not the path change", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "old.txt"), "one\ntwo\nthree\n", "utf-8");
+		const args = {
+			text: [
+				"*** Begin Patch",
+				"*** Update File: old.txt",
+				"*** Move to: new.txt",
+				"@@",
+				" one",
+				"-two",
+				"+TWO",
+				" three",
+				"*** End Patch",
+			].join("\n"),
+		};
+		const theme = {
+			fg: (_color: string, text: string) => text,
+			bold: (text: string) => text,
+			bg: (_color: string, text: string) => text,
+		};
+		const state = {};
+		const context = {
+			state,
+			cwd: dir,
+			invalidate: () => {},
+			argsComplete: true,
+			isError: false,
+			args,
+		};
+
+		try {
+			setToolViewMode("minimal");
+			const edit = createEditOverride(createSandbox());
+			const call = edit.renderCall(args, theme, context);
+			const result = await edit.execute(
+				"test",
+				args,
+				undefined,
+				undefined,
+				{ cwd: dir },
+			);
+			edit.renderResult(result, {}, theme, context);
+
+			assert.match(
+				call.render(120).join("\n"),
+				/edit old\.txt 1 move \+1 -1/,
+			);
+		} finally {
+			setToolViewMode("minimal");
+		}
+	});
+});
+
+test("path-only move headline shows zero changed lines", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "old.txt"), "unchanged\n", "utf-8");
+		const args = {
+			text: [
+				"*** Begin Patch",
+				"*** Update File: old.txt",
+				"*** Move to: new.txt",
+				"@@",
+				" unchanged",
+				"*** End Patch",
+			].join("\n"),
+		};
+		const theme = {
+			fg: (_color: string, text: string) => text,
+			bold: (text: string) => text,
+			bg: (_color: string, text: string) => text,
+		};
+		const state = {};
+		const context = {
+			state,
+			cwd: dir,
+			invalidate: () => {},
+			argsComplete: true,
+			isError: false,
+			args,
+		};
+
+		try {
+			setToolViewMode("minimal");
+			const edit = createEditOverride(createSandbox());
+			const call = edit.renderCall(args, theme, context);
+			const result = await edit.execute(
+				"test",
+				args,
+				undefined,
+				undefined,
+				{ cwd: dir },
+			);
+			edit.renderResult(result, {}, theme, context);
+
+			assert.match(
+				call.render(120).join("\n"),
+				/edit old\.txt 1 move \+0 -0/,
+			);
+			assert.equal(result.details.diff, "Move: old.txt → new.txt");
+		} finally {
+			setToolViewMode("minimal");
+		}
+	});
+});
+
+test("expanded diff labels and combines mixed patch operations", async () => {
+	await withTempDir(async (dir) => {
+		await writeFile(path.join(dir, "edit.txt"), "before\nkeep\n", "utf-8");
+		await writeFile(path.join(dir, "move-source.txt"), "move before\n", "utf-8");
+		await writeFile(path.join(dir, "delete.txt"), "delete me\n", "utf-8");
+		const args = {
+			text: [
+				"*** Begin Patch",
+				"*** Add File: added.txt",
+				"+added",
+				"*** Update File: edit.txt",
+				"@@",
+				"-before",
+				"+after",
+				" keep",
+				"*** Update File: move-source.txt",
+				"*** Move to: moved.txt",
+				"@@",
+				"-move before",
+				"+move after",
+				"*** Delete File: delete.txt",
+				"*** End Patch",
+			].join("\n"),
+		};
+		const edit = createEditOverride(createSandbox());
+		const result = await edit.execute(
+			"test",
+			args,
+			undefined,
+			undefined,
+			{ cwd: dir },
+		);
+		const rendered = result.details.diff;
+
+		assert.match(rendered, /Add: added\.txt/);
+		assert.match(rendered, /Edit: edit\.txt/);
+		assert.match(rendered, /Move: move-source\.txt → moved\.txt/);
+		assert.match(rendered, /Delete: delete\.txt/);
+		assert.doesNotMatch(rendered, /-1 delete me/);
+		assert.doesNotMatch(rendered, /File: /);
 	});
 });
