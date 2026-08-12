@@ -473,7 +473,7 @@ Context behavior is controlled by optional 'mode':
 
 Use single mode for one task, parallel mode when tasks are independent and can run simultaneously.
 
-**Important:** Don't use subagents just to read file contents — use the \`read\` tool directly for that. Subagents are for tasks that require autonomous multi-step work (searching, summarizing, analyzing, implementing, etc.).
+**Important:** Delegate only when one agent's stated role covers the whole task. Do not stretch a recon agent into review or reasoning. Use \`code_recon\` only to collect code locations and evidence for another agent. Do not use subagents just to read file contents; use the \`read\` tool directly for that.
 
 ### Runtime delegation guards
 
