@@ -1,7 +1,8 @@
 /**
  * Subagent process runner.
  *
- * Spawns isolated `pi` processes and streams results back via callbacks.
+ * Spawns an isolated `pi` process using the caller's provider, model, and
+ * thinking level, and active tools, then streams results back via callbacks.
  */
 
 import { spawn } from "node:child_process";
@@ -10,7 +11,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { Message } from "@earendil-works/pi-ai";
-import type { AgentConfig } from "./agents";
 import {
   type DelegationMode,
   type SingleResult,
@@ -24,9 +24,6 @@ import {
 const SIGKILL_TIMEOUT_MS = 5000;
 const SUBAGENT_DEPTH_ENV = "PI_SUBAGENT_DEPTH";
 const SUBAGENT_MAX_DEPTH_ENV = "PI_SUBAGENT_MAX_DEPTH";
-const SUBAGENT_STACK_ENV = "PI_SUBAGENT_STACK";
-const SUBAGENT_PREVENT_CYCLES_ENV = "PI_SUBAGENT_PREVENT_CYCLES";
-const SUBAGENT_ALLOWED_TOOLS_ENV = "PI_SUBAGENT_ALLOWED_TOOLS";
 const PI_OFFLINE_ENV = "PI_OFFLINE";
 const MAX_RECOVERABLE_RETRIES = 1;
 
@@ -38,15 +35,14 @@ type SessionRunConfig =
 
 interface RunAttemptOptions {
   cwd: string;
-  agent: AgentConfig;
-  agentName: string;
   task: string;
   prompt: string;
-  systemPromptPath: string | null;
+  provider?: string;
+  model?: string;
+  thinkingLevel?: string;
+  tools: string[];
   parentDepth: number;
-  parentAgentStack: string[];
   maxDepth: number;
-  preventCycles: boolean;
   sessionConfig: SessionRunConfig;
   signal?: AbortSignal;
   onUpdate?: (result: SingleResult) => void;
@@ -85,7 +81,7 @@ function recordStreamParseError(
     linePreview: formatLinePreview(line),
     lineLength: line.length,
   };
-  if (!result.streamParseErrors) result.streamParseErrors = [];
+  result.streamParseErrors ??= [];
   result.streamParseErrors.push(entry);
 }
 
@@ -93,17 +89,11 @@ function recordStreamParseError(
 // Temp file helpers
 // ---------------------------------------------------------------------------
 
-function writeTempFile(
-  agentName: string,
-  prefix: string,
-  suffix: string,
-  contents: string,
-): TempFileRef {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagent-"));
-  const safeName = agentName.replace(/[^\w.-]+/g, "_");
-  const filePath = path.join(tmpDir, `${prefix}${safeName}${suffix}`);
+function writeTempFile(prefix: string, suffix: string, contents: string): TempFileRef {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagent-"));
+  const filePath = path.join(dir, `${prefix}${suffix}`);
   fs.writeFileSync(filePath, contents, { encoding: "utf-8", mode: 0o600 });
-  return { dir: tmpDir, filePath };
+  return { dir, filePath };
 }
 
 function createTempSessionDir(): string {
@@ -112,7 +102,6 @@ function createTempSessionDir(): string {
 
 function prepareSessionResources(
   delegationMode: DelegationMode,
-  agentName: string,
   forkSessionSnapshotJsonl?: string,
 ): PreparedSessionResources {
   if (delegationMode === "spawn") {
@@ -128,7 +117,6 @@ function prepareSessionResources(
   }
 
   const sessionFile = writeTempFile(
-    agentName,
     "fork-",
     ".jsonl",
     forkSessionSnapshotJsonl ?? "",
@@ -144,7 +132,7 @@ function cleanupTempDir(dir: string | null): void {
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {
-    /* ignore */
+    // Best-effort cleanup for temporary child session files.
   }
 }
 
@@ -164,17 +152,17 @@ function processJsonLine(line: string, result: SingleResult): boolean {
   }
 
   if (event.type === "message_end" && event.message) {
-    const msg = event.message as Message;
-    result.messages.push(msg);
+    const message = event.message as Message;
+    result.messages.push(message);
 
-    if (msg.role === "assistant") {
+    if (message.role === "assistant") {
       result.usage.turns++;
-      if (Array.isArray(msg.content)) {
-        result.usage.toolCalls += msg.content.filter(
+      if (Array.isArray(message.content)) {
+        result.usage.toolCalls += message.content.filter(
           (part) => part.type === "toolCall",
         ).length;
       }
-      const usage = msg.usage;
+      const usage = message.usage;
       if (usage) {
         result.usage.input += usage.input || 0;
         result.usage.output += usage.output || 0;
@@ -183,9 +171,9 @@ function processJsonLine(line: string, result: SingleResult): boolean {
         result.usage.cost += usage.cost?.total || 0;
         result.usage.contextTokens = usage.totalTokens || 0;
       }
-      if (!result.model && msg.model) result.model = msg.model;
-      if (msg.stopReason) result.stopReason = msg.stopReason;
-      if (msg.errorMessage) result.errorMessage = msg.errorMessage;
+      if (message.model) result.model = message.model;
+      if (message.stopReason) result.stopReason = message.stopReason;
+      if (message.errorMessage) result.errorMessage = message.errorMessage;
     }
     return true;
   }
@@ -202,9 +190,11 @@ function processJsonLine(line: string, result: SingleResult): boolean {
 // Build pi CLI arguments
 // ---------------------------------------------------------------------------
 
-function buildPiArgs(
-  agent: AgentConfig,
-  systemPromptPath: string | null,
+export function buildPiArgs(
+  provider: string | undefined,
+  model: string | undefined,
+  thinkingLevel: string | undefined,
+  tools: string[],
   prompt: string,
   sessionConfig: SessionRunConfig,
 ): string[] {
@@ -217,12 +207,10 @@ function buildPiArgs(
     args.push("--session", sessionConfig.path);
   }
 
-  if (agent.model) args.push("--model", agent.model);
-  if (agent.thinking) args.push("--thinking", agent.thinking);
-  if (agent.tools && agent.tools.length > 0) {
-    args.push("--tools", agent.tools.join(","));
-  }
-  if (systemPromptPath) args.push("--append-system-prompt", systemPromptPath);
+  if (provider) args.push("--provider", provider);
+  if (model) args.push("--model", model);
+  if (thinkingLevel) args.push("--thinking", thinkingLevel);
+  args.push("--tools", tools.join(","));
   args.push(prompt);
   return args;
 }
@@ -251,42 +239,42 @@ function getRecoverableToolCallError(result: SingleResult): string | null {
 async function runAttempt(opts: RunAttemptOptions): Promise<SingleResult> {
   const {
     cwd,
-    agent,
-    agentName,
     task,
     prompt,
-    systemPromptPath,
+    provider,
+    model,
+    thinkingLevel,
+    tools,
     parentDepth,
-    parentAgentStack,
     maxDepth,
-    preventCycles,
     sessionConfig,
     signal,
     onUpdate,
   } = opts;
 
   const result: SingleResult = {
-    agent: agentName,
-    agentSource: agent.source,
     task,
     exitCode: -1,
     messages: [],
     stderr: "",
     usage: emptyUsage(),
-    model: agent.model,
+    model,
   };
 
-  const emitUpdate = () => {
-    onUpdate?.(result);
-  };
-
-  const piArgs = buildPiArgs(agent, systemPromptPath, prompt, sessionConfig);
+  const emitUpdate = () => onUpdate?.(result);
+  const piArgs = buildPiArgs(
+    provider,
+    model,
+    thinkingLevel,
+    tools,
+    prompt,
+    sessionConfig,
+  );
   let wasAborted = false;
 
   const exitCode = await new Promise<number>((resolve) => {
     const nextDepth = Math.max(0, Math.floor(parentDepth)) + 1;
     const propagatedMaxDepth = Math.max(0, Math.floor(maxDepth));
-    const propagatedStack = [...parentAgentStack, agentName];
     const proc = spawn("pi", piArgs, {
       cwd,
       shell: false,
@@ -295,19 +283,11 @@ async function runAttempt(opts: RunAttemptOptions): Promise<SingleResult> {
         ...process.env,
         [SUBAGENT_DEPTH_ENV]: String(nextDepth),
         [SUBAGENT_MAX_DEPTH_ENV]: String(propagatedMaxDepth),
-        [SUBAGENT_STACK_ENV]: JSON.stringify(propagatedStack),
-        [SUBAGENT_PREVENT_CYCLES_ENV]: preventCycles ? "1" : "0",
-        ...(agent.tools && agent.tools.length > 0
-          ? {
-              [SUBAGENT_ALLOWED_TOOLS_ENV]: JSON.stringify(agent.tools),
-            }
-          : {}),
         [PI_OFFLINE_ENV]: "1",
       },
     });
 
     let buffer = "";
-
     const flushLine = (line: string) => {
       if (processJsonLine(line, result)) emitUpdate();
     };
@@ -365,30 +345,30 @@ async function runAttempt(opts: RunAttemptOptions): Promise<SingleResult> {
 export interface RunAgentOptions {
   /** Working directory for the child process. */
   cwd: string;
-  /** All available agent configs. */
-  agents: AgentConfig[];
-  /** Name of the agent to run. */
-  agentName: string;
   /** Task description. */
   task: string;
   /** Context mode: spawn (fresh) or fork (session snapshot + task). */
   delegationMode: DelegationMode;
+  /** Provider inherited from the caller's active model. */
+  provider?: string;
+  /** Model inherited from the caller's active model. */
+  model?: string;
+  /** Thinking level inherited from the caller. */
+  thinkingLevel?: string;
+  /** Active tool allowlist inherited from the caller. */
+  tools: string[];
   /** Serialized parent session snapshot used when delegationMode is "fork". */
   forkSessionSnapshotJsonl?: string;
   /** Current delegation depth of the caller process. */
   parentDepth: number;
-  /** Delegation stack from the caller process (ancestor agent names). */
-  parentAgentStack: string[];
   /** Maximum allowed delegation depth to propagate to child processes. */
   maxDepth: number;
-  /** Whether cycle prevention should be enforced in child processes. */
-  preventCycles: boolean;
   /** Abort signal for cancellation. */
   signal?: AbortSignal;
   /** Streaming update callback. */
   onUpdate?: OnUpdateCallback;
   /** Factory to wrap results into SubagentDetails. */
-  makeDetails: (results: SingleResult[]) => SubagentDetails;
+  makeDetails: (result: SingleResult) => SubagentDetails;
 }
 
 /**
@@ -399,51 +379,33 @@ export interface RunAgentOptions {
 export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
   const {
     cwd,
-    agents,
-    agentName,
     task,
     delegationMode,
+    provider,
+    model,
+    thinkingLevel,
+    tools,
     forkSessionSnapshotJsonl,
     parentDepth,
-    parentAgentStack,
     maxDepth,
-    preventCycles,
     signal,
     onUpdate,
     makeDetails,
   } = opts;
-
-  const agent = agents.find((a) => a.name === agentName);
-  if (!agent) {
-    const available = agents.map((a) => `"${a.name}"`).join(", ") || "none";
-    return {
-      agent: agentName,
-      agentSource: "unknown",
-      task,
-      exitCode: 1,
-      messages: [],
-      stderr: `Unknown agent: "${agentName}". Available agents: ${available}.`,
-      usage: emptyUsage(),
-    };
-  }
 
   if (
     delegationMode === "fork" &&
     (!forkSessionSnapshotJsonl || !forkSessionSnapshotJsonl.trim())
   ) {
     return {
-      agent: agentName,
-      agentSource: agent.source,
       task,
       exitCode: 1,
       messages: [],
-      stderr:
-        "Cannot run in fork mode: missing parent session snapshot context.",
+      stderr: "Cannot run in fork mode: missing parent session snapshot context.",
       usage: emptyUsage(),
-      model: agent.model,
+      model,
       stopReason: "error",
-      errorMessage:
-        "Cannot run in fork mode: missing parent session snapshot context.",
+      errorMessage: "Cannot run in fork mode: missing parent session snapshot context.",
     };
   }
 
@@ -455,16 +417,12 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
           text: getFinalOutput(result.messages) || "(running...)",
         },
       ],
-      details: makeDetails([result]),
+      details: makeDetails(result),
     });
   };
 
-  const promptTempFile = agent.systemPrompt.trim()
-    ? writeTempFile(agent.name, "prompt-", ".md", agent.systemPrompt)
-    : null;
   const sessionResources = prepareSessionResources(
     delegationMode,
-    agent.name,
     forkSessionSnapshotJsonl,
   );
 
@@ -486,20 +444,20 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
       );
 
       const merged: SingleResult = {
-        agent: agentName,
-        agentSource: agent.source,
         task,
         exitCode: running ? -1 : lastAttempt?.exitCode ?? -1,
         messages: allAttempts.flatMap((attempt) => attempt.messages),
         stderr: running ? "" : lastAttempt?.stderr ?? "",
         usage: aggregateUsage(allAttempts),
-        model: lastAttempt?.model ?? agent.model,
+        model: lastAttempt?.model ?? model,
       };
 
       if (streamParseErrors.length > 0) {
         merged.streamParseErrors = streamParseErrors;
       }
-      if (!running && lastAttempt?.stopReason) merged.stopReason = lastAttempt.stopReason;
+      if (!running && lastAttempt?.stopReason) {
+        merged.stopReason = lastAttempt.stopReason;
+      }
       if (!running && lastAttempt?.errorMessage) {
         merged.errorMessage = lastAttempt.errorMessage;
       }
@@ -530,15 +488,14 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
     ) {
       const attemptResult = await runAttempt({
         cwd,
-        agent,
-        agentName,
         task,
         prompt,
-        systemPromptPath: promptTempFile?.filePath ?? null,
+        provider,
+        model,
+        thinkingLevel,
+        tools,
         parentDepth,
-        parentAgentStack,
         maxDepth,
-        preventCycles,
         sessionConfig: sessionResources.buildConfig(attemptIndex),
         signal,
         onUpdate: (partial) => emitMergedUpdate(partial),
@@ -550,9 +507,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
 
       completedAttempts.push(attemptResult);
 
-      if (!shouldRetry) {
-        return mergeAttempts();
-      }
+      if (!shouldRetry) return mergeAttempts();
 
       recoveryTriggerError = recoverableError;
       prompt = buildRecoveryPrompt(recoverableError);
@@ -561,18 +516,11 @@ export async function runAgent(opts: RunAgentOptions): Promise<SingleResult> {
 
     return mergeAttempts();
   } finally {
-    cleanupTempDir(promptTempFile?.dir ?? null);
     cleanupTempDir(sessionResources.cleanupDir);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Concurrency helper
-// ---------------------------------------------------------------------------
-
-/**
- * Map over items with a bounded number of concurrent workers.
- */
+/** Map over items with a bounded number of concurrent workers. */
 export async function mapConcurrent<TIn, TOut>(
   items: TIn[],
   concurrency: number,
@@ -585,9 +533,9 @@ export async function mapConcurrent<TIn, TOut>(
 
   const worker = async () => {
     while (true) {
-      const i = nextIndex++;
-      if (i >= items.length) return;
-      results[i] = await fn(items[i], i);
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index], index);
     }
   };
 

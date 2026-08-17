@@ -1,54 +1,55 @@
-# Attribution
-
-Originally based on: https://github.com/mjakl/pi-subagent
-
 # Subagent extension
 
-This Pi extension adds a `subagent` tool that delegates work to specialized agents by spawning isolated `pi` processes.
+This Pi extension adds one `subagent` tool. It delegates tasks to isolated `pi`
+processes.
 
-## What it supports
+## Usage
 
-- Single delegation:
-  - `{ agent: "name", task: "..." }`
-- Parallel delegation:
-  - `{ tasks: [{ agent: "name", task: "..." }, ...] }`
-- Context modes:
-  - `spawn` (default): child gets only the provided task prompt
-  - `fork`: child gets a forked snapshot of the current session plus the task prompt
+```json
+{
+  "task": "Review the authentication changes and report any bugs",
+  "mode": "spawn"
+}
+```
 
-## Agent discovery
+For independent tasks, one call can run up to eight subagents with at most four
+running at once:
 
-Agents are discovered from:
+```json
+{
+  "tasks": [
+    { "task": "Review the authentication changes" },
+    { "task": "Run the relevant tests and report failures" }
+  ],
+  "mode": "spawn"
+}
+```
 
-- User agents: `~/.pi/agent/agents/*.md`
-- Project agents: nearest `.pi/agents/*.md` while walking up from the current working directory
+Set exactly one of `task` or `tasks`.
 
-When both define the same agent name, the project agent wins.
+`mode` is optional:
 
-## Safety guards
+- `spawn` (default) starts a fresh child session.
+- `fork` gives the child a snapshot of the current session as context.
 
-The extension includes a few runtime protections:
+Each child inherits the caller's current provider, model, thinking level, and
+active tool allowlist. Tasks must provide any other context the child needs when
+using `spawn`.
 
-- Maximum parallel task limit
-- Delegation depth limit
-- Cycle prevention using the delegation stack
-- Optional confirmation before running project-local agents
+## Safety
 
-## Rendering behavior
+The extension limits recursive delegation with `--subagent-max-depth`. The
+default maximum depth is three delegation levels. Set it through the CLI or
+the `PI_SUBAGENT_MAX_DEPTH` environment variable.
 
-The TUI renderer shows:
+## Rendering
 
-- the delegated agent name and source (`user` or `project`)
-- the delegation mode (`spawn` or `fork`)
-- streamed tool-call previews and assistant text
-- per-run usage and total usage for parallel runs
-
-The tool result returned to the parent call contains the final assistant text for each run, while the renderer can show the fuller interleaved transcript.
+The TUI renderer shows each task, delegation mode, streamed tool calls and
+assistant text, final status, and per-run and total usage.
 
 ## Files
 
-- `index.ts` — tool definition, validation, and execution flow
-- `agents.ts` — agent discovery and parsing
-- `runner.ts` — child process spawning and streaming
-- `types.ts` — shared types and display helpers
-- `render.ts` — TUI rendering for calls and results
+- `index.ts` — tool definition, depth guard, and execution flow
+- `runner.ts` — child process spawning, inherited model settings, and streaming
+- `types.ts` — shared result and display helpers
+- `render.ts` — TUI rendering
