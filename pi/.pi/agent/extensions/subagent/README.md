@@ -33,8 +33,9 @@ Set exactly one of `task` or `tasks`.
 - `fork` gives the child a snapshot of the current session as context.
 
 Each child inherits the caller's current provider, model, thinking level, and
-active tool allowlist. Tasks must provide any other context the child needs when
-using `spawn`.
+active tool allowlist. Child processes cannot successfully delegate further:
+the `PI_SUBAGENT_DEPTH` guard rejects nested calls. Tasks must provide any other
+context the child needs when using `spawn`.
 
 ## Safety
 

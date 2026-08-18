@@ -3,7 +3,7 @@
  *
  * Delegates one task or a bounded set of parallel tasks to isolated `pi`
  * processes. Each child inherits the caller's provider, model, thinking level,
- * and active tools.
+ * and active tools. Child processes cannot delegate further.
  */
 
 import type {
@@ -204,7 +204,7 @@ export default function (pi: ExtensionAPI) {
     name: "subagent",
     label: "Subagent",
     description:
-      "Delegate work to isolated pi processes. Use task for one subagent or tasks for up to 8 parallel subagents. Each child inherits the current provider, model, thinking level, and active tools. Use mode='fork' when they need the current session context; use the default 'spawn' mode for fresh sessions.",
+      "Delegate work to isolated pi processes. Use task for one subagent or tasks for up to 8 parallel subagents. Each child inherits the current provider, model, thinking level, and active tools. Nested delegation calls are rejected. Use mode='fork' when they need the current session context; use the default 'spawn' mode for fresh sessions.",
     parameters: SubagentParams,
 
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
@@ -218,6 +218,14 @@ export default function (pi: ExtensionAPI) {
           mode,
           DEFAULT_DELEGATION_MODE,
           `Invalid mode "${String(params.mode)}". Expected "spawn" or "fork".`,
+        );
+      }
+
+      if (depthConfig.currentDepth > 0) {
+        return getErrorResult(
+          mode,
+          delegationMode,
+          "Nested subagent delegation is disabled.",
         );
       }
 
