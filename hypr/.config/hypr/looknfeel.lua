@@ -15,8 +15,8 @@ o.window(
   { opacity = "1.0 override 1.0 override" }
 )
 
--- Adjust terminal opacity.
+-- Keep terminals fully opaque.
 o.window(
   { tag = "terminal" },
-  { opacity = "0.97 override 0.9 override" }
+  { opacity = "1.0 override 1.0 override" }
 )
