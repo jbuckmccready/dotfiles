@@ -1,4 +1,28 @@
 {
-    "type": "docker",
-    "container": "pi-docker-sandbox"
+    "type": "gondolin",
+    "imagePath": "rust-dev:latest",
+    "vmm": "qemu",
+    "accel": "kvm",
+    "rootfsSize": "16G",
+    "memory": "8G",
+    "cpus": 8,
+    "allowedHosts": [
+        "crates.io",
+        "*.crates.io",
+        "github.com",
+        "*.github.com",
+        "raw.githubusercontent.com"
+    ],
+    "excludePaths": [
+        ".env",
+        ".envrc",
+        "target"
+    ],
+    "env": {
+        "CARGO_HOME": "/build/cargo-home",
+        "CARGO_TARGET_DIR": "/build/cargo-target",
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "safe.directory",
+        "GIT_CONFIG_VALUE_0": "/workspace"
+    }
 }

@@ -1,5 +1,5 @@
 {
-  "arch": "aarch64",
+  "arch": "x86_64",
   "distro": "alpine",
   "alpine": {
     "version": "3.23.0",
@@ -11,6 +11,8 @@
       "bash",
       "ca-certificates",
       "curl",
+      "e2fsprogs",
+      "e2fsprogs-extra",
       "ripgrep",
       "fd",
       "git",
@@ -20,6 +22,8 @@
       "python3",
       "npm",
       "gcc",
+      "musl-dev",
+      "linux-headers",
       "pkgconf",
       "openssl-dev",
       "file",
@@ -30,12 +34,5 @@
   "rootfs": {
     "label": "gondolin-root",
     "sizeMb": 4096
-  },
-  "postBuild": {
-    "commands": [
-      "apk add --no-cache musl-dev linux-headers",
-      "printf '[safe]\\n\\tdirectory = *\\n' > /etc/gitconfig",
-      "ZIG_ARCH=$(uname -m) && curl -fsSL -o /tmp/zig.tar.xz \"https://ziglang.org/download/0.15.2/zig-${ZIG_ARCH}-linux-0.15.2.tar.xz\" && tar -xJf /tmp/zig.tar.xz -C /usr/local && ln -s /usr/local/zig-${ZIG_ARCH}-linux-0.15.2/zig /usr/local/bin/zig && rm /tmp/zig.tar.xz"
-    ]
   }
 }

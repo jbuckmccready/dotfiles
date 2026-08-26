@@ -34,6 +34,9 @@ export interface GondolinSandboxConfig {
     enabled?: boolean;
     imagePath?: string;
     checkpointPath?: string;
+    vmm?: "qemu" | "krun";
+    accel?: string;
+    rootfsSize?: string;
     memory?: string;
     cpus?: number;
     allowedHosts?: string[];
@@ -176,6 +179,9 @@ export function loadConfig(cwd: string): SandboxConfig {
             enabled: merged.enabled as boolean | undefined,
             imagePath: merged.imagePath as string | undefined,
             checkpointPath: merged.checkpointPath as string | undefined,
+            vmm: merged.vmm as "qemu" | "krun" | undefined,
+            accel: merged.accel as string | undefined,
+            rootfsSize: merged.rootfsSize as string | undefined,
             memory: merged.memory as string | undefined,
             cpus: merged.cpus as number | undefined,
             allowedHosts: merged.allowedHosts as string[] | undefined,

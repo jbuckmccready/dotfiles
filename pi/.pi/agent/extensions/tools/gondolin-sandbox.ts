@@ -10,7 +10,10 @@
  *
  *   {
  *     "type": "gondolin",
- *     "imagePath": "~/dotfiles/gondolin/rust-assets",
+ *     "imagePath": "rust-dev:latest",
+ *     "vmm": "qemu",
+ *     "accel": "kvm",
+ *     "rootfsSize": "16G",
  *     "allowedHosts": [
  *       "github.com",
  *       "*.github.com",
@@ -31,9 +34,12 @@
  *   }
  *
  * Config fields:
- *   imagePath     — path to custom guest image assets (built via `gondolin build`)
+ *   imagePath     — custom image path, build id, or image tag
  *   checkpointPath — path to a .qcow2 checkpoint to resume from instead of
  *                    booting a fresh VM
+ *   vmm           — VM backend: "qemu" (default) or experimental "krun"
+ *   accel         — QEMU acceleration backend (e.g. "kvm" or "hvf")
+ *   rootfsSize    — minimum writable guest root disk size (e.g. "16G")
  *   memory        — VM memory size in QEMU syntax (e.g. "2G", "512M"). Default: "1G"
  *   cpus          — VM vCPU count. Default: 2
  *   allowedHosts  — HTTP egress allowlist, passed to gondolin's createHttpHooks.
@@ -463,7 +469,18 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
             }
 
             const vmOptions = {
-                ...(imagePath ? { sandbox: { imagePath } } : {}),
+                ...(imagePath || config.vmm || config.accel
+                    ? {
+                          sandbox: {
+                              ...(imagePath ? { imagePath } : {}),
+                              ...(config.vmm ? { vmm: config.vmm } : {}),
+                              ...(config.accel ? { accel: config.accel } : {}),
+                          },
+                      }
+                    : {}),
+                ...(config.rootfsSize
+                    ? { rootfs: { mode: "cow" as const, size: config.rootfsSize } }
+                    : {}),
                 ...(config.memory ? { memory: config.memory } : {}),
                 ...(config.cpus ? { cpus: config.cpus } : {}),
                 sessionLabel: `pi: ${localCwd}`,
@@ -564,6 +581,9 @@ export function createGondolinSandbox(): SandboxProvider<GondolinSandboxConfig> 
                 "Sandbox: gondolin",
                 `  Image Path: ${savedConfig?.imagePath || "(default)"}`,
                 `  Checkpoint Path: ${savedConfig?.checkpointPath || "(none)"}`,
+                `  VM Backend: ${savedConfig?.vmm || "(default: qemu)"}`,
+                `  Acceleration: ${savedConfig?.accel || "(auto)"}`,
+                `  Rootfs Size: ${savedConfig?.rootfsSize || "(image default)"}`,
                 `  Memory: ${savedConfig?.memory || "(default: 1G)"}`,
                 `  CPUs: ${savedConfig?.cpus || "(default: 2)"}`,
                 `  Allowed Hosts: ${savedConfig?.allowedHosts?.join(", ") || "(none)"}`,
