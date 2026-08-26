@@ -71,3 +71,17 @@ for (const c of cases) {
         assert.equal(hostToGuestPath(c.localCwd, c.localPath), c.expected);
     });
 }
+
+test("prefers host tmpdir when it is nested under host home", () => {
+    const home = "/home/testuser";
+    const hostTmpdir = `${home}/.pi/tmp`;
+
+    assert.equal(
+        hostToGuestPath(
+            CWD,
+            `${hostTmpdir}/pi-clipboard-abc123.png`,
+            { home, tmpdir: hostTmpdir },
+        ),
+        "/tmp/pi-host-tmp/pi-clipboard-abc123.png",
+    );
+});

@@ -97,11 +97,25 @@ const HOST_HOME = homedir();
 const HOST_TMPDIR = tmpdir();
 const GUEST_TMPDIR = "/tmp/pi-host-tmp";
 
+interface HostPathRoots {
+    home: string;
+    tmpdir: string;
+}
+
+const HOST_PATH_ROOTS: HostPathRoots = {
+    home: HOST_HOME,
+    tmpdir: HOST_TMPDIR,
+};
+
 function shQuote(value: string): string {
     return "'" + value.replace(/'/g, "'\\''") + "'";
 }
 
-export function hostToGuestPath(localCwd: string, localPath: string): string {
+export function hostToGuestPath(
+    localCwd: string,
+    localPath: string,
+    roots: HostPathRoots = HOST_PATH_ROOTS,
+): string {
     if (localPath === "~") return GUEST_HOME;
     if (localPath.startsWith("~/")) {
         return path.posix.join(GUEST_HOME, localPath.slice(2));
@@ -127,26 +141,27 @@ export function hostToGuestPath(localCwd: string, localPath: string): string {
         return path.posix.join(GUEST_WORKSPACE, posixRel);
     }
 
-    // Absolute path under host home should map to guest home.
-    if (localPath === HOST_HOME) return GUEST_HOME;
-    const hostHomePrefix = HOST_HOME + path.sep;
-    if (localPath.startsWith(hostHomePrefix)) {
-        const homeRel = localPath.slice(hostHomePrefix.length);
-        return path.posix.join(GUEST_HOME, ...homeRel.split(path.sep));
-    }
-
     // Absolute path under host tmpdir should map to guest tmpdir
-    // (skip if they're the same path — no translation needed).
+    // (skip if they're the same path — no translation needed). Check this
+    // before host home because pi may place its temp directory under ~/.pi.
     if (
-        HOST_TMPDIR !== GUEST_TMPDIR &&
-        !HOST_TMPDIR.startsWith(GUEST_TMPDIR + "/")
+        roots.tmpdir !== GUEST_TMPDIR &&
+        !roots.tmpdir.startsWith(GUEST_TMPDIR + "/")
     ) {
-        if (localPath === HOST_TMPDIR) return GUEST_TMPDIR;
-        const hostTmpPrefix = HOST_TMPDIR + path.sep;
+        if (localPath === roots.tmpdir) return GUEST_TMPDIR;
+        const hostTmpPrefix = roots.tmpdir + path.sep;
         if (localPath.startsWith(hostTmpPrefix)) {
             const tmpRel = localPath.slice(hostTmpPrefix.length);
             return path.posix.join(GUEST_TMPDIR, ...tmpRel.split(path.sep));
         }
+    }
+
+    // Absolute path under host home should map to guest home.
+    if (localPath === roots.home) return GUEST_HOME;
+    const hostHomePrefix = roots.home + path.sep;
+    if (localPath.startsWith(hostHomePrefix)) {
+        const homeRel = localPath.slice(hostHomePrefix.length);
+        return path.posix.join(GUEST_HOME, ...homeRel.split(path.sep));
     }
 
     // Absolute path outside workspace — pass through as-is
