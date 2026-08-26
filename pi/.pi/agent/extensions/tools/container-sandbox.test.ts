@@ -7,7 +7,7 @@ import {
     findMatchingSentinel,
     hostToGuestPath,
     parseStreamingFrameHeader,
-} from "./docker-sandbox.ts";
+} from "./container-sandbox.ts";
 
 function sentinel(exitCode: number, uuid: string): string {
     return `\0\0PIEOF:${exitCode}:${uuid}\0\0\n`;
@@ -92,7 +92,7 @@ test("parseStreamingFrameHeader rejects malformed frames", () => {
 });
 
 test("hostToGuestPath resolves symlinked host paths against mounted real paths", () => {
-    const root = mkdtempSync(path.join(tmpdir(), "pi-docker-sandbox-test-"));
+    const root = mkdtempSync(path.join(tmpdir(), "pi-container-sandbox-test-"));
 
     try {
         const realDir = path.join(root, "real-tmp");

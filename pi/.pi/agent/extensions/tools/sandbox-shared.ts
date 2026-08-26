@@ -51,6 +51,12 @@ export interface DockerSandboxConfig {
     container?: string;
 }
 
+export interface PodmanSandboxConfig {
+    type: "podman";
+    enabled?: boolean;
+    container?: string;
+}
+
 export interface DisabledSandboxConfig {
     type: "disabled";
     enabled?: boolean;
@@ -60,6 +66,7 @@ export type SandboxConfig =
     | OsSandboxConfig
     | GondolinSandboxConfig
     | DockerSandboxConfig
+    | PodmanSandboxConfig
     | DisabledSandboxConfig;
 
 export const MAX_READ_BYTES = 10 * 1024 * 1024;
@@ -196,6 +203,14 @@ export function loadConfig(cwd: string): SandboxConfig {
     if (type === "docker") {
         return {
             type: "docker",
+            enabled: merged.enabled as boolean | undefined,
+            container: merged.container as string | undefined,
+        };
+    }
+
+    if (type === "podman") {
+        return {
+            type: "podman",
             enabled: merged.enabled as boolean | undefined,
             container: merged.container as string | undefined,
         };

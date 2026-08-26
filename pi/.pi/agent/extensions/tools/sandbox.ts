@@ -12,6 +12,7 @@ import {
 } from "./sandbox-shared";
 import { createDisabledSandbox } from "./disabled-sandbox";
 import { createDockerSandbox } from "./docker-sandbox";
+import { createPodmanSandbox } from "./podman-sandbox";
 import { createGondolinSandbox } from "./gondolin-sandbox";
 import { createOsSandbox } from "./os-sandbox";
 
@@ -110,6 +111,12 @@ export function initSandbox(pi: ExtensionAPI): SandboxAPI {
                     provider = createDockerSandbox();
                     await provider.init(ctx.cwd, ctx.ui, config);
                     ctx.ui.notify("Docker sandbox initialized", "info");
+                    break;
+                }
+                case "podman": {
+                    provider = createPodmanSandbox();
+                    await provider.init(ctx.cwd, ctx.ui, config);
+                    ctx.ui.notify("Podman sandbox initialized", "info");
                     break;
                 }
                 default: {
