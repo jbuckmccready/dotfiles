@@ -16,8 +16,6 @@ return {
                 -- Delimiter inserted between LSP names:
                 separator = "|",
             },
-            -- List of LSP names to ignore (e.g., `null-ls`):
-            ignore_lsp = { "copilot" },
         }
 
         return {

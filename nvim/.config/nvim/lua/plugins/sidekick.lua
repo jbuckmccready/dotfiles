@@ -3,41 +3,6 @@ return {
     event = "VeryLazy",
     keys = {
         {
-            "<leader>at",
-            function()
-                require("sidekick.nes").toggle()
-            end,
-            desc = "Toggle Edit Suggestions",
-        },
-        {
-            "<leader>au",
-            function()
-                require("sidekick.nes").update()
-            end,
-            desc = "Update Next Edit Suggestion",
-        },
-        {
-            "<tab>",
-            function()
-                if require("sidekick").nes_jump_or_apply() then
-                    return ""
-                end
-
-                if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
-                    local suggestion = require("copilot.suggestion")
-                    if suggestion.is_visible() then
-                        suggestion.accept()
-                        return ""
-                    end
-                end
-
-                return "<Tab>"
-            end,
-            expr = true,
-            mode = { "i", "n" },
-            desc = "Accept Sidekick NES or Copilot suggestion",
-        },
-        {
             "<leader>as",
             function()
                 local cli = require("sidekick.cli")
@@ -137,7 +102,7 @@ return {
     },
     opts = {
         nes = {
-            enabled = true,
+            enabled = false,
         },
         cli = {
             watch = true, -- watch for file changes in CLI

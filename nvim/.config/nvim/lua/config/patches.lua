@@ -10,17 +10,6 @@ function vim.lsp.protocol.make_client_capabilities()
         caps.workspace.didChangeWatchedFiles = nil
     end
 
-    -- HACK:
-    -- Setup capabilities to support utf-16, since copilot.vim only works with utf-16
-    -- this is a workaround to the limitations of copilot language server
-    -- Related issue: https://github.com/neovim/nvim-lspconfig/issues/2184
-    caps = vim.tbl_deep_extend("force", caps, {
-        offsetEncoding = { "utf-16" },
-        general = {
-            positionEncodings = { "utf-16" },
-        },
-    })
-
     return caps
 end
 

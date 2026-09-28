@@ -8,7 +8,6 @@ return {
             integrations = {
                 blink_cmp = true,
                 diffview = true,
-                copilot_vim = true,
                 mason = true,
                 nvim_surround = true,
                 snacks = {
