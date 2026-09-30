@@ -6,7 +6,7 @@ import {
     type AgentToolUpdateCallback,
     type BashToolDetails,
     type BashToolInput,
-    type ExtensionContext,
+    type ExtensionToolContext,
     type Theme,
     type ToolRenderResultOptions,
 } from "@earendil-works/pi-coding-agent";
@@ -86,7 +86,7 @@ export function createBashOverride(sandbox: SandboxAPI) {
             onUpdate:
                 | AgentToolUpdateCallback<BashToolDetails | undefined>
                 | undefined,
-            ctx: ExtensionContext,
+            ctx: ExtensionToolContext,
         ): Promise<AgentToolResult<BashToolDetails | undefined>> {
             const localCwd = process.cwd();
             const translatedOnUpdate = onUpdate

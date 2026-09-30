@@ -2,7 +2,7 @@ import {
     createWriteToolDefinition,
     type AgentToolResult,
     type AgentToolUpdateCallback,
-    type ExtensionContext,
+    type ExtensionToolContext,
     type Theme,
     type WriteToolInput,
 } from "@earendil-works/pi-coding-agent";
@@ -52,7 +52,7 @@ export function createWriteOverride(sandbox: SandboxAPI) {
             params: WriteToolInput,
             signal: AbortSignal | undefined,
             onUpdate: AgentToolUpdateCallback<undefined> | undefined,
-            ctx: ExtensionContext,
+            ctx: ExtensionToolContext,
         ): Promise<AgentToolResult<undefined>> {
             return createWriteToolDefinition(sandbox.translatePath(ctx.cwd), {
                 operations: sandbox.getOps().write,
