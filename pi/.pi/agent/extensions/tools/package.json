@@ -9,7 +9,7 @@
         ]
     },
     "dependencies": {
-        "@anthropic-ai/sandbox-runtime": "^0.0.50",
+        "@anthropic-ai/sandbox-runtime": "^0.0.78",
         "@earendil-works/gondolin": "^0.12.0",
         "glob": "^13.0.6",
         "strip-ansi": "^7.2.0"
